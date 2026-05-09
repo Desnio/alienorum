@@ -1,0 +1,25 @@
+
+#ifndef _Color
+#define _Color
+
+struct RGB
+{
+    char r = 0;
+    char g = 0;
+    char b = 0;
+};
+
+class Color
+{
+    public:
+    double red = 0;
+    double green = 0;
+    double blue = 0;
+
+    static Color color_from_magnitude_indices(double Vmag, double BV);
+    static Color color_from_magnitude_indices(double Vmag, double BV, double VR);
+    static RGB rgb_from_color(Color c, double bloom_radius = 0);                    // Bloom radius = distance in pixels from center.
+    static RGB disc_rgb_from_color(Color c, double disc_radius = 1);                // Disc radius = size in pixels of disk drawn on screen.
+};
+
+#endif
