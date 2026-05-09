@@ -5,6 +5,8 @@ ImGui is copyright (C) 2014-2026 Omar Cornut,
 used with modifications pursuant to the MIT License.
 See the imgui/ folder for the ImGui license.
 
+The following license applies to all Alienorum code that is not ImGui:
+
                    GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 
