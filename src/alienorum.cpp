@@ -26,6 +26,13 @@ int main (int argc, char** argv)
     double spin = -0.01*fiftyseventh;
     int i;
 
+    // TODO: Read data from a star catalog.
+    // Catalogs are available from the following links:
+    // Bright Star Catalog: https://cdsarc.cds.unistra.fr/viz-bin/cat/V/50#/browse
+    // Hipparcos catalog: https://cdsarc.cds.unistra.fr/viz-bin/cat/I/239#/browse
+    // 2MASS: https://cdsarc.cds.unistra.fr/viz-bin/cat/II/246#/browse
+    // Gliese: https://cdsarc.cds.unistra.fr/viz-bin/cat/V/70A#/browse
+    // Full list: https://vizier.cds.unistra.fr/vizier/cats/U.htx
     for (i=0; i<5381; i++)
     {
         cels[i].type = star;
