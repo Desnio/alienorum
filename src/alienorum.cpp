@@ -62,6 +62,7 @@ int main (int argc, char** argv)
     // Gliese: https://cdsarc.cds.unistra.fr/viz-bin/cat/V/70A#/browse
     // Full list: https://vizier.cds.unistra.fr/vizier/cats/U.htx
     CatalogReader cr;
+    cr.download_catalogs();
     std::vector<std::string> cats = cr.find_catalogs("catalogs");
 
     for (i=0; i<cats.size(); i++)

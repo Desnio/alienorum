@@ -12,6 +12,7 @@ class CatalogReader
 {
     public:
     std::vector<std::string>find_catalogs(std::string path);
+    void download_catalogs();
     int read_Gliese_catalog(CelestialObject* cels, int max);
     int read_BrightStars_catalog(CelestialObject* cels, int max);
     int read_Hipparcos_catalog(CelestialObject* cels, int max);
