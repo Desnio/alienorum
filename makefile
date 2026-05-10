@@ -9,7 +9,7 @@
 #
 
 CPP = g++
-CPPFLAGS = -std=c++14 -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends -g -Wall -Wformat
+CPPFLAGS = -std=c++17 -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends -g -Wall -Wformat
 
 # Debug mode
 # CPPFLAGS += -g
@@ -18,11 +18,14 @@ IMGUI_DIR = src/imgui
 CLASSES_DIR = src/classes
 IMGUI_SRC = $(IMGUI_DIR)/imgui.cpp $(IMGUI_DIR)/imgui_demo.cpp $(IMGUI_DIR)/imgui_draw.cpp $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui_widgets.cpp \
 		    $(IMGUI_DIR)/backends/imgui_impl_sdl2.cpp $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
-CLASSES_SRC = $(CLASSES_DIR)/point.cpp
+CLASSES_SRC = $(CLASSES_DIR)/point.cpp $(CLASSES_DIR)/cat.cpp
 BIN = bin
+OBJ = obj
 UNAME_S := $(shell uname -s)
 LIBS =
 LINUX_GL_LIBS = -lGL
+OBJS = $(addsuffix .o, $(addprefix $(OBJ)/, $(basename $(notdir $(IMGUI_SRC)))))
+OBJS += $(addsuffix .o, $(addprefix $(OBJ)/, $(basename $(notdir $(CLASSES_SRC)))))
 
 # Platform-specific stuff for ImGui:
 ifeq ($(UNAME_S), Linux) #LINUX
@@ -51,12 +54,31 @@ ifeq ($(OS), Windows_NT)
     CFLAGS = $(CPPFLAGS)
 endif
 
-all: $(BIN) alienorum
+all: $(BIN) $(OBJ) objs apps
 
 $(BIN):
 	if [ ! -f $(BIN) ]; then mkdir -p $(BIN); fi
 
+$(OBJ):
+	if [ ! -f $(OBJ) ]; then mkdir -p $(OBJ); fi
+
+apps: alienorum
+
+objs: $(OBJS)
+
 alienorum: $(BIN)/alienorum
 
-$(BIN)/alienorum: src/alienorum.cpp $(IMGUI_SRC) $(CLASSES_SRC)
-	$(CPP) src/alienorum.cpp $(IMGUI_SRC) $(CLASSES_SRC) -o $(BIN)/alienorum $(CPPFLAGS) $(LIBS)
+%.o:$(IMGUI_DIR)/%.cpp
+	$(CPP) $(CPPFLAGS) -c -o $(OBJ)/$@ $<
+
+%.o:$(IMGUI_DIR)/backends/%.cpp
+	$(CPP) $(CPPFLAGS) -c -o $(OBJ)/$@ $<
+
+$(OBJ)/cat.o:$(CLASSES_DIR)/cat.cpp
+	$(CPP) $(CLASSES_DIR)/cat.cpp $(CPPFLAGS) -c -o $(OBJ)/cat.o
+
+$(OBJ)/point.o:$(CLASSES_DIR)/point.cpp
+	$(CPP) $(CLASSES_DIR)/point.cpp $(CPPFLAGS) -c -o $(OBJ)/point.o
+
+$(BIN)/alienorum: src/alienorum.cpp $(OBJS)
+	$(CPP) src/alienorum.cpp $(OBJ)/*.o -o $(BIN)/alienorum $(CPPFLAGS) $(LIBS)

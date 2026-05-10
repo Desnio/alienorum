@@ -1,5 +1,6 @@
 
 #include <iostream>
+#include <filesystem>
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_sdl2.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
@@ -9,7 +10,11 @@
 #ifdef _WIN32
 #include <windows.h>        // SetProcessDPIAware()
 #endif
+#include "classes/color.h"
+#include "classes/galaxy.h"
 #include "classes/star.h"
+#include "classes/planet.h"
+#include "classes/cat.h"
 
 // Learn more about ImGui here: https://github.com/ocornut/imgui/blob/master/docs/FAQ.md
 
@@ -26,6 +31,29 @@ int main (int argc, char** argv)
     double spin = -0.01*fiftyseventh;
     int i;
 
+    std::filesystem::path p = "catalogs";
+    bool catalogs_found = false;
+    try
+    {
+        while (!std::filesystem::exists(p))
+        {
+            std::filesystem::path up = "..";
+            std::filesystem::current_path(up);
+            if (strlen(std::filesystem::current_path().c_str()) < 5) break;
+        }
+        if (std::filesystem::exists(p)) catalogs_found = true;
+    }
+    catch (const std::filesystem::filesystem_error& e)
+    {
+        std::cerr << "Error: " << e.what() << endl;
+        return -1;
+    }
+    if (!catalogs_found)
+    {
+        std::cerr << "No star catalogs found. Ensure the catalogs folder exists, contains data, and that the files are readable." << endl;
+        return -1;
+    }
+
     // TODO: Read data from a star catalog.
     // Catalogs are available from the following links:
     // Bright Star Catalog: https://cdsarc.cds.unistra.fr/viz-bin/cat/V/50#/browse
@@ -33,6 +61,15 @@ int main (int argc, char** argv)
     // 2MASS: https://cdsarc.cds.unistra.fr/viz-bin/cat/II/246#/browse
     // Gliese: https://cdsarc.cds.unistra.fr/viz-bin/cat/V/70A#/browse
     // Full list: https://vizier.cds.unistra.fr/vizier/cats/U.htx
+    CatalogReader cr;
+    std::vector<std::string> cats = cr.find_catalogs("catalogs");
+
+    for (i=0; i<cats.size(); i++)
+    {
+        cout << "Found " << cats[i] << endl;
+    }
+    return 0;
+
     for (i=0; i<5381; i++)
     {
         cels[i].type = star;
@@ -155,7 +192,7 @@ int main (int argc, char** argv)
     //IM_ASSERT(font != nullptr);
 
     // Our state
-    ImVec4 background = ImVec4(0.0f, 0.02f, 0.05f, 1.00f);
+    ImVec4 background = ImVec4(0.0f, 0.0f, 0.0f, 1.00f);
 
     // Main loop
     bool done = false;
