@@ -12,7 +12,7 @@ CPP = g++
 CPPFLAGS = -std=c++14 -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends -g -Wall -Wformat
 IMGUI_DIR = src/imgui
 IMGUI_SRC = $(IMGUI_DIR)/imgui.cpp $(IMGUI_DIR)/imgui_demo.cpp $(IMGUI_DIR)/imgui_draw.cpp $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui_widgets.cpp \
-		  + $(IMGUI_DIR)/backends/imgui_impl_sdl2.cpp $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
+		    $(IMGUI_DIR)/backends/imgui_impl_sdl2.cpp $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
 BIN = bin
 UNAME_S := $(shell uname -s)
 LIBS =
@@ -53,4 +53,4 @@ $(BIN):
 alienorum: $(BIN)/alienorum
 
 $(BIN)/alienorum: src/alienorum.cpp
-	$(CPP) src/alienorum.cpp -o $(BIN)/alienorum $(CPPFLAGS) $(LIBS)
+	$(CPP) src/alienorum.cpp $(IMGUI_SRC) -o $(BIN)/alienorum $(CPPFLAGS) $(LIBS)
