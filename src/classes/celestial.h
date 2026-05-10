@@ -51,6 +51,7 @@ class CelestialObject
 
     cel_obj_type type = star;
 
+    CelestialObject() {};
     CelestialLocation location;
     Orbit* orbit = nullptr;                     // Most stars won't have an orbit, unless we get into stellar orbital mechanics.
     void update_location(double epoch);         // Only applicable if we have an orbit; otherwise just return.

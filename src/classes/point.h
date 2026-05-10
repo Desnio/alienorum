@@ -2,6 +2,8 @@
 #ifndef _Point
 #define _Point
 
+#define light_year 9460730472580800
+#define pasec 3.08567758128E+16
 #define AU 149597870700.0
 #define speed_of_light 299792458.0
 #define earth_mass 5.972e+27
@@ -10,6 +12,23 @@
 #define earth_radius 6.371e+6
 #define jupiter_radius 6.9886e+7
 #define solar_radius 6.95700e+8
+#define fiftyseven (180.0/M_PI)
+#define fiftyseventh (M_PI/180)
+
+#define its_behind_you 0xbe419d10
+
+class Point;
+class CelestialLocation;
+
+class Cartesian2D
+{
+    public:
+    double x = 0;
+    double y = 0;
+
+    Cartesian2D() {};
+    Cartesian2D(Point, double azimuth = 0, double altitude = 0, double zoom = 1.0);
+};
 
 class Point
 {
@@ -17,6 +36,17 @@ class Point
     double x = 0;
     double y = 0;
     double z = 0;
+
+    Point() {};
+    Point(double x, double y, double z);
+    Point(CelestialLocation& cel);
+    Point operator+(Point other);
+    Point& operator+=(Point other);
+    Point operator-(Point other);
+    Point& operator-=(Point other);
+    double distance_to(Point other);
+    double magnitude() const;
+    void scale(double new_magn);
 };
 
 // We cannot simply use 3 dimensional x,y,z coordinates to plot celestial objects in space.
@@ -37,9 +67,25 @@ class CelestialLocation
     public:
     Point system_center;
     Point local_position;
-
-    double distance_to(CelestialLocation other);
+    double distance_to(CelestialLocation& other);
 };
+
+struct Rotation
+{
+    Point v;
+    double a=0;
+    Rotation()
+    {
+        a = 0;
+    };
+};
+
+double frand(double lmin, double lmax);
+Point compute_normal(Point& pt1, Point& pt2, Point& pt3);
+double find_angle(double dx, double dy);
+double find_angle_along_vector(Point& pt1, Point& pt2, Point& source, Point& v);
+Rotation align_points_3d(Point& point, Point& align, Point& center);
+Point rotate3D(Point& point, Point& source, Point& axis, double theta);
 
 // Takes velocity in m/s and computes the ratio of Δt(moving)/Δt(stationary). The result will always be <= 1.
 double compute_time_dilation(double velocity);

@@ -9,14 +9,30 @@
 #ifdef _WIN32
 #include <windows.h>        // SetProcessDPIAware()
 #endif
+#include "classes/star.h"
 
 // Learn more about ImGui here: https://github.com/ocornut/imgui/blob/master/docs/FAQ.md
 
 using namespace std;
-#define MAX_POINT_LIGHTS 1000
+#define MAX_CELOBJS 262144
 
 int main (int argc, char** argv)
 {
+    CelestialObject *cels = new CelestialObject[MAX_CELOBJS];
+    int ncelobjs = 0;
+    CelestialLocation here;
+    Point velocity;
+    double azimuth = 0;
+    double spin = -0.01*fiftyseventh;
+    int i;
+
+    for (i=0; i<5381; i++)
+    {
+        cels[i].type = star;
+        cels[i].location.local_position = Point(frand(-MAX_CELOBJS, MAX_CELOBJS), frand(-MAX_CELOBJS, MAX_CELOBJS), frand(-MAX_CELOBJS, MAX_CELOBJS));
+    }
+    ncelobjs = i;
+
     //////////////////////////////////////////////////
     // Begin ImGui-specific setup code              //
     // This section is subject to the same license  //
@@ -178,11 +194,30 @@ int main (int argc, char** argv)
         }
 
         // TODO:
-        int i;
-        for (i=0; i<100; i++)
+        int dispcx = (int)io.DisplaySize.x/2, dispcy = (int)io.DisplaySize.y / 2;
+        for (i=0; i<ncelobjs && i<MAX_CELOBJS; i++)
         {
-            ImVec2 xycoord = ImVec2(rand()%(int)io.DisplaySize.x, rand()%(int)io.DisplaySize.y);
-            ImGui::GetBackgroundDrawList()->AddCircleFilled(xycoord, 2, IM_COL32(255, 255, 255, 200), 0);
+            Point rel = cels[i].location;
+            rel -= here;
+            try
+            {
+                Cartesian2D cart(rel, azimuth, 0, 1);
+                ImVec2 xycoord = ImVec2(dispcx + cart.x * dispcx, dispcy + -cart.y * dispcx);
+                ImGui::GetBackgroundDrawList()->AddCircleFilled(xycoord, 2, IM_COL32(255, 255, 255, 200), 0);
+            }
+            catch (...)
+            {
+                // Object is behind the camera.
+                ;
+            }
+        }
+        here.local_position += velocity;
+        azimuth += spin;
+
+        if (spin && frand(0,1) < 0.001)
+        {
+            velocity = Point(0,0,100);
+            spin = 0;
         }
 
         // More code copied from the ImGui example:
@@ -196,5 +231,6 @@ int main (int argc, char** argv)
 
     }
 
+    delete[] cels;
     return 0;
 }
