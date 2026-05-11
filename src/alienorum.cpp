@@ -4,6 +4,8 @@
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_sdl2.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
+#include <thread>
+#include <chrono>
 #include <stdio.h>
 #include <SDL.h>
 #include <SDL_opengl.h>
@@ -282,18 +284,18 @@ int main (int argc, char** argv)
 
         if (io.MouseDown)
         {
-            if (ImGui::IsMouseDown(0))
+            if (ImGui::IsMouseDown(2))
             {
-                azimuth -= 0.1 * fiftyseventh * io.MouseDelta.x / zoom;
-                altitude += 0.1 * fiftyseventh * io.MouseDelta.y / zoom;
+                azimuth -= 0.01 * fiftyseventh * io.MouseDelta.x / zoom;
+                altitude += 0.01 * fiftyseventh * io.MouseDelta.y / zoom;
                 if (altitude >  M_PI/2) altitude =  M_PI/2;
                 if (altitude < -M_PI/2) altitude = -M_PI/2;
                 spin = 0;
 
                 ImVec2 topcen(dispcx, 0), botcen(dispcx, (int)io.DisplaySize.y-1),
                     leftcen(0, dispcy), rightcen((int)io.DisplaySize.x-1, dispcy);
-                ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, IM_COL32(255, 0, 0, 64), 1);
-                ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, IM_COL32(255, 0, 0, 64), 1);
+                ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, IM_COL32(0, 0, 255, 96), 1);
+                ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, IM_COL32(0, 0, 255, 96), 1);
             }
             else if (ImGui::IsMouseDown(1))
             {
@@ -305,21 +307,21 @@ int main (int argc, char** argv)
 
                 ImVec2 topcen(dispcx, 0), botcen(dispcx, (int)io.DisplaySize.y-1),
                     leftcen(0, dispcy), rightcen((int)io.DisplaySize.x-1, dispcy);
-                ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, IM_COL32(0, 255, 0, 64), 1);
-                ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, IM_COL32(0, 255, 0, 64), 1);
+                ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, IM_COL32(0, 255, 0, 40), 1);
+                ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, IM_COL32(0, 255, 0, 40), 1);
             }
-            else if (ImGui::IsMouseDown(2))
+            else if (ImGui::IsMouseDown(0))
             {
-                azimuth -= 0.01 * fiftyseventh * io.MouseDelta.x / zoom;
-                altitude += 0.01 * fiftyseventh * io.MouseDelta.y / zoom;
+                azimuth -= 0.1 * fiftyseventh * io.MouseDelta.x / zoom;
+                altitude += 0.1 * fiftyseventh * io.MouseDelta.y / zoom;
                 if (altitude >  M_PI/2) altitude =  M_PI/2;
                 if (altitude < -M_PI/2) altitude = -M_PI/2;
                 spin = 0;
 
                 ImVec2 topcen(dispcx, 0), botcen(dispcx, (int)io.DisplaySize.y-1),
                     leftcen(0, dispcy), rightcen((int)io.DisplaySize.x-1, dispcy);
-                ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, IM_COL32(0, 0, 255, 64), 1);
-                ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, IM_COL32(0, 0, 255, 64), 1);
+                ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, IM_COL32(255, 0, 0, 64), 1);
+                ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, IM_COL32(255, 0, 0, 64), 1);
             }
         }
 
@@ -391,6 +393,7 @@ int main (int argc, char** argv)
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         SDL_GL_SwapWindow(window);
 
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
     for (i=0; cels[i]; i++) delete cels[i];
