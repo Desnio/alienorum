@@ -33,6 +33,7 @@ int main (int argc, char** argv)
     double spin = 0;
     int i, j;
     double gamma = 1.8;
+    double zoom = 1;
 
     std::filesystem::path p = "catalogs";
     bool catalogs_found = false;
@@ -257,7 +258,7 @@ int main (int argc, char** argv)
             rel -= here;
             try
             {
-                Cartesian2D cart(rel, azimuth, altitude, 1);
+                Cartesian2D cart(rel, azimuth, altitude, zoom);
                 ImVec2 xycoord = ImVec2((int)(dispcx + cart.x * dispcx), (int)(dispcy + cart.y * dispcx));
                 float appmag = s->viewer_magnitude(here);
                 float magrad = (6.0 - appmag)*1.5;
@@ -266,7 +267,7 @@ int main (int argc, char** argv)
                 {
                     Color col = Color::color_from_magnitude_indices(appmag, s->BV_magnitude);
                     RGB rgb = Color::rgb_from_color(col, j);
-                    ImGui::GetBackgroundDrawList()->AddCircleFilled(xycoord, 0.7+0.8*j, IM_COL32(rgb.r, rgb.g, rgb.b, 200), 0);
+                    ImGui::GetBackgroundDrawList()->AddCircleFilled(xycoord, 0.7+0.8*j, IM_COL32(rgb.r, rgb.g, rgb.b, 255), 0);
                 }
             }
             catch (...)
@@ -279,11 +280,58 @@ int main (int argc, char** argv)
         here.local_position += velocity;
         azimuth += spin;
 
-        if (io.MouseDown && ImGui::IsMouseDown(0))
+        if (io.MouseDown)
         {
-            azimuth -= 0.1 * fiftyseventh * io.MouseDelta.x;
-            altitude += 0.1 * fiftyseventh * io.MouseDelta.y;
-            spin = 0;
+            if (ImGui::IsMouseDown(0))
+            {
+                azimuth -= 0.1 * fiftyseventh * io.MouseDelta.x / zoom;
+                altitude += 0.1 * fiftyseventh * io.MouseDelta.y / zoom;
+                if (altitude >  M_PI/2) altitude =  M_PI/2;
+                if (altitude < -M_PI/2) altitude = -M_PI/2;
+                spin = 0;
+
+                ImVec2 topcen(dispcx, 0), botcen(dispcx, (int)io.DisplaySize.y-1),
+                    leftcen(0, dispcy), rightcen((int)io.DisplaySize.x-1, dispcy);
+                ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, IM_COL32(255, 0, 0, 64), 1);
+                ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, IM_COL32(255, 0, 0, 64), 1);
+            }
+            else if (ImGui::IsMouseDown(1))
+            {
+                azimuth -= 0.03 * fiftyseventh * io.MouseDelta.x / zoom;
+                altitude += 0.03 * fiftyseventh * io.MouseDelta.y / zoom;
+                if (altitude >  M_PI/2) altitude =  M_PI/2;
+                if (altitude < -M_PI/2) altitude = -M_PI/2;
+                spin = 0;
+
+                ImVec2 topcen(dispcx, 0), botcen(dispcx, (int)io.DisplaySize.y-1),
+                    leftcen(0, dispcy), rightcen((int)io.DisplaySize.x-1, dispcy);
+                ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, IM_COL32(0, 255, 0, 64), 1);
+                ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, IM_COL32(0, 255, 0, 64), 1);
+            }
+            else if (ImGui::IsMouseDown(2))
+            {
+                azimuth -= 0.01 * fiftyseventh * io.MouseDelta.x / zoom;
+                altitude += 0.01 * fiftyseventh * io.MouseDelta.y / zoom;
+                if (altitude >  M_PI/2) altitude =  M_PI/2;
+                if (altitude < -M_PI/2) altitude = -M_PI/2;
+                spin = 0;
+
+                ImVec2 topcen(dispcx, 0), botcen(dispcx, (int)io.DisplaySize.y-1),
+                    leftcen(0, dispcy), rightcen((int)io.DisplaySize.x-1, dispcy);
+                ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, IM_COL32(0, 0, 255, 64), 1);
+                ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, IM_COL32(0, 0, 255, 64), 1);
+            }
+        }
+
+        if (io.MouseWheel > 0)
+        {
+            zoom *= 1.1;
+            global_brightness *= 1.1;
+        }
+        else if (io.MouseWheel < 0 && zoom > 1)
+        {
+            zoom *= 0.9;
+            global_brightness *= 0.9;
         }
 
         for (int i = 0; i < io.InputQueueCharacters.Size; i++)
