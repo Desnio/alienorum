@@ -178,9 +178,11 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
         s->right_ascension = (deg + mnt/60 + sec/3600) * fiftyseventh;
 
         //       84  A1     ---     DE-      ?Sign Dec, equinox J2000, epoch 2000.0 (1)
+        read_field_onebased(buffer, 84, 84, field);
+        int sgndecl = (field[0] == '-') ? -1 : 1;
+
         //   85- 86  I2     deg     DEd      ?Degrees Dec, equinox J2000, epoch 2000.0 (1)
-        read_field_onebased(buffer, 84, 86, field);
-        if (field[0] == '+') field[0] = '0';
+        read_field_onebased(buffer, 85, 86, field);
         deg = atof(field);
 
         //   87- 88  I2     arcmin  DEm      ?Minutes Dec, equinox J2000, epoch 2000.0 (1)
@@ -191,7 +193,8 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
         read_field_onebased(buffer, 89, 90, field);
         sec = atof(field);
 
-        s->declination = (deg + mnt/60 + sec/3600) * fiftyseventh;
+        s->declination = (deg + mnt/60 + sec/3600) * fiftyseventh * sgndecl;
+        if (!s->right_ascension && !s->declination) continue;
         s->epoch = 2451544.5;
 
         //  103-107  F5.2   mag     Vmag     ?Visual magnitude (1)
@@ -236,6 +239,11 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
         s->radial_velocity = atof(field) * 1000;
 
         // Estimate some more parameters based on the data.
+        if (!s->name.size())
+        {
+            if (s->HD) s->name = (std::string)"HD" + std::to_string(s->HD);
+        }
+
         s->VR_magnitude = (s->RI_magnitude + s->BV_magnitude*2) / 3;      // VERY rough estimate
         double intrinsic_brightness = pow(magnbase, -s->apparent_magnitude) * pow(fmax(AU, s->distance) / parsec / 10, 2);
         s->absolute_magnitude = -log(intrinsic_brightness) / log(magnbase);

@@ -54,12 +54,17 @@ class CelestialObject
     cel_obj_type type = star;
     std::string name;
 
+    int drawnx=0, drawny=0;
+
     CelestialObject() {};
     CelestialLocation location;
     Orbit* orbit = nullptr;                     // Most stars won't have an orbit, unless we get into stellar orbital mechanics.
     void update_location(double epoch);         // Only applicable if we have an orbit; otherwise just return.
 
     double viewer_magnitude(CelestialLocation seen_from);
+    std::string RA_as_hms();
+    std::string Decl_as_degms();
+    std::string scaled_distance(CelestialLocation fromwhere);
 };
 
 

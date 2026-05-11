@@ -4,6 +4,7 @@
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_sdl2.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
+#include <algorithm> 
 #include <thread>
 #include <chrono>
 #include <stdio.h>
@@ -36,6 +37,12 @@ int main (int argc, char** argv)
     int i, j;
     double gamma = 1.8;
     double zoom = 1;
+    int cursor_size = 10, circle_size = 3;
+    ImU32 cursor_color = IM_COL32(255, 32, 0, 255);
+    bool is_an_obj_under_cursor;
+    std::string objname, objinfo;
+    bool is_mouse_over_window;
+    int tsatwnd_hei = 0;
 
     std::filesystem::path p = "catalogs";
     bool catalogs_found = false;
@@ -209,9 +216,12 @@ int main (int argc, char** argv)
 
     // Main loop
     bool done = false;
-    bool alienwnd = false;
+    bool tsatwnd = true;
+    bool frist = true;
     while (!done)
     {
+        if (!is_mouse_over_window) SDL_ShowCursor(SDL_DISABLE);
+
         // Poll and handle events (inputs, window resize, etc.)
         // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if imgui wants to use your inputs.
         // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
@@ -241,16 +251,8 @@ int main (int argc, char** argv)
         // End ImGui-specific setup code                //
         //////////////////////////////////////////////////
 
-        if (alienwnd)
-        {
-            ImGui::Begin("Greetings", &alienwnd);
-            ImGui::Text("Hello from another world!");
-            if (ImGui::Button("Close Me"))
-                alienwnd = false;
-            ImGui::End();
-        }
+        if (!is_mouse_over_window) SDL_ShowCursor(SDL_DISABLE);
 
-        // TODO:
         int dispcx = (int)io.DisplaySize.x/2, dispcy = (int)io.DisplaySize.y / 2;
         for (i=0; cels[i] && i<MAX_CELOBJS; i++)
         {
@@ -261,7 +263,12 @@ int main (int argc, char** argv)
             try
             {
                 Cartesian2D cart(rel, azimuth, altitude, zoom);
-                ImVec2 xycoord = ImVec2((int)(dispcx + cart.x * dispcx), (int)(dispcy + cart.y * dispcx));
+                int dx = (int)(dispcx + cart.x * dispcx), dy = (int)(dispcy + cart.y * dispcx);
+                cels[i]->drawnx = dx;
+                cels[i]->drawny = dy;
+                if (dx < 0 or dx >= io.DisplaySize.x) continue;
+                if (dy < 0 or dy >= io.DisplaySize.y) continue;
+                ImVec2 xycoord = ImVec2(dx, dy);
                 float appmag = s->viewer_magnitude(here);
                 float magrad = (6.0 - appmag)*1.5;
                 if (magrad < 1) magrad = 1;
@@ -279,10 +286,90 @@ int main (int argc, char** argv)
             }
         }
 
+        // Custom mouse cursor.
+        if (!is_mouse_over_window)
+        {
+            cursor_size = (int)io.DisplaySize.x/93;
+            circle_size = cursor_size / 3;
+
+            ImGui::GetBackgroundDrawList()->AddLine(
+                ImVec2(io.MousePos.x, io.MousePos.y - cursor_size),
+                ImVec2(io.MousePos.x, io.MousePos.y - circle_size - 1),
+                cursor_color, 1);
+            ImGui::GetBackgroundDrawList()->AddLine(
+                ImVec2(io.MousePos.x, io.MousePos.y + cursor_size + 1),
+                ImVec2(io.MousePos.x, io.MousePos.y + circle_size + 2),
+                cursor_color, 1);
+            ImGui::GetBackgroundDrawList()->AddLine(
+                ImVec2(io.MousePos.x - cursor_size, io.MousePos.y),
+                ImVec2(io.MousePos.x - circle_size - 1, io.MousePos.y),
+                cursor_color, 1);
+            ImGui::GetBackgroundDrawList()->AddLine(
+                ImVec2(io.MousePos.x + cursor_size + 1, io.MousePos.y),
+                ImVec2(io.MousePos.x + circle_size + 2, io.MousePos.y),
+                cursor_color, 1);
+            ImGui::GetBackgroundDrawList()->AddCircle(
+                ImVec2(io.MousePos.x, io.MousePos.y),
+                circle_size, cursor_color, 8, 1);
+
+            // Object under cursor
+            is_an_obj_under_cursor = false;
+            for (i=0; cels[i] && i<MAX_CELOBJS; i++)
+            {
+                if (abs(cels[i]->drawnx - io.MousePos.x) < circle_size
+                    &&
+                    abs(cels[i]->drawny - io.MousePos.y) < circle_size
+                    )
+                {
+                    is_an_obj_under_cursor = true;
+                    // TODO: prioritize by brightness.
+                    objname = cels[i]->name;
+                    objinfo = (std::string)"RA: " + cels[i]->RA_as_hms() + (std::string)"\n"
+                            + (std::string)"Decl: " + cels[i]->Decl_as_degms() + (std::string)"\n"
+                            + (std::string)"Mag: " + std::to_string(cels[i]->viewer_magnitude(here)) + (std::string)"\n"
+                            + (std::string)"Dist: " + cels[i]->scaled_distance(here) + (std::string)"\n"
+                            ;
+                    if (cels[i]->type == star)
+                    {
+                        Star* s = (Star*)cels[i];
+                        objinfo += (std::string)"SpTyp: " + s->spectral_type + (std::string)"\n";
+                    }
+                    break;
+                }
+            }
+
+            if (!is_an_obj_under_cursor) objname = objinfo = "";
+        }
+
+        // Object under cursor info
+        is_mouse_over_window = false;
+        if (tsatwnd)
+        {
+            ImGui::Begin("Object", &tsatwnd);
+            ImGui::Text(objname.c_str());
+            ImGui::Text(objinfo.c_str());
+            /* if (ImGui::Button("Close Me"))
+                tsatwnd = false; */
+            int txtlines = std::count(objinfo.begin(), objinfo.end(), '\n') + 2;
+            float txtyscale = ImGui::GetTextLineHeightWithSpacing();
+            int tsattop = 18, tsatleft = (int)io.DisplaySize.x - 225, tsatwidth = 211, tsatheight = (int)txtlines*txtyscale;
+            if (tsatheight > tsatwnd_hei) tsatwnd_hei = tsatheight;
+            else tsatheight = tsatwnd_hei;
+            ImGui::SetWindowSize(ImVec2(tsatwidth, tsatheight));
+            ImGui::SetWindowPos(ImVec2(tsatleft, tsattop));
+            ImGui::End();
+
+            if (io.MousePos.x >= tsatleft && io.MousePos.y >= tsattop
+                && io.MousePos.x < tsatleft+tsatwidth && io.MousePos.y < tsattop+tsatheight)
+                is_mouse_over_window = true;
+        }
+
+        // Positioning updates
         here.local_position += velocity;
         azimuth += spin;
 
-        if (io.MouseDown)
+        // Pan with crosshairs
+        if (io.MouseDown && !is_mouse_over_window)
         {
             if (ImGui::IsMouseDown(2))
             {
@@ -325,6 +412,7 @@ int main (int argc, char** argv)
             }
         }
 
+        // Scroll wheel to zoom
         if (io.MouseWheel > 0)
         {
             zoom *= 1.1;
@@ -336,6 +424,7 @@ int main (int argc, char** argv)
             global_brightness *= 0.9;
         }
 
+        // Keyboard commands
         for (int i = 0; i < io.InputQueueCharacters.Size; i++)
         {
             ImWchar c = io.InputQueueCharacters[i];
@@ -378,22 +467,21 @@ int main (int argc, char** argv)
             }
         }
 
-        if (spin && frand(0,1) < 0.001)
-        {
-            velocity = Point(0,0,light_year);
-            spin = 0;
-        }
-
         // More code copied from the ImGui example:
         // Rendering
         ImGui::Render();
+        if (!is_mouse_over_window) SDL_ShowCursor(SDL_DISABLE);
         glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
         glClearColor(background.x * background.w, background.y * background.w, background.z * background.w, background.w);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         SDL_GL_SwapWindow(window);
 
+        if (!is_mouse_over_window) SDL_ShowCursor(SDL_DISABLE);
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        if (!is_mouse_over_window) SDL_ShowCursor(SDL_DISABLE);
+
+        frist = false;
     }
 
     for (i=0; cels[i]; i++) delete cels[i];
