@@ -200,8 +200,8 @@ Zet Cep, Alp Cep
 ~Cet, Cetus
 Alp Cet, Lam Cet
 Lam Cet, Mu  Cet
-Mu  Cet, Xi2Cet
-Xi2Cet, Gam Cet
+Mu  Cet, Xi 2Cet
+Xi 2Cet, Gam Cet
 Gam Cet, Alp Cet
 Gam Cet, Del Cet
 Del Cet, Omi Cet
@@ -376,7 +376,6 @@ Mu  Gem, Eps Gem
 Eps Gem, Tau Gem
 Tau Gem, Rho Gem
 Tau Gem, Iot Gem
-Iot Gem, Del Gem
 Tau Gem, The Gem
 Rho Gem, Alp Gem
 ~Her, Hercules
@@ -494,13 +493,11 @@ Zet Lup, Alp Lup
 Del Lup, Phi1Lup
 Phi1Lup, Chi Lup
 Gam Lup, Eta Lup
-Eta Lup, The Lup
+Eta Lup, The Lup 
 ~Lyn, Lynx
 2   Lyn, 15  Lyn
 15  Lyn, 21  Lyn
 21  Lyn, 31  Lyn
-31  Lyn, HD76943
-HD76943, 38  Lyn
 31  Lyn, HD76943
 HD76943, 38  Lyn
 38  Lyn, Alp Lyn

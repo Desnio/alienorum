@@ -33,17 +33,20 @@ int main (int argc, char** argv)
     int nclonsln = 0;
 
     int ncelobjs = 0;
+    int selected = -1;
     CelestialLocation here;
     Point velocity;
     double azimuth = 0, altitude = 0;
     double spin = 0;
     int i, j, l, n;
     double gamma = 1.8;
-    double zoom = 1;
+    double zoom = 1, vm;
+    bool show_grid = true, show_consln = true;
     int cursor_size = 10, circle_size = 3;
     ImU32 cursor_color = IM_COL32(255, 32, 0, 255);
     ImU32 grid_color = IM_COL32(255, 0, 0, 96);
     ImU32 consline_color = IM_COL32(0, 128, 255, 128);
+    ImU32 selected_color = IM_COL32(0, 255, 96, 192);
     bool is_an_obj_under_cursor;
     double obj_magn_under_cursor;
     std::string objname, objinfo;
@@ -323,73 +326,76 @@ int main (int argc, char** argv)
         if (!is_mouse_over_window) SDL_ShowCursor(SDL_DISABLE);
         int dispcx = (int)io.DisplaySize.x/2, dispcy = (int)io.DisplaySize.y / 2;
 
-        Cartesian2D prev, zdes;
-        bool prev_valid = false;
-        // RA and Dec lines.
-        for (i=0; i<24; i++)
+        if (show_grid)
         {
-            prev_valid = false;
-            for (j=-80; j<=80; j+=10)
+            Cartesian2D prev, zdes;
+            bool prev_valid = false;
+            // RA and Dec lines.
+            for (i=0; i<24; i++)
             {
-                Point ihavetomove = Point::from_ra_dec(fiftyseventh * i * 15, fiftyseventh * j, 5);
-                try
+                prev_valid = false;
+                for (j=-80; j<=80; j+=10)
                 {
-                    zdes = Cartesian2D(ihavetomove, azimuth, altitude, zoom);
-                }
-                catch (...)
-                {
-                    prev_valid = false;
-                    continue;
-                }
+                    Point ihavetomove = Point::from_ra_dec(fiftyseventh * i * 15, fiftyseventh * j, 5);
+                    try
+                    {
+                        zdes = Cartesian2D(ihavetomove, azimuth, altitude, zoom);
+                    }
+                    catch (...)
+                    {
+                        prev_valid = false;
+                        continue;
+                    }
 
-                if (j > -80)
-                {
-                    int dx1 = dispcx + zdes.x * dispcx,
-                        dy1 = dispcy + zdes.y * dispcx,
-                        dx2 = dispcx + prev.x * dispcx,
-                        dy2 = dispcy + prev.y * dispcx;
+                    if (j > -80)
+                    {
+                        int dx1 = dispcx + zdes.x * dispcx,
+                            dy1 = dispcy + zdes.y * dispcx,
+                            dx2 = dispcx + prev.x * dispcx,
+                            dy2 = dispcy + prev.y * dispcx;
 
-                        if (prev_valid)
-                        ImGui::GetBackgroundDrawList()->AddLine(
-                            ImVec2(dx1, dy1), ImVec2(dx2, dy2),
-                            grid_color, 1);
+                            if (prev_valid)
+                            ImGui::GetBackgroundDrawList()->AddLine(
+                                ImVec2(dx1, dy1), ImVec2(dx2, dy2),
+                                grid_color, 1);
+                    }
+
+                    prev = zdes;
+                    prev_valid = true;
                 }
-
-                prev = zdes;
-                prev_valid = true;
             }
-        }
-        for (j=-80; j <= 80; j+=10)
-        {
-            prev_valid = false;
-            for (i=0; i<=24; i++)
+            for (j=-80; j <= 80; j+=10)
             {
-                Point ihavetomove = Point::from_ra_dec(fiftyseventh * i * 15, fiftyseventh * j, 5);
-                try
+                prev_valid = false;
+                for (i=0; i<=24; i++)
                 {
-                    zdes = Cartesian2D(ihavetomove, azimuth, altitude, zoom);
-                }
-                catch (...)
-                {
-                    prev_valid = false;
-                    continue;
-                }
+                    Point ihavetomove = Point::from_ra_dec(fiftyseventh * i * 15, fiftyseventh * j, 5);
+                    try
+                    {
+                        zdes = Cartesian2D(ihavetomove, azimuth, altitude, zoom);
+                    }
+                    catch (...)
+                    {
+                        prev_valid = false;
+                        continue;
+                    }
 
-                if (j > -80)
-                {
-                    int dx1 = dispcx + zdes.x * dispcx,
-                        dy1 = dispcy + zdes.y * dispcx,
-                        dx2 = dispcx + prev.x * dispcx,
-                        dy2 = dispcy + prev.y * dispcx;
+                    if (j > -80)
+                    {
+                        int dx1 = dispcx + zdes.x * dispcx,
+                            dy1 = dispcy + zdes.y * dispcx,
+                            dx2 = dispcx + prev.x * dispcx,
+                            dy2 = dispcy + prev.y * dispcx;
 
-                        if (prev_valid)
-                        ImGui::GetBackgroundDrawList()->AddLine(
-                            ImVec2(dx1, dy1), ImVec2(dx2, dy2),
-                            grid_color, 1);
+                            if (prev_valid)
+                            ImGui::GetBackgroundDrawList()->AddLine(
+                                ImVec2(dx1, dy1), ImVec2(dx2, dy2),
+                                grid_color, 1);
+                    }
+
+                    prev = zdes;
+                    prev_valid = true;
                 }
-
-                prev = zdes;
-                prev_valid = true;
             }
         }
 
@@ -417,25 +423,28 @@ int main (int argc, char** argv)
         }
 
         // Constellation lines
-        for (i=0; i<nclonsln; i++)
+        if (show_consln)
         {
-            int dx1, dx2, dy1, dy2;
+            for (i=0; i<nclonsln; i++)
+            {
+                int dx1, dx2, dy1, dy2;
 
-            if (consaidx[i] < 0 || consbidx[i] < 0) continue;
+                if (consaidx[i] < 0 || consbidx[i] < 0) continue;
 
-            dx1 = cels[consaidx[i]]->drawnx;
-            dy1 = cels[consaidx[i]]->drawny;
-            if (dx1 < -1e3) continue;
-            if (dy1 < -1e3) continue;
+                dx1 = cels[consaidx[i]]->drawnx;
+                dy1 = cels[consaidx[i]]->drawny;
+                if (dx1 < -1e3) continue;
+                if (dy1 < -1e3) continue;
 
-            dx2 = cels[consbidx[i]]->drawnx;
-            dy2 = cels[consbidx[i]]->drawny;
-            if (dx2 < -1e3) continue;
-            if (dy2 < -1e3) continue;
+                dx2 = cels[consbidx[i]]->drawnx;
+                dy2 = cels[consbidx[i]]->drawny;
+                if (dx2 < -1e3) continue;
+                if (dy2 < -1e3) continue;
 
-            ImGui::GetBackgroundDrawList()->AddLine(
-                ImVec2(dx1, dy1), ImVec2(dx2, dy2),
-                consline_color, 1);
+                ImGui::GetBackgroundDrawList()->AddLine(
+                    ImVec2(dx1, dy1), ImVec2(dx2, dy2),
+                    consline_color, 1);
+            }
         }
 
         // Draw objects.
@@ -475,6 +484,10 @@ int main (int argc, char** argv)
                     RGB rgb = Color::rgb_from_color(col, j);
                     ImGui::GetBackgroundDrawList()->AddCircleFilled(xycoord, 0.7+0.8*j, IM_COL32(rgb.r, rgb.g, rgb.b, 255), 0);
                 }
+                if (selected == i)
+                {
+                    ImGui::GetBackgroundDrawList()->AddCircle(xycoord, magrad+2, selected_color, 0, 2);
+                }
             }
         }
 
@@ -508,6 +521,7 @@ int main (int argc, char** argv)
             // Object under cursor
             is_an_obj_under_cursor = false;
             obj_magn_under_cursor = 1e9;
+            bool is_click = io.MouseReleased[0];
             for (i=0; cels[i] && i<MAX_CELOBJS; i++)
             {
                 if (abs(cels[i]->drawnx - io.MousePos.x) < circle_size
@@ -522,6 +536,7 @@ int main (int argc, char** argv)
                     if (lmag < obj_magn_under_cursor)
                     {
                         obj_magn_under_cursor = lmag;
+
                         objname = cels[i]->name;
                         objinfo = (std::string)"RA: " + cels[i]->RA_as_hms() + (std::string)"\n"
                                 + (std::string)"Decl: " + cels[i]->Decl_as_degms() + (std::string)"\n"
@@ -534,11 +549,17 @@ int main (int argc, char** argv)
                             Star* s = (Star*)cels[i];
                             objinfo += (std::string)"SpTyp: " + s->spectral_type + (std::string)"\n";
                         }
+
+                        if (is_click) selected = i;
                     }
                 }
             }
 
-            if (!is_an_obj_under_cursor) objname = objinfo = "";
+            if (!is_an_obj_under_cursor)
+            {
+                objname = objinfo = "";
+                if (is_click) selected = -1;
+            }
         }
 
         // Object under cursor info
@@ -637,12 +658,36 @@ int main (int argc, char** argv)
                 spin = 0;
                 break;
 
+                case 'c':
+                show_consln = !show_consln;
+                break;
+
+                case 'g':
+                show_grid = !show_grid;
+                break;
+
                 case '+':
-                velocity.scale(velocity.magnitude() * 1.5);
+                vm = velocity.magnitude();
+                if (vm) velocity.scale(vm * 1.5);
+                else
+                {
+                    velocity.x =  sin(azimuth) * cos(altitude) * 1000;
+                    velocity.z =  cos(azimuth) * cos(altitude) * 1000;
+                    velocity.y =  sin(altitude) * 1000;
+                }
                 break;
 
                 case '-':
-                velocity.scale(velocity.magnitude() * 0.666);
+                vm = velocity.magnitude();
+                velocity.scale(vm * 0.666);
+                break;
+
+                case 'x':
+                velocity = Point(0,0,0);
+                break;
+
+                case 'o':
+                if (selected >= 0) here = cels[selected]->location;
                 break;
 
                 case 'r':
@@ -651,12 +696,12 @@ int main (int argc, char** argv)
                 here.local_position = here.system_center = Point(0,0,0);
                 break;
 
-                case 'g':
+                case '`':
                 gamma += 0.2;
                 set_gamma(gamma);
                 break;
 
-                case 'G':
+                case '~':
                 gamma -= 0.2;
                 set_gamma(gamma);
                 break;

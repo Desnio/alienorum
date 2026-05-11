@@ -285,11 +285,7 @@ double CelestialLocation::distance_to(CelestialLocation &other)
     double system_distance = system_center.distance_to(other.system_center);
     double local_distance = local_position.distance_to(other.local_position);
 
-    if (system_distance > local_distance)
-    {
-        Point mine = system_center + local_position;
-        Point yours = other.system_center + other.local_position;
-        return mine.distance_to(yours);
-    }
-    else return system_distance + local_distance;
+    Point mine = system_center + local_position;
+    Point yours = other.system_center + other.local_position;
+    return mine.distance_to(yours);
 }
