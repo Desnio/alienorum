@@ -29,17 +29,21 @@ int main (int argc, char** argv)
     CelestialObject **cels = new CelestialObject*[MAX_CELOBJS];
     memset(cels, 0, MAX_CELOBJS*sizeof(CelestialObject*));
 
+    std::vector<std::string> consline_a, consline_b;
+    int nclonsln = 0;
+
     int ncelobjs = 0;
     CelestialLocation here;
     Point velocity;
     double azimuth = 0, altitude = 0;
     double spin = 0;
-    int i, j;
+    int i, j, l, n;
     double gamma = 1.8;
     double zoom = 1;
     int cursor_size = 10, circle_size = 3;
     ImU32 cursor_color = IM_COL32(255, 32, 0, 255);
     ImU32 grid_color = IM_COL32(255, 0, 0, 96);
+    ImU32 consline_color = IM_COL32(0, 128, 255, 128);
     bool is_an_obj_under_cursor;
     double obj_magn_under_cursor;
     std::string objname, objinfo;
@@ -71,13 +75,39 @@ int main (int argc, char** argv)
         return -1;
     }
 
-    // TODO: Read data from a star catalog.
-    // Catalogs are available from the following links:
-    // Bright Star Catalog: https://cdsarc.cds.unistra.fr/viz-bin/cat/V/50#/browse
-    // Hipparcos catalog: https://cdsarc.cds.unistra.fr/viz-bin/cat/I/239#/browse
-    // 2MASS: https://cdsarc.cds.unistra.fr/viz-bin/cat/II/246#/browse
-    // Gliese: https://cdsarc.cds.unistra.fr/viz-bin/cat/V/70A#/browse
-    // Full list: https://vizier.cds.unistra.fr/vizier/cats/U.htx
+    FILE* fp = fopen("consline.dat", "rb");
+    if (fp)
+    {
+        char buffer[256];
+        while (fgets(buffer, 253, fp))
+        {
+            if (*buffer == '~')
+            {
+                //
+            }
+            else
+            {
+                char* name2 = strchr(buffer, ',');
+                if (!name2) continue;
+                *name2 = 0;
+                name2++;
+                while (*name2 == ' ')
+                {
+                    *name2 = 0;
+                    name2++;
+                }
+                if (strlen(name2))
+                {
+                    consline_a.push_back(buffer);
+                    consline_b.push_back(trim(name2));
+                    nclonsln++;
+                }
+            }
+        }
+        fclose(fp);
+    }
+
+    // TODO: Read data from more star catalogs.
     CatalogReader cr;
     cr.download_catalogs();
     std::vector<std::string> cats = cr.find_catalogs("catalogs");
@@ -88,17 +118,52 @@ int main (int argc, char** argv)
         if (!strcmp(cats[i].c_str(), "catalogs/BSC"))
             cr.read_BrightStars_catalog(cels, MAX_CELOBJS);
     }
-    // return 0;
 
-    /*
-    for (i=0; i<5381; i++)
+    // Cache star indices of consline termini
+    int consaidx[nclonsln+4], consbidx[nclonsln+4];
+    for (i=0; i<nclonsln; i++)
     {
-        cels[i] = new Star();
-        cels[i]->type = star;
-        cels[i]->location.local_position = Point(frand(-MAX_CELOBJS, MAX_CELOBJS), frand(-MAX_CELOBJS, MAX_CELOBJS), frand(-MAX_CELOBJS, MAX_CELOBJS));
+        int founda = -1, foundb = -1;
+        for (j=0; cels[j]; j++)
+        {
+            if (cels[j]->type != star) continue;
+            Star* s = (Star*)cels[j];
+            if (founda < 0
+                && 
+                (
+                    !strcmp(s->Bayer.c_str(), consline_a[i].c_str()) 
+                    ||
+                    !strcmp(s->Flamsteed.c_str(), consline_a[i].c_str())
+                    ||
+                    (
+                        consline_a[i].c_str()[0] == 'H' && consline_a[i].c_str()[1] == 'D'
+                        && s->HD && atoi(&consline_a[i].c_str()[2]) == s->HD
+                    )
+                ))
+            {
+                founda = j;
+            }
+            else if (foundb < 0
+                &&
+                (
+                    !strcmp(s->Bayer.c_str(), consline_b[i].c_str())
+                    ||
+                    !strcmp(s->Flamsteed.c_str(), consline_b[i].c_str())
+                    ||
+                    (
+                        consline_b[i].c_str()[0] == 'H' && consline_b[i].c_str()[1] == 'D'
+                        && s->HD && atoi(&consline_b[i].c_str()[2]) == s->HD
+                    )
+                ))
+            {
+                foundb = j;
+            }
+        }
+
+        consaidx[i] = founda;
+        consbidx[i] = foundb;
     }
-    ncelobjs = i;
-    */
+
 
     //////////////////////////////////////////////////
     // Begin ImGui-specific setup code              //
@@ -349,6 +414,28 @@ int main (int argc, char** argv)
                 // Object is behind the camera.
                 s->drawnx = s->drawny = -1e9;;
             }
+        }
+
+        // Constellation lines
+        for (i=0; i<nclonsln; i++)
+        {
+            int dx1, dx2, dy1, dy2;
+
+            if (consaidx[i] < 0 || consbidx[i] < 0) continue;
+
+            dx1 = cels[consaidx[i]]->drawnx;
+            dy1 = cels[consaidx[i]]->drawny;
+            if (dx1 < -1e3) continue;
+            if (dy1 < -1e3) continue;
+
+            dx2 = cels[consbidx[i]]->drawnx;
+            dy2 = cels[consbidx[i]]->drawny;
+            if (dx2 < -1e3) continue;
+            if (dy2 < -1e3) continue;
+
+            ImGui::GetBackgroundDrawList()->AddLine(
+                ImVec2(dx1, dy1), ImVec2(dx2, dy2),
+                consline_color, 1);
         }
 
         // Draw objects.

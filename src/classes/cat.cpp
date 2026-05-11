@@ -155,6 +155,28 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
         read_field_onebased(buffer, 5, 14, field);
         s->name = trim(field);
 
+        read_field_onebased(buffer, 5, 7, field);
+        int flamsteed = atoi(field);
+        read_field_onebased(buffer, 8, 11, field);
+        std::string bayer = trim(field);
+        read_field_onebased(buffer, 12, 14, field);
+        std::string cons = trim(field);
+
+        if (cons.size())
+        {
+            if (bayer.size()) s->Bayer = bayer 
+                + std::string(bayer.size() < 3 ? " " : "")
+                + std::string(bayer.size() < 4 ? " " : "")
+                + cons;
+
+            if (flamsteed) s->Flamsteed = std::to_string(flamsteed)
+                + std::string((flamsteed < 10) ? " " : "")
+                + std::string((flamsteed < 100) ? " " : "")
+                + std::string((flamsteed < 1000) ? " " : "")
+                + cons;
+        }
+
+
         //   26- 31  I6     ---     HD       [1/225300]? Henry Draper Catalog Number
         read_field_onebased(buffer, 26, 31, field);
         s->HD = atoi(field);

@@ -15,6 +15,8 @@ class Star : public CelestialObject
     double parallax = 0;                    // radians
 
     std::string spectral_type;
+    std::string Bayer;
+    std::string Flamsteed;
 
     __uint32_t HR = 0;                      // Harvard Revised catalog number
     __uint32_t HD = 0;                      // Henry Draper catalog number
