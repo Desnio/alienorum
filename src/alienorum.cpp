@@ -30,8 +30,9 @@ int main (int argc, char** argv)
     CelestialLocation here;
     Point velocity;
     double azimuth = 0, altitude = 0;
-    double spin = -0.01*fiftyseventh;
+    double spin = 0;
     int i, j;
+    double gamma = 1.8;
 
     std::filesystem::path p = "catalogs";
     bool catalogs_found = false;
@@ -201,10 +202,11 @@ int main (int argc, char** argv)
 
     // Our state
     ImVec4 background = ImVec4(0.0f, 0.0f, 0.0f, 1.00f);
+    set_gamma(gamma);
 
     // Main loop
     bool done = false;
-    bool alienwnd = true;
+    bool alienwnd = false;
     while (!done)
     {
         // Poll and handle events (inputs, window resize, etc.)
@@ -257,10 +259,15 @@ int main (int argc, char** argv)
             {
                 Cartesian2D cart(rel, azimuth, altitude, 1);
                 ImVec2 xycoord = ImVec2((int)(dispcx + cart.x * dispcx), (int)(dispcy + cart.y * dispcx));
-                float magrad = (6.0 - s->viewer_magnitude(here)) / 2;
-                if (magrad < 0.1) continue;
-                for (j=0; j<magrad; j++)
-                    ImGui::GetBackgroundDrawList()->AddCircleFilled(xycoord, 0.7+0.8*j, IM_COL32(255, 255, 255, 200), 0);
+                float appmag = s->viewer_magnitude(here);
+                float magrad = (6.0 - appmag)*1.5;
+                if (magrad < 1) magrad = 1;
+                for (j=magrad; j>0; j-=0.5)
+                {
+                    Color col = Color::color_from_magnitude_indices(appmag, s->BV_magnitude);
+                    RGB rgb = Color::rgb_from_color(col, j);
+                    ImGui::GetBackgroundDrawList()->AddCircleFilled(xycoord, 0.7+0.8*j, IM_COL32(rgb.r, rgb.g, rgb.b, 200), 0);
+                }
             }
             catch (...)
             {
@@ -285,9 +292,9 @@ int main (int argc, char** argv)
             switch (c)
             {
                 case 'w':
-                velocity.x =  sin(azimuth) * cos(altitude) * light_year;
-                velocity.z =  cos(azimuth) * cos(altitude) * light_year;
-                velocity.y =  sin(altitude) * light_year;
+                velocity.x =  sin(azimuth) * cos(altitude) * light_year / 10;
+                velocity.z =  cos(azimuth) * cos(altitude) * light_year / 10;
+                velocity.y =  sin(altitude) * light_year / 10;
                 spin = 0;
                 break;
 
@@ -299,11 +306,22 @@ int main (int argc, char** argv)
                 velocity.scale(velocity.magnitude() * 0.666);
                 break;
 
-                case 'g':
+                case 'r':
                 velocity = Point(0,0,0);
                 spin = 0;
                 here.local_position = here.system_center = Point(0,0,0);
                 break;
+
+                case 'g':
+                gamma += 0.2;
+                set_gamma(gamma);
+                break;
+
+                case 'G':
+                gamma -= 0.2;
+                set_gamma(gamma);
+                break;
+
 
                 default:
                 ;

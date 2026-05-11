@@ -1,4 +1,6 @@
 
+#include <string>
+
 #ifndef _Point
 #define _Point
 

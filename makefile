@@ -18,7 +18,7 @@ IMGUI_DIR = src/imgui
 CLASSES_DIR = src/classes
 IMGUI_SRC = $(IMGUI_DIR)/imgui.cpp $(IMGUI_DIR)/imgui_demo.cpp $(IMGUI_DIR)/imgui_draw.cpp $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui_widgets.cpp \
 		    $(IMGUI_DIR)/backends/imgui_impl_sdl2.cpp $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
-CLASSES_SRC = $(CLASSES_DIR)/point.cpp $(CLASSES_DIR)/cat.cpp $(CLASSES_DIR)/star.cpp $(CLASSES_DIR)/celestial.cpp
+CLASSES_SRC = $(CLASSES_DIR)/point.cpp $(CLASSES_DIR)/cat.cpp $(CLASSES_DIR)/star.cpp $(CLASSES_DIR)/celestial.cpp $(CLASSES_DIR)/color.cpp
 BIN = bin
 OBJ = obj
 UNAME_S := $(shell uname -s)
@@ -62,23 +62,50 @@ $(BIN):
 $(OBJ):
 	if [ ! -f $(OBJ) ]; then mkdir -p $(OBJ); fi
 
+clean:
+	rm -Rf $(OBJ)/*.o
+	rm -Rf $(BIN)/*
+
 apps: alienorum
 
 objs: $(OBJS)
 
 alienorum: $(BIN)/alienorum
 
-%.o:$(IMGUI_DIR)/%.cpp
-	$(CPP) $(CPPFLAGS) -c -o $(OBJ)/$@ $<
-
 %.o:$(IMGUI_DIR)/backends/%.cpp
 	$(CPP) $(CPPFLAGS) -c -o $(OBJ)/$@ $<
+
+
+$(OBJ)/imgui_demo.o:$(IMGUI_DIR)/imgui_demo.cpp
+	$(CPP) $(IMGUI_DIR)/imgui_demo.cpp $(CPPFLAGS) -c -o $(OBJ)/imgui_demo.o
+
+$(OBJ)/imgui_draw.o:$(IMGUI_DIR)/imgui_draw.cpp
+	$(CPP) $(IMGUI_DIR)/imgui_draw.cpp $(CPPFLAGS) -c -o $(OBJ)/imgui_draw.o
+
+$(OBJ)/imgui_tables.o:$(IMGUI_DIR)/imgui_tables.cpp
+	$(CPP) $(IMGUI_DIR)/imgui_tables.cpp $(CPPFLAGS) -c -o $(OBJ)/imgui_tables.o
+
+$(OBJ)/imgui_widgets.o:$(IMGUI_DIR)/imgui_widgets.cpp
+	$(CPP) $(IMGUI_DIR)/imgui_widgets.cpp $(CPPFLAGS) -c -o $(OBJ)/imgui_widgets.o
+
+$(OBJ)/imgui.o:$(IMGUI_DIR)/imgui.cpp
+	$(CPP) $(IMGUI_DIR)/imgui.cpp $(CPPFLAGS) -c -o $(OBJ)/imgui.o
+
+$(OBJ)/imgui_impl_opengl3.o:$(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
+	$(CPP) $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp $(CPPFLAGS) -c -o $(OBJ)/imgui_impl_opengl3.o
+
+$(OBJ)/imgui_impl_sdl2.o:$(IMGUI_DIR)/backends/imgui_impl_sdl2.cpp
+	$(CPP) $(IMGUI_DIR)/backends/imgui_impl_sdl2.cpp $(CPPFLAGS) -c -o $(OBJ)/imgui_impl_sdl2.o
+
 
 $(OBJ)/celestial.o:$(CLASSES_DIR)/celestial.cpp
 	$(CPP) $(CLASSES_DIR)/celestial.cpp $(CPPFLAGS) -c -o $(OBJ)/celestial.o
 
 $(OBJ)/cat.o:$(CLASSES_DIR)/cat.cpp
 	$(CPP) $(CLASSES_DIR)/cat.cpp $(CPPFLAGS) -c -o $(OBJ)/cat.o
+
+$(OBJ)/color.o:$(CLASSES_DIR)/color.cpp
+	$(CPP) $(CLASSES_DIR)/color.cpp $(CPPFLAGS) -c -o $(OBJ)/color.o
 
 $(OBJ)/point.o:$(CLASSES_DIR)/point.cpp
 	$(CPP) $(CLASSES_DIR)/point.cpp $(CPPFLAGS) -c -o $(OBJ)/point.o

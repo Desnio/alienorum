@@ -4,9 +4,9 @@
 
 struct RGB
 {
-    char r = 0;
-    char g = 0;
-    char b = 0;
+    unsigned char r = 0;
+    unsigned char g = 0;
+    unsigned char b = 0;
 };
 
 class Color
@@ -21,5 +21,8 @@ class Color
     static RGB rgb_from_color(Color c, double bloom_radius = 0);                    // Bloom radius = distance in pixels from center.
     static RGB disc_rgb_from_color(Color c, double disc_radius = 1);                // Disc radius = size in pixels of disk drawn on screen.
 };
+
+extern double global_brightness;
+void set_gamma(double new_gamma);
 
 #endif
