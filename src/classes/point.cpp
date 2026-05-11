@@ -1,14 +1,40 @@
 
 #include <math.h>
+#include <string>
+#include <cctype>
 #include <iostream>
+#include <algorithm>
 #include "point.h"
 
+const std::string WHITESPACE = " \n\r\t\f\v";
+double magnbase = pow(100, 1.0/5);
 Point center(0,0,0), xaxis(1e37, 0, 0), yaxis(0, 1e37, 0), zaxis(0, 0, 1e37);
 
 double compute_time_dilation(double velocity)
 {
     return sqrt(1.0 - (velocity*velocity)/(speed_of_light*speed_of_light));
 }
+
+// Trim from start (left)
+std::string ltrim(const std::string &s)
+{
+    size_t start = s.find_first_not_of(WHITESPACE);
+    return (start == std::string::npos) ? "" : s.substr(start);
+}
+
+// Trim from end (right)
+std::string rtrim(const std::string &s)
+{
+    size_t end = s.find_last_not_of(WHITESPACE);
+    return (end == std::string::npos) ? "" : s.substr(0, end + 1);
+}
+
+// Trim from both ends
+std::string trim(const std::string &s)
+{
+    return rtrim(ltrim(s));
+}
+
 
 Point::Point(double newx, double newy, double newz)
 {
@@ -56,11 +82,11 @@ double Point::distance_to(Point other)
 
 Cartesian2D::Cartesian2D(Point pt, double az, double alt, double m)
 {
+    if (az) pt = rotate3D(pt, center, yaxis, -az);
     if (alt) pt = rotate3D(pt, center, xaxis, alt);
-    if (az) pt = rotate3D(pt, center, yaxis, az);
     if (pt.z < 0) throw(its_behind_you);
-    x = pt.x / -pt.z * m;
-    y = pt.y / -pt.z * m;
+    x = pt.x / pt.z * m;
+    y = -pt.y / pt.z * m;
 }
 
 double frand(double lmin, double lmax)
@@ -94,6 +120,15 @@ void Point::scale(double new_magn)
     x *= multiplier;
     y *= multiplier;
     z *= multiplier;
+}
+
+Point Point::from_ra_dec(double right_ascension, double declination, double distance)
+{
+    double x, y, z;
+    x = distance * -sin(right_ascension) * cos(declination);
+    y = distance *  sin(declination);
+    z = distance *  cos(right_ascension) * cos(declination);
+    return Point(x, y, z);
 }
 
 double find_3d_angle(Point& A, Point& B, Point& source)
@@ -243,4 +278,18 @@ Point compute_normal(Point& pt1, Point& pt2, Point& pt3)
                  U.z * V.x - U.x * V.z,
                  U.x * V.y - U.y * V.x
                 );
+}
+
+double CelestialLocation::distance_to(CelestialLocation &other)
+{
+    double system_distance = system_center.distance_to(other.system_center);
+    double local_distance = local_position.distance_to(other.local_position);
+
+    if (system_distance > local_distance)
+    {
+        Point mine = system_center + local_position;
+        Point yours = other.system_center + other.local_position;
+        return mine.distance_to(yours);
+    }
+    else return system_distance + local_distance;
 }

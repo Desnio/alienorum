@@ -23,13 +23,15 @@ using namespace std;
 
 int main (int argc, char** argv)
 {
-    CelestialObject *cels = new CelestialObject[MAX_CELOBJS];
+    CelestialObject **cels = new CelestialObject*[MAX_CELOBJS];
+    memset(cels, 0, MAX_CELOBJS*sizeof(CelestialObject*));
+
     int ncelobjs = 0;
     CelestialLocation here;
     Point velocity;
-    double azimuth = 0;
+    double azimuth = 0, altitude = 0;
     double spin = -0.01*fiftyseventh;
-    int i;
+    int i, j;
 
     std::filesystem::path p = "catalogs";
     bool catalogs_found = false;
@@ -68,15 +70,20 @@ int main (int argc, char** argv)
     for (i=0; i<cats.size(); i++)
     {
         cout << "Found " << cats[i] << endl;
+        if (!strcmp(cats[i].c_str(), "catalogs/BSC"))
+            cr.read_BrightStars_catalog(cels, MAX_CELOBJS);
     }
-    return 0;
+    // return 0;
 
+    /*
     for (i=0; i<5381; i++)
     {
-        cels[i].type = star;
-        cels[i].location.local_position = Point(frand(-MAX_CELOBJS, MAX_CELOBJS), frand(-MAX_CELOBJS, MAX_CELOBJS), frand(-MAX_CELOBJS, MAX_CELOBJS));
+        cels[i] = new Star();
+        cels[i]->type = star;
+        cels[i]->location.local_position = Point(frand(-MAX_CELOBJS, MAX_CELOBJS), frand(-MAX_CELOBJS, MAX_CELOBJS), frand(-MAX_CELOBJS, MAX_CELOBJS));
     }
     ncelobjs = i;
+    */
 
     //////////////////////////////////////////////////
     // Begin ImGui-specific setup code              //
@@ -240,15 +247,20 @@ int main (int argc, char** argv)
 
         // TODO:
         int dispcx = (int)io.DisplaySize.x/2, dispcy = (int)io.DisplaySize.y / 2;
-        for (i=0; i<ncelobjs && i<MAX_CELOBJS; i++)
+        for (i=0; cels[i] && i<MAX_CELOBJS; i++)
         {
-            Point rel = cels[i].location;
+            if (cels[i]->type != star) continue;
+            Star* s = (Star*)cels[i];
+            Point rel = s->location;
             rel -= here;
             try
             {
-                Cartesian2D cart(rel, azimuth, 0, 1);
-                ImVec2 xycoord = ImVec2(dispcx + cart.x * dispcx, dispcy + -cart.y * dispcx);
-                ImGui::GetBackgroundDrawList()->AddCircleFilled(xycoord, 2, IM_COL32(255, 255, 255, 200), 0);
+                Cartesian2D cart(rel, azimuth, altitude, 1);
+                ImVec2 xycoord = ImVec2((int)(dispcx + cart.x * dispcx), (int)(dispcy + cart.y * dispcx));
+                float magrad = (6.0 - s->viewer_magnitude(here)) / 2;
+                if (magrad < 0.1) continue;
+                for (j=0; j<magrad; j++)
+                    ImGui::GetBackgroundDrawList()->AddCircleFilled(xycoord, 0.7+0.8*j, IM_COL32(255, 255, 255, 200), 0);
             }
             catch (...)
             {
@@ -256,12 +268,51 @@ int main (int argc, char** argv)
                 ;
             }
         }
+
         here.local_position += velocity;
         azimuth += spin;
 
+        if (io.MouseDown && ImGui::IsMouseDown(0))
+        {
+            azimuth -= 0.1 * fiftyseventh * io.MouseDelta.x;
+            altitude += 0.1 * fiftyseventh * io.MouseDelta.y;
+            spin = 0;
+        }
+
+        for (int i = 0; i < io.InputQueueCharacters.Size; i++)
+        {
+            ImWchar c = io.InputQueueCharacters[i];
+            switch (c)
+            {
+                case 'w':
+                velocity.x =  sin(azimuth) * cos(altitude) * light_year;
+                velocity.z =  cos(azimuth) * cos(altitude) * light_year;
+                velocity.y =  sin(altitude) * light_year;
+                spin = 0;
+                break;
+
+                case '+':
+                velocity.scale(velocity.magnitude() * 1.5);
+                break;
+
+                case '-':
+                velocity.scale(velocity.magnitude() * 0.666);
+                break;
+
+                case 'g':
+                velocity = Point(0,0,0);
+                spin = 0;
+                here.local_position = here.system_center = Point(0,0,0);
+                break;
+
+                default:
+                ;
+            }
+        }
+
         if (spin && frand(0,1) < 0.001)
         {
-            velocity = Point(0,0,100);
+            velocity = Point(0,0,light_year);
             spin = 0;
         }
 
@@ -276,6 +327,7 @@ int main (int argc, char** argv)
 
     }
 
+    for (i=0; cels[i]; i++) delete cels[i];
     delete[] cels;
     return 0;
 }

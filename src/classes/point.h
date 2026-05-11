@@ -3,8 +3,10 @@
 #define _Point
 
 #define light_year 9460730472580800
-#define pasec 3.08567758128E+16
+#define parsec 3.08567758128E+16
 #define AU 149597870700.0
+#define day 86400
+#define year 365 * 86400 + 5 * 3600 + 48 * 60 + 45
 #define speed_of_light 299792458.0
 #define earth_mass 5.972e+27
 #define jupiter_mass 1.898e+30
@@ -14,6 +16,8 @@
 #define solar_radius 6.95700e+8
 #define fiftyseven (180.0/M_PI)
 #define fiftyseventh (M_PI/180)
+#define arcminute fiftyseventh / 60
+#define arcsecond arcminute / 60
 
 #define its_behind_you 0xbe419d10
 
@@ -47,6 +51,8 @@ class Point
     double distance_to(Point other);
     double magnitude() const;
     void scale(double new_magn);
+
+    static Point from_ra_dec(double right_ascension, double declination, double distance);
 };
 
 // We cannot simply use 3 dimensional x,y,z coordinates to plot celestial objects in space.
@@ -80,6 +86,8 @@ struct Rotation
     };
 };
 
+extern double magnbase;
+
 double frand(double lmin, double lmax);
 Point compute_normal(Point& pt1, Point& pt2, Point& pt3);
 double find_angle(double dx, double dy);
@@ -89,5 +97,9 @@ Point rotate3D(Point& point, Point& source, Point& axis, double theta);
 
 // Takes velocity in m/s and computes the ratio of Δt(moving)/Δt(stationary). The result will always be <= 1.
 double compute_time_dilation(double velocity);
+
+std::string ltrim(const std::string &s);
+std::string rtrim(const std::string &s);
+std::string trim(const std::string &s);
 
 #endif

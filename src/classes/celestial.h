@@ -1,6 +1,7 @@
 #ifndef _CelestialObject
 #define _CelestialObject
 
+#include <string>
 #include "point.h"
 #include "color.h"
 
@@ -42,19 +43,23 @@ class CelestialObject
     double right_ascension = 0;                 // RADIANS!
     double declination = 0;                     // RADIANS!
     double inclination = 0;                     // RADIANS!
+    double distance = 0;                        // meters
     double epoch = 2451544.5;                   // JD
     double absolute_magnitude = 0;
     double UB_magnitude = 0;
     double BV_magnitude = 0;
     double VR_magnitude = 0;
-    double RI_magniture = 0;
+    double RI_magnitude = 0;
 
     cel_obj_type type = star;
+    std::string name;
 
     CelestialObject() {};
     CelestialLocation location;
     Orbit* orbit = nullptr;                     // Most stars won't have an orbit, unless we get into stellar orbital mechanics.
     void update_location(double epoch);         // Only applicable if we have an orbit; otherwise just return.
+
+    double viewer_magnitude(CelestialLocation seen_from);
 };
 
 

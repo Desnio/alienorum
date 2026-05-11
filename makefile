@@ -12,13 +12,13 @@ CPP = g++
 CPPFLAGS = -std=c++17 -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends -g -Wall -Wformat
 
 # Debug mode
-# CPPFLAGS += -g
+CPPFLAGS += -g
 
 IMGUI_DIR = src/imgui
 CLASSES_DIR = src/classes
 IMGUI_SRC = $(IMGUI_DIR)/imgui.cpp $(IMGUI_DIR)/imgui_demo.cpp $(IMGUI_DIR)/imgui_draw.cpp $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui_widgets.cpp \
 		    $(IMGUI_DIR)/backends/imgui_impl_sdl2.cpp $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
-CLASSES_SRC = $(CLASSES_DIR)/point.cpp $(CLASSES_DIR)/cat.cpp
+CLASSES_SRC = $(CLASSES_DIR)/point.cpp $(CLASSES_DIR)/cat.cpp $(CLASSES_DIR)/star.cpp $(CLASSES_DIR)/celestial.cpp
 BIN = bin
 OBJ = obj
 UNAME_S := $(shell uname -s)
@@ -74,11 +74,17 @@ alienorum: $(BIN)/alienorum
 %.o:$(IMGUI_DIR)/backends/%.cpp
 	$(CPP) $(CPPFLAGS) -c -o $(OBJ)/$@ $<
 
+$(OBJ)/celestial.o:$(CLASSES_DIR)/celestial.cpp
+	$(CPP) $(CLASSES_DIR)/celestial.cpp $(CPPFLAGS) -c -o $(OBJ)/celestial.o
+
 $(OBJ)/cat.o:$(CLASSES_DIR)/cat.cpp
 	$(CPP) $(CLASSES_DIR)/cat.cpp $(CPPFLAGS) -c -o $(OBJ)/cat.o
 
 $(OBJ)/point.o:$(CLASSES_DIR)/point.cpp
 	$(CPP) $(CLASSES_DIR)/point.cpp $(CPPFLAGS) -c -o $(OBJ)/point.o
+
+$(OBJ)/star.o:$(CLASSES_DIR)/star.cpp
+	$(CPP) $(CLASSES_DIR)/star.cpp $(CPPFLAGS) -c -o $(OBJ)/star.o
 
 $(BIN)/alienorum: src/alienorum.cpp $(OBJS)
 	$(CPP) src/alienorum.cpp $(OBJ)/*.o -o $(BIN)/alienorum $(CPPFLAGS) $(LIBS)
