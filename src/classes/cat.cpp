@@ -231,7 +231,8 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
         if (!strcmp(s->name.c_str(), "Sun"))
             s->distance = 0;
         else
-            s->distance = s->parallax ? (parsec / s->parallax) : light_year*1e4;
+            s->distance = (s->parallax > 0) ? (parsec / s->parallax) : light_year*1e4;
+        if (s->parallax > 0) s->distance_known = true;
         s->parallax /= fiftyseven * 3600;
 
         //  167-170  I4     km/s    RadVel   ? Heliocentric Radial Velocity

@@ -15,3 +15,4 @@ void Star::update_location(double new_epoch)
     // Set system location
     location.system_center = Point::from_ra_dec(l_RA, l_Decl, l_dist);
 }
+

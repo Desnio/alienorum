@@ -1,0 +1,869 @@
+~And, Andromeda
+Alp And, Del And
+Del And, Bet And
+Bet And, Gam And
+Bet And, Gam2And
+Alp And, Pi  And
+Pi  And, Mu  And
+Mu  And, Phi And
+Mu  And, Kap And
+Kap And, Omi And
+~Ant, Antlia
+Iot Ant, Alp Ant
+Alp Ant, The Ant
+The Ant, Eta Ant
+~Aps, Apus
+Alp Aps, Del1Aps
+Del1Aps, Gam Aps
+Gam Aps, Bet Aps
+~Aqr, Aquarius
+Eps Aqr, Bet Aqr
+Bet Aqr, Alp Aqr
+Alp Aqr, Gam Aqr
+Gam Aqr, Zet2Aqr
+Zet2Aqr, Pi  Aqr
+Zet2Aqr, Eta Aqr
+Zet2Aqr, Lam Aqr
+Gam Aqr, Zet2Aqr
+Lam Aqr, Tau Aqr
+Tau Aqr, Del Aqr
+Lam Aqr, Tau2Aqr
+Tau2Aqr, Del Aqr
+Del Aqr, 88 Aqr
+88  Aqr, 98 Aqr
+98  Aqr, 99 Aqr
+99  Aqr, 104 Aqr
+104 Aqr, 102 Aqr
+104 Aqr, Ome1Aqr
+102 Aqr, Psi1Aqr
+Ome1Aqr, Psi1Aqr
+Psi1Aqr, Phi Aqr
+Phi Aqr, Lam Aqr
+~Aql, Aquila
+Alp Aql, Bet Aql
+Bet Aql, The Aql
+The Aql, Eta Aql
+Eta Aql, Iot Aql
+Iot Aql, Lam Aql
+Lam Aql, 12  Aql
+12  Aql, Del Aql
+Del Aql, Gam Aql
+Gam Aql, Alp Aql
+Gam Aql, Zet Aql
+Zet Aql, Eps Aql
+~Ara, Ara
+The Ara, Alp Ara
+Alp Ara, Eps1Ara
+Eps1Ara, Zet Ara
+Zet Ara, Eta Ara
+Zet Ara, Gam Ara
+Gam Ara, Del Ara
+Gam Ara, Bet Ara
+Bet Ara, Alp Ara
+~Ari, Aries
+Del Ari, Eps Ari
+Eps Ari, 41  Ari
+41  Ari, Alp Ari
+Alp Ari, Bet Ari
+Bet Ari, Gam Ari
+~Aur, Auriga
+Alp Aur, Eps Aur
+Eps Aur, Eta Aur
+Eta Aur, Zet Aur
+Zet Aur, Iot Aur
+Iot Aur, Bet Tau
+Bet Tau, The Aur
+The Aur, Bet Aur
+Bet Aur, Alp Aur
+~Boo, Bootes
+Alp Boo, Rho Boo
+Rho Boo, Gam Boo
+Gam Boo, Lam Boo
+Lam Boo, The Boo
+Gam Boo, Bet Boo
+Bet Boo, Del Boo
+Del Boo, Mu  Boo
+Del Boo, Eps Boo
+Eps Boo, Alp Boo
+Alp Boo, Zet Boo
+Alp Boo, Eta Boo
+Eta Boo, Tau Boo
+Tau Boo, Ups Boo
+~Cae, Caelum
+Alp Cae, Bet Cae
+Bet Cae, Gam1Cae
+~Cam, Cam
+7 Cam, Bet Cam
+Bet Cam, Alp Cam
+Alp Cam, Gam Cam
+Gam Cam, HD21291
+~Cnc, Cancer
+Iot2Cnc, Gam Cnc
+Iot Cnc, Gam Cnc
+Gam Cnc, Del Cnc
+Del Cnc, Alp Cnc
+Del Cnc, Bet Cnc
+Iot Cnc, Rho2Cnc
+Iot2Cnc, Rho2Cnc
+Rho2Cnc, Xi  Cnc
+Xi  Cnc, Pi 2Cnc
+Pi 2Cnc, Kap Cnc
+Kap Cnc, Alp Cnc
+27  Cnc, 8   Cnc
+Gam Cnc, Chi Cnc
+Chi Cnc, Psi Cnc
+Chi Cnc, Mu 2Cnc
+~CVn, Canes Venatici
+Alp CVn, Bet CVn
+Alp2CVn, Bet CVn
+~CMa, Canis Major
+Bet CMa, Alp CMa
+Alp CMa, Iot CMa
+Iot CMa, Gam CMa
+Gam CMa, The CMa
+Alp CMa, Omi2CMa
+Omi2CMa, Del CMa
+Del CMa, Eps CMa
+Eps CMa, Zet CMa
+Del CMa, 28  CMa
+28  CMa, Eta CMa
+28  CMa, Tau CMa
+Del CMa, Ome CMa
+Ome CMa, Eta CMa
+Ome CMa, Tau CMa
+~CMi, Canis Minor
+Alp Cmi, Bet Cmi
+~Cap, Capricornus
+Alp2Cap, Gam Cap
+Gam Cap, 36  Cap
+36  Cap, Zet Cap
+Zet Cap, Iot Cap
+Iot Cap, The Cap
+The Cap, Alp Cap
+Alp Cap, Bet1Cap
+The Cap, Alp1Cap
+Alp1Cap, Bet1Cap
+Bet1Cap, Psi Cap
+Psi Cap, 18  Cap
+Psi Cap, Ome Cap
+~Car, Carina
+Alp Car, Bet Car
+Bet Car, Ups Car
+Bet Car, Ome Car
+Ome Car, The Car
+The Car, HD91465
+HD91465, HD89388
+HD89388, Iot Car
+Iot Car, Eps Car
+Eps Car, Chi Car
+
+TODO: Finish replacing all these stupid names with Bayer-Flamsteed designations.
+Then line up the Flamsteed numbers so the constellation is always chars 4-6 (zero based like a real computer user).
+Later we'll edit the code to expect Flamsteed designations in this format.
+Also do a sweep of the whole steaming pile and replace Gliese numbers with HD.
+
+~Cas, Cassiopeia
+Caph, Schedar
+Schedar, Gam Cas
+Gam Cas, Ruchbah
+Ruchbah, Eps Cas
+~Cen, Cenrus
+Alp Cen, Eps Cen
+Bet Cen, Eps Cen
+Eps Cen, Zet Cen
+Zet Cen, Mu  Cen
+Mu  Cen, Nu  Cen
+Nu  Cen, Menkent
+Menkent,2Cen
+2 Cen, HD117440
+HD117440, Iot Cen
+Menkent, Psi Cen
+Psi Cen, HD129116
+HD129116, HD129456
+Psi Cen, HD125823
+HD125823, Eta Cen
+Eta Cen, Kap Cen
+Eps Cen, Gam Cen
+Gam Cen, Sig Cen
+Sig Cen, HD105382
+Gam Cen, HD111968
+HD111968, Nu  Cen
+HD111968, HD110073
+Gam Cen, Gliese 488.1
+Gliese 488.1, Nu  Cen
+Gliese 488.1, HD110073
+HD110073, HD109536
+HD105382, Rho Cen
+~Cep, Cepheus
+Alderamin, Alfirk
+Alfirk, Errai
+Errai, Iot Cep
+Iot Cep, Zet Cep
+Zet Cep, Alderamin
+~Cet, Cetus
+Menkar, Lam Cet
+Lam Cet, Mu  Cet
+Mu  Cet, Xi2Cet
+Xi2Cet, Gam Cet
+Gam Cet, Menkar
+Gam Cet, Del Cet
+Del Cet, Mira
+Mira, Baten Kaitos
+Baten Kaitos, Tau Cet
+Tau Cet, Ups Cet
+Iot Cet, Deneb Kaitos
+Eta Cet, The Cet
+The Cet, Mira
+Eta Cet, Iot Cet
+Deneb Kaitos, Tau Cet
+~Cha, Chamaeleon
+Alp Cha, Gam Cha
+Gam Cha, Bet Cha
+Bet Cha, Del Cha
+Bet Cha, Del2Cha
+Del Cha, The Cha
+Del2Cha, The Cha
+The Cha, Alp Cha
+~Cir, Circinus
+Gam Cir, Alp Cir
+Alp Cir, Bet Cir
+~Col, Columba
+Del Col, Kap Col
+Kap Col, Gam Col
+Gam Col, Bet Col
+Bet Col, Alp Col
+Bet Col, Eta Col
+Alp Col, Eps Col
+~Com, Coma Berenices
+Alp Com A, Bet Com
+Alp Com, Bet Com
+Bet Com, Gam Com
+~CrA, Corona Australis
+Eps CrA, Gam CrA
+Gam CrA, Alp CrA
+Alp CrA, Bet CrA
+Bet CrA, Del CrA
+Del CrA, Zet CrA
+~CrB, Corona Borealis
+The CrB, Nusakan
+Nusakan, Alphecca
+Alphecca, Gam CrB
+Gam CrB, Del CrB
+Del CrB, Eps CrB
+Eps CrB, Iot CrB
+~Crv, Corvus
+Alchiba, Eps Crv
+Eps Crv, Gienah
+Gienah, Algorab
+Algorab, Bet Crv
+Bet Crv, Eps Crv
+~Crt, Crater
+Alkes, Bet Crt
+Bet Crt, Gam Crt
+Gam Crt, Zet Crt
+Gam Crt, Del Crt
+Del Crt, Eps Crt
+Eps Crt, The Crt
+Del Crt, Alkes
+~Cru, Crux
+Alp Cru, Gam Cru
+Mimosa, Del Cru
+~Cyg, Cygnus
+Deneb, Sadr
+Sadr, Eta Cyg
+Eta Cyg, Bet Cyg
+Eta Cyg, Bet1Cyg
+Sadr, Del Cyg
+Del Cyg, Iot Cyg
+Iot Cyg, Kap Cyg
+Del Cyg, Iot2Cyg
+Iot2Cyg, Kap Cyg
+Sadr, Eps Cyg
+Eps Cyg, Zet Cyg
+~Del, Delphinus
+Eps Del, Bet Del
+Bet Del, Alp Del
+Alp Del, Gam Del
+Gam Del, Del Del
+Alp Del, Gam2Del
+Gam2Del, Del Del
+Del Del, Bet Del
+~Dor, Dorado
+Gam Dor, Alp Dor
+Alp Dor, Zet Dor
+Zet Dor, Bet Dor
+Bet Dor, Del Dor
+Bet Dor, HD40409
+~Dra, Draco
+Eltanin, Rastaban
+Rastaban, Nu 2Dra
+Nu 2Dra, Grumium
+Grumium, Eltanin
+Grumium, Altais
+Altais, Eps Dra
+Eps Dra, Chi Dra
+Chi Dra, Phi Dra
+Phi Dra, Zet Dra
+Zet Dra, Eta Dra
+Eta Dra, The Dra
+The Dra, Edasich
+Edasich, Thuban
+Thuban, Kap Dra
+Kap Dra, Giausar
+Giausar, HD81817
+~Equ, Equuleus
+KitAlp, Gam Equ
+Gam Equ, Del Equ
+Del Equ, Bet Equ
+Bet Equ, KitAlp
+~Eri, Eridanus
+Lam Eri, Cursa
+Cursa, 61  Eri
+Cursa, Ome Eri
+61  Eri, Mu  Eri
+Ome Eri, Mu  Eri
+Mu  Eri, Nu  Eri
+Nu  Eri, Beid
+Beid, Zaurak
+Zaurak, Del Eri
+Del Eri, Eps Eri
+Eps Eri, Zet Eri
+Zet Eri, Azha
+Azha, Pi  Cet
+Pi  Cet, Tau1Eri
+Tau1Eri, Tau2Eri
+Tau2Eri, Tau3Eri
+Tau3Eri, Tau4Eri
+Tau4Eri, Tau5Eri
+Tau5Eri, Tau6Eri
+Tau6Eri, Tau8Eri
+Tau8Eri, Tau9Eri
+Tau9Eri, Ups2Eri
+Ups2Eri, 43  Eri
+43  Eri, Ups4Eri
+Ups4Eri, HD24160
+HD24160, HD24072
+HD24160, HD24071
+HD24072, 82  Eri
+HD24071, 82  Eri
+82  Eri, The Eri
+The Eri, Iot Eri
+82  Eri, The2Eri
+The2Eri, Iot Eri
+Iot Eri, Sig Eri
+Sig Eri, Kap Eri
+Kap Eri, Phi Eri
+Phi Eri, Chi Eri
+Chi Eri, Achernar
+~For, Fornax
+Alp For, Bet For
+Bet For, Nu  For
+~Gru, Grus
+Zet Gru, Eps Gru
+Eps Gru, Bet Gru
+Bet Gru, Del2Gru
+Del1Gru, Mu 1Gru
+Mu 1Gru, Gam Gru
+The Gru, Iot Gru
+Iot Gru, Bet Gru
+Bet Gru, Al Na'ir
+~Gem, Gemini
+Pollux, Wasat
+Iot Gem, Wasat
+Wasat, Lam Gem
+Wasat, Mekbuda
+Mekbuda, Alhena
+Mekbuda, Xi  Gem
+Mu  Gem, Propus
+Mu  Gem, Mebsuta
+Mebsuta, Nu  Gem
+Mebsuta, Tau Gem
+Tau Gem, Rho Gem
+Tau Gem, Iot Gem
+Iot Gem, Del Gem
+Tau Gem, The Gem
+Rho Gem, Castor
+~Her, Hercules
+Pi  Her, Eps Her
+Eps Her, Zet Her
+Zet Her, Eta Her
+Eta Her, Pi  Her
+Pi  Her, Rho Her
+Rho Her, The Her
+The Her, Iot Her
+Eta Her, Sig Her
+Sig Her, Tau Her
+Tau Her, Phi Her
+Phi Her, Ups Her
+Eps Her, Del Her
+Del Her, Lam Her
+Lam Her, Mu  Her
+Mu  Her, Xi  Her
+Xi  Her, Omi Her
+Omi Her, 109 Her
+102 Her, 109 Her
+109 Her, 110 Her
+110 Her, 111 Her
+Zet Her, Kornephoros
+Kornephoros, Gam Her
+Kornephoros, Alp Her
+Kornephoros, Alp2Her
+~Hor, Horologium
+Alp Hor, Zet Hor
+Zet Hor, Mu  Hor
+Mu  Hor, Bet Hor
+~Hya, Hydra
+Zet Hya, Eps Hya
+Eps Hya, Del Hya
+Del Hya, Sig Hya
+Sig Hya, Eta Hya
+Eta Hya, Zet Hya
+Zet Hya, The Hya
+The Hya, Iot Hya
+Iot Hya, Alp Hya
+Alp Hya, Ups1Hya
+Ups1Hya, Lam Hya
+Lam Hya, Mu  Hya
+Mu  Hya, Nu  Hya
+Nu  Hya, Xi  Hya
+Xi  Hya, Bet Hya
+Bet Hya, Gam Hya
+Gam Hya, Pi  Hya
+~Hyi, Hydrus
+Gam Hyi, Bet Hyi
+Bet Hyi, Eps Hyi
+Eps Hyi, Del Hyi
+Del Hyi, Eta Hyi
+Eta Hyi, Alp Hyi
+Del Hyi, Eta2Hyi
+Eta2Hyi, Alp Hyi
+~Ind, Indus
+Alp Ind, The Ind
+The Ind, Bet Ind
+The Ind, Del Ind
+~Lac, Lacerta
+Alp Lac, Bet Lac
+Bet Lac, 4   Lac
+4   Lac, 5   Lac
+5   Lac, Alp Lac
+5   Lac, 6   Lac
+6   Lac, 2   Lac
+6   Lac, 11  Lac
+6   Lac, HD211073
+HD211073,1Lac
+1   Lac, 10  Lac
+~Leo, Leo
+Gam2Leo, Eta Leo
+Eta Leo, Regulus
+Regulus, Chertan
+Chertan, Denebola
+Denebola, Zosma
+Zosma, Gam2Leo
+Gam2Leo, Adhafera
+Adhafera, Rasalas
+Rasalas, Eps Leo
+Regulus, Omi Leo
+~LMi, Leo Minor
+46 LMi, Bet LMi
+Bet LMi, 21 LMi
+~Lep, Lepus
+Eta Lep, Del Lep
+Zet Lep, Del Lep
+Arneb, Mu  Lep
+Mu  Lep, Lam Lep
+Arneb, Bet Lep
+Nihal, Eps Lep
+Nihal, Gam Lep
+Gam Lep, Del Lep
+Del Lep, Arneb
+Mu  Lep, Eps Lep
+~Lib, Libra
+Alp2Lib, ZubenescAlp Arii
+Alp2Lib, Sig Lib
+Bet Lib, Sig Lib
+Sig Lib, ZubenescAlp Arii
+ZubenescAlp Arii, Gam Lib
+Gam Lib, The Lib
+Sig Lib, Ups Lib
+Ups Lib, Tau Lib
+~Lup, Lupus
+Alp Lup, Bet Lup
+Bet Lup, Del Lup
+Del Lup, Gam Lup
+Gam Lup, Eps Lup
+Eps Lup, Kap Lup
+Kap Lup, Zet Lup
+Eps Lup, Kap1Lup
+Kap1Lup, Zet Lup
+Zet Lup, Alp Lup
+Del Lup, Phi1Lup
+Phi1Lup, Chi Lup
+Gam Lup, Eta Lup
+Eta Lup, The Lup
+~Lyn, Lynx
+2   Lyn, 15  Lyn
+15  Lyn, 21  Lyn
+21  Lyn, 31  Lyn
+31  Lyn, HD76943
+HD76943, 38  Lyn
+31  Lyn, Gliese 332
+Gliese 332, 38  Lyn
+38  Lyn, Alp Lyn
+~Lyr, Lyra
+13  Lyr, Vega
+Vega, Kap Lyr
+Vega, Zet1Lyr
+Zet1Lyr, Del2Lyr
+Del2Lyr, The Lyr
+The Lyr, Eta Lyr
+Zet1Lyr, Bet Lyr
+Bet Lyr, Sulafat
+Sulafat, Del2Lyr
+~Men, Mensa
+Alp Men, Gam Men
+Gam Men, Eta Men
+Eta Men, Bet Men
+~Mic, Microscopium
+Alp Mic, Gam Mic
+Gam Mic, Eps Mic
+Eps Mic, The1Mic
+~Mon, Monoceros
+Zet Mon, Alp Mon
+Alp Mon, Del Mon
+Del Mon, Bet Mon
+Bet Mon, Gam Mon
+Gam Mon, Eps Mon
+Eps Mon, 13 Mon
+~Mus, Musca
+Lam Mus, Eps Mus
+Eps Mus, Alp Mus
+Alp Mus, Del Mus
+Bet Mus, Alp Mus
+Alp Mus, Gam Mus
+~Nor, Norma
+Eps Nor, Gam1Nor
+Gam1Nor, Eta Nor
+~Oct, Octans
+Bet Oct, Del Oct
+Del Oct, Nu  Oct
+Nu  Oct, Bet Oct
+~Oph, Ophiuchus
+Xi  Oph, Sabik
+Sabik, Zet Oph
+Zet Oph, Yed Posterior
+Yed Posterior, Yed Prior
+Yed Prior, Marfik
+Marfik, Kap Oph
+Kap Oph, Rasalhague
+Rasalhague, Cebalrai
+Cebalrai, Sabik
+~Ori, Orion
+Betelgeuse, Alnitak
+Alnitak, Saiph
+Saiph, Rigel
+Rigel, Mintaka
+Mintaka, Bellatrix
+Bellatrix, Meissa
+Meissa, Betelgeuse
+Mintaka, Alnilam
+Alnilam, Alnitak
+Betelgeuse, Mu  Ori
+Mu  Ori, Nu  Ori
+Mu  Ori, Xi  Ori
+Nu  Ori, Chi1Ori
+Xi  Ori, Chi2Ori
+Bellatrix, Pi 3Ori
+Pi 3Ori, Pi 2Ori
+Pi 2Ori, Pi 1Ori
+Pi 3Ori, Pi 4Ori
+Pi 4Ori, Pi 5Ori
+Pi 5Ori, Pi 6Ori
+~Pav, Pavo
+Peacock, Bet Pav
+Bet Pav, Eps Pav
+Bet Pav, Kap Pav
+Kap Pav, Eta Pav
+Bet Pav, Zet Pav
+Pi  Pav, HD172555
+HD172555, Mu 2Pav
+Xi  Pav, Nu  Pav
+Nu  Pav, Mu 2Pav
+Lam Pav, Del Pav
+Del Pav, Bet Pav
+Bet Pav, Gam Pav
+~Peg, Pegasus
+Alp And, Algenib
+Alp And, Scheat
+Algenib, Markab
+Markab, Scheat
+Markab, Homam
+Homam, Biham
+Biham, Enif
+Scheat, Sadalbari
+Sadalbari, Lam Peg
+Lam Peg,9Peg
+9 Peg,1Peg
+Scheat, Matar
+Matar, Iot Peg
+Iot Peg, Kap Peg
+~Per, Perseus
+Phi Per, Eta1Per
+Eta1Per, Gam Per
+Gam Per, Mirfak
+Gam Per, Eta Per
+Mirfak, Kap Per
+Kap Per, Algol
+Algol, Rho Per
+Rho Per, 16 Per
+Mirfak, Del Per
+Del Per, Nu  Per
+Nu  Per, Eps Per
+Eps Per, Menkib
+Menkib, Atik
+Atik, Omi Per
+Del Per, 48 Per
+48 Per, 58 Per
+48 Per, Mu  Per
+Mu  Per, Lam Per
+~Phe, Phoenix
+Ankaa, Bet Phe
+Bet Phe, Gam Phe
+Gam Phe, Del Phe
+Bet Phe, Zet Phe
+Zet Phe, Eps Phe
+Eps Phe, Ankaa
+Eps Phe, Iot Phe
+Iot Phe, HD222095
+HD222095, Gliese 4.2A
+HD222095, HD142
+~Pic, Pictor
+Alp Pic, Gam Pic
+Gam Pic, Bet Pic
+~Psc, Pisces
+Gam Psc, 7 Psc
+7 Psc, The Psc
+The Psc, Iot Psc
+Iot Psc, Ome Psc
+Ome Psc, Del Psc
+Del Psc, Eps Psc
+Eps Psc, Mu  Psc
+Mu  Psc, Nu  Psc
+Nu  Psc, Alrescha
+Alrescha, Omi Psc
+Omi Psc, Eta Psc
+Eta Psc, Rho Psc
+Rho Psc, Phi Psc
+Iot Psc, TX Psc
+TX  Psc, Lam Psc
+Lam Psc, Kap Psc
+Kap Psc, Gam Psc
+~PsA, Pisces Austrinus
+Alp PsA, Del PsA
+Del PsA, Gam PsA
+Gam PsA, Bet PsA
+Bet PsA, Iot PsA
+Iot PsA, The PsA
+The PsA, Lam PsA
+Lam PsA, Eps PsA
+Eps PsA, Alp PsA
+~Pyx, Pyxis
+Bet Pyx, Alp Pyx
+Alp Pyx, Gam Pyx
+~Pup, Pup
+11  Pup, Xi  Pup
+Xi  Pup, HD61429
+HD61429, Pi  Pup
+Pi  Pup, Nu  Pup
+Nu  Pup, Tau Pup
+Tau Pup, HD56022
+HD56022, Sig Pup
+Sig Pup, Zet Pup
+Zet Pup, Rho Pup
+Rho Pup, 11 Pup
+~Ret, Reticulum
+Alp Ret, Bet Ret
+Bet Ret, Del Ret
+Del Ret, Eps Ret
+Eps Ret, Alp Ret
+Bet Ret, Kap Ret
+Kap Ret, Zet2Ret
+~Sge, Sagitta
+Alp Sge, Del Sge
+Bet Sge, Del Sge
+Gam Sge, Del Sge
+~Sgr, Sagittarius
+Pi  Sgr, Omi Sgr
+Omi Sgr, Xi  Sgr
+Omi Sgr, Xi 2Sgr
+Omi Sgr, Nunki
+Nunki, Tau Sgr
+Tau Sgr, Ascella
+Ascella, Phi Sgr
+Phi Sgr, Nunki
+Phi Sgr, Kaus Borealis
+Phi Sgr, Kaus Media
+Kaus Borealis, Kaus Media
+Kaus Borealis, Mu  Sgr
+Kaus Media, Gam2Sgr
+Ascella, Rukbat
+Rukbat, Arkab
+Gam2Sgr, Kaus Australis
+Kaus Media, Kaus Australis
+Kaus Australis, Zet Sgr
+Kaus Australis, Eta Sgr
+Kaus Australis, Ascella
+~Sco, Scorpius
+Xi  Sco, Nu  Sco
+Nu  Sco, Graffias
+Graffias, Del Sco
+Del Sco, Pi  Sco
+Pi  Sco, Rho Sco
+Del Sco, Sig Sco
+Sig Sco, Antares
+Antares, Tau Sco
+Tau Sco, Eps Sco
+Eps Sco, Mu  Sco
+Mu  Sco, Zet Sco
+Eps Sco, Mu 1Sco
+Mu 1Sco, Zet Sco
+Zet Sco, Eta Sco
+Mu 1Sco, Zet2Sco
+Zet2Sco, Eta Sco
+Eta Sco, Sargas
+Sargas, Iot1Sco
+Iot1Sco, Kap Sco
+Kap Sco, Shaula
+Shaula, Ups Sco
+Shaula, HD161892
+HD161892, Iot1Sco
+~Scl, Sculptor
+Alp Scl, Del Scl
+Del Scl, Gam Scl
+Gam Scl, Bet Scl
+~Sct, Scutum
+Alp Sct, Bet Sct
+Alp Sct, Gam Sct
+Alp Sct, Zet Sct
+~Ser, Serpens Caput
+Bet Ser, Gam Ser
+Gam Ser, Kap Ser
+Kap Ser, Bet Ser
+Bet Ser, Del Ser
+Del Ser, Unukalhai
+Unukalhai, Eps Ser
+Eps Ser, Mu  Ser
+Mu  Ser, Nu  Ser
+~Ser, Serpens Cauda
+Nu  Ser, Xi  Ser
+Xi  Ser, Omi Ser
+Omi Ser, Eta Ser
+Eta Ser, The Ser
+~Sex, Sextans
+Bet Sex, Alp Sex
+Alp Sex, Gam Sex
+~Tau, Taurus
+Zet Tau, Alp Tau
+Alp Tau, The1Tau
+The1Tau, Gam Tau
+Gam Tau, Del1Tau
+Del1Tau, Eps Tau
+Lam Tau, Alcyone
+Eps Tau, Tau Tau
+Gam Tau, Lam Tau
+Lam Tau, Mu  Tau
+Mu  Tau, Nu  Tau
+Lam Tau, 5   Tau
+5   Tau, Xi  Tau
+Xi  Tau, Omi Tau
+~, Pleiades
+Alcyone, Alcyone
+Maia, Maia
+Atlas, Atlas
+Taygeta, Taygeta
+~Tel, Telescopium
+Eps Tel, Alp Tel
+Alp Tel, Zet Tel
+~Tri, Triangulum
+Alp Tri, Bet Tri
+Bet Tri, Gam Tri
+Gam Tri, Alp Tri
+~TrA, Triangulum Australe 
+Atria, Bet TrA
+Bet TrA, Gam TrA
+Gam TrA, Atria
+~Tuc, Tucana
+Del Tuc, Alp Tuc
+Alp Tuc, Gam Tuc
+Gam Tuc, Bet1Tuc
+Bet1Tuc, Zet Tuc
+Zet Tuc, Eps Tuc
+Eps Tuc, Gam Tuc
+~UMa, Ursa Major
+Alkaid, MEps Boo
+MEps Boo, Alioth
+Alioth, Megrez
+Megrez, Phecda
+Phecda, Merak
+Merak, Dubhe
+Dubhe, Megrez
+Phecda, Chi UMa
+Chi UMa, Psi UMa
+Psi UMa, Tania Australis
+Tania Australis, Tania Borealis
+Chi UMa, Nu  UMa
+Nu  UMa, Xi  UMa
+Dubhe, 23 UMa
+23  UMa, Muscida
+23  UMa, Ups UMa
+Ups UMa, The UMa
+The UMa, Kap UMa
+The UMa, Talitha
+~UMi, Ursa Minor
+Polaris, Del UMi
+Del UMi, Eps UMi
+Eps UMi, Zet UMi
+Zet UMi, Kochab
+Kochab, Pherkad
+Pherkad, Eta UMi
+Eta UMi, Zet UMi
+~Vel, Vela
+Gam Vel, Del Vel
+Gam2Vel, Del Vel
+Del Vel, Kap Vel
+Kap Vel, Phi Vel
+Phi Vel, Mu  Vel
+Mu  Vel, HD92139
+HD92139, HD88955
+HD88955, Psi Vel
+Psi Vel, Lam Vel
+Lam Vel, Gliese 321.1
+Gliese 321.1, HD73634
+HD73634, Gam Vel
+HD73634, Gam2Vel
+~Vir, Virgo
+Omi Vir, Pi  Vir
+Pi  Vir, Nu  Vir
+Nu  Vir, Zavijava
+Zavijava, Zaniah
+Zaniah, Porrima
+Porrima, The Vir
+The Vir, Spica
+Spica, Kap Vir
+Kap Vir, Syrma
+Syrma, Mu  Vir
+109 Vir, Tau Vir
+Tau Vir, Zet Vir
+Zet Vir, Spica
+Zet Vir, Del Vir
+Del Vir, Porrima
+Del Vir, Vindemiatrix
+~Vol, Volans
+Alp Vol, Bet Vol
+Bet Vol, Eps Vol
+Eps Vol, Zet Vol
+Zet Vol, Gam2Vol
+Gam2Vol, Del Vol
+Del Vol, Eps Vol
+~Vul, Vulpecula
+13  Vul, Alp Vul
+Alp Vul, 1   Vul

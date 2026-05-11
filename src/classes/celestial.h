@@ -44,6 +44,7 @@ class CelestialObject
     double declination = 0;                     // RADIANS!
     double inclination = 0;                     // RADIANS!
     double distance = 0;                        // meters
+    bool distance_known = false;
     double epoch = 2451544.5;                   // JD
     double absolute_magnitude = 0;
     double UB_magnitude = 0;

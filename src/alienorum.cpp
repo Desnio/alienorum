@@ -39,10 +39,14 @@ int main (int argc, char** argv)
     double zoom = 1;
     int cursor_size = 10, circle_size = 3;
     ImU32 cursor_color = IM_COL32(255, 32, 0, 255);
+    ImU32 grid_color = IM_COL32(255, 0, 0, 96);
     bool is_an_obj_under_cursor;
+    double obj_magn_under_cursor;
     std::string objname, objinfo;
     bool is_mouse_over_window;
     int tsatwnd_hei = 0;
+    int timeout_ms = 5;
+    bool interacted;
 
     std::filesystem::path p = "catalogs";
     bool catalogs_found = false;
@@ -252,14 +256,91 @@ int main (int argc, char** argv)
         //////////////////////////////////////////////////
 
         if (!is_mouse_over_window) SDL_ShowCursor(SDL_DISABLE);
-
         int dispcx = (int)io.DisplaySize.x/2, dispcy = (int)io.DisplaySize.y / 2;
+
+        Cartesian2D prev, zdes;
+        bool prev_valid = false;
+        // RA and Dec lines.
+        for (i=0; i<24; i++)
+        {
+            prev_valid = false;
+            for (j=-80; j<=80; j+=10)
+            {
+                Point ihavetomove = Point::from_ra_dec(fiftyseventh * i * 15, fiftyseventh * j, 5);
+                try
+                {
+                    zdes = Cartesian2D(ihavetomove, azimuth, altitude, zoom);
+                }
+                catch (...)
+                {
+                    prev_valid = false;
+                    continue;
+                }
+
+                if (j > -80)
+                {
+                    int dx1 = dispcx + zdes.x * dispcx,
+                        dy1 = dispcy + zdes.y * dispcx,
+                        dx2 = dispcx + prev.x * dispcx,
+                        dy2 = dispcy + prev.y * dispcx;
+
+                        if (prev_valid)
+                        ImGui::GetBackgroundDrawList()->AddLine(
+                            ImVec2(dx1, dy1), ImVec2(dx2, dy2),
+                            grid_color, 1);
+                }
+
+                prev = zdes;
+                prev_valid = true;
+            }
+        }
+        for (j=-80; j <= 80; j+=10)
+        {
+            prev_valid = false;
+            for (i=0; i<=24; i++)
+            {
+                Point ihavetomove = Point::from_ra_dec(fiftyseventh * i * 15, fiftyseventh * j, 5);
+                try
+                {
+                    zdes = Cartesian2D(ihavetomove, azimuth, altitude, zoom);
+                }
+                catch (...)
+                {
+                    prev_valid = false;
+                    continue;
+                }
+
+                if (j > -80)
+                {
+                    int dx1 = dispcx + zdes.x * dispcx,
+                        dy1 = dispcy + zdes.y * dispcx,
+                        dx2 = dispcx + prev.x * dispcx,
+                        dy2 = dispcy + prev.y * dispcx;
+
+                        if (prev_valid)
+                        ImGui::GetBackgroundDrawList()->AddLine(
+                            ImVec2(dx1, dy1), ImVec2(dx2, dy2),
+                            grid_color, 1);
+                }
+
+                prev = zdes;
+                prev_valid = true;
+            }
+        }
+
+        // Draw objects.
         for (i=0; cels[i] && i<MAX_CELOBJS; i++)
         {
             if (cels[i]->type != star) continue;
             Star* s = (Star*)cels[i];
-            Point rel = s->location;
+            Point rel = cels[i]->location;
             rel -= here;
+
+            if (cels[i]->type == star && s->HD == 37128)
+            {
+                j=1;
+            }
+
             try
             {
                 Cartesian2D cart(rel, azimuth, altitude, zoom);
@@ -269,7 +350,7 @@ int main (int argc, char** argv)
                 if (dx < 0 or dx >= io.DisplaySize.x) continue;
                 if (dy < 0 or dy >= io.DisplaySize.y) continue;
                 ImVec2 xycoord = ImVec2(dx, dy);
-                float appmag = s->viewer_magnitude(here);
+                float appmag = (cels[i]->type == star) ? s->viewer_magnitude(here) : cels[i]->absolute_magnitude;
                 float magrad = (6.0 - appmag)*1.5;
                 if (magrad < 1) magrad = 1;
                 for (j=magrad; j>0; j-=0.5)
@@ -314,6 +395,7 @@ int main (int argc, char** argv)
 
             // Object under cursor
             is_an_obj_under_cursor = false;
+            obj_magn_under_cursor = 1e9;
             for (i=0; cels[i] && i<MAX_CELOBJS; i++)
             {
                 if (abs(cels[i]->drawnx - io.MousePos.x) < circle_size
@@ -322,19 +404,25 @@ int main (int argc, char** argv)
                     )
                 {
                     is_an_obj_under_cursor = true;
-                    // TODO: prioritize by brightness.
-                    objname = cels[i]->name;
-                    objinfo = (std::string)"RA: " + cels[i]->RA_as_hms() + (std::string)"\n"
-                            + (std::string)"Decl: " + cels[i]->Decl_as_degms() + (std::string)"\n"
-                            + (std::string)"Mag: " + std::to_string(cels[i]->viewer_magnitude(here)) + (std::string)"\n"
-                            + (std::string)"Dist: " + cels[i]->scaled_distance(here) + (std::string)"\n"
-                            ;
-                    if (cels[i]->type == star)
+
+                    // Prioritize by brightness.
+                    double lmag = cels[i]->viewer_magnitude(here);
+                    if (lmag < obj_magn_under_cursor)
                     {
-                        Star* s = (Star*)cels[i];
-                        objinfo += (std::string)"SpTyp: " + s->spectral_type + (std::string)"\n";
+                        obj_magn_under_cursor = lmag;
+                        objname = cels[i]->name;
+                        objinfo = (std::string)"RA: " + cels[i]->RA_as_hms() + (std::string)"\n"
+                                + (std::string)"Decl: " + cels[i]->Decl_as_degms() + (std::string)"\n"
+                                + (std::string)"Mag: " + std::to_string(lmag) + (std::string)"\n"
+                                ;
+                        if (cels[i]->distance_known)
+                            objinfo += (std::string)"Dist: " + cels[i]->scaled_distance(here) + (std::string)"\n";
+                        if (cels[i]->type == star)
+                        {
+                            Star* s = (Star*)cels[i];
+                            objinfo += (std::string)"SpTyp: " + s->spectral_type + (std::string)"\n";
+                        }
                     }
-                    break;
                 }
             }
 
@@ -477,9 +565,18 @@ int main (int argc, char** argv)
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         SDL_GL_SwapWindow(window);
 
-        if (!is_mouse_over_window) SDL_ShowCursor(SDL_DISABLE);
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        if (!is_mouse_over_window) SDL_ShowCursor(SDL_DISABLE);
+        if (io.MousePos.x != io.MousePosPrev.x || io.MousePos.y != io.MousePosPrev.y || velocity.magnitude())
+        {
+            timeout_ms *= 0.5;
+            if (timeout_ms < 5) timeout_ms = 5;
+        }
+        else
+        {
+            timeout_ms *= 1.1;
+            if (timeout_ms > 250) timeout_ms = 250;
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(timeout_ms));
 
         frist = false;
     }

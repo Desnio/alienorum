@@ -12,7 +12,7 @@ CPP = g++
 CPPFLAGS = -std=c++17 -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends -g -Wall -Wformat
 
 # Debug mode
-CPPFLAGS += -g
+# CPPFLAGS += -g
 
 IMGUI_DIR = src/imgui
 CLASSES_DIR = src/classes
@@ -98,19 +98,19 @@ $(OBJ)/imgui_impl_sdl2.o:$(IMGUI_DIR)/backends/imgui_impl_sdl2.cpp
 	$(CPP) $(IMGUI_DIR)/backends/imgui_impl_sdl2.cpp $(CPPFLAGS) -c -o $(OBJ)/imgui_impl_sdl2.o
 
 
-$(OBJ)/celestial.o:$(CLASSES_DIR)/celestial.cpp
+$(OBJ)/celestial.o: $(CLASSES_DIR)/celestial.cpp $(CLASSES_DIR)/celestial.h makefile
 	$(CPP) $(CLASSES_DIR)/celestial.cpp $(CPPFLAGS) -c -o $(OBJ)/celestial.o
 
-$(OBJ)/cat.o:$(CLASSES_DIR)/cat.cpp
+$(OBJ)/cat.o: $(CLASSES_DIR)/cat.cpp $(CLASSES_DIR)/cat.h makefile
 	$(CPP) $(CLASSES_DIR)/cat.cpp $(CPPFLAGS) -c -o $(OBJ)/cat.o
 
-$(OBJ)/color.o:$(CLASSES_DIR)/color.cpp
+$(OBJ)/color.o: $(CLASSES_DIR)/color.cpp $(CLASSES_DIR)/color.h makefile
 	$(CPP) $(CLASSES_DIR)/color.cpp $(CPPFLAGS) -c -o $(OBJ)/color.o
 
-$(OBJ)/point.o:$(CLASSES_DIR)/point.cpp
+$(OBJ)/point.o: $(CLASSES_DIR)/point.cpp $(CLASSES_DIR)/point.h makefile
 	$(CPP) $(CLASSES_DIR)/point.cpp $(CPPFLAGS) -c -o $(OBJ)/point.o
 
-$(OBJ)/star.o:$(CLASSES_DIR)/star.cpp
+$(OBJ)/star.o: $(CLASSES_DIR)/star.cpp $(CLASSES_DIR)/star.h makefile
 	$(CPP) $(CLASSES_DIR)/star.cpp $(CPPFLAGS) -c -o $(OBJ)/star.o
 
 $(BIN)/alienorum: src/alienorum.cpp $(OBJS)
