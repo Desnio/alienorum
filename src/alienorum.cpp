@@ -328,18 +328,12 @@ int main (int argc, char** argv)
             }
         }
 
-        // Draw objects.
+        // Compute object draw coordinates.
         for (i=0; cels[i] && i<MAX_CELOBJS; i++)
         {
-            if (cels[i]->type != star) continue;
             Star* s = (Star*)cels[i];
             Point rel = cels[i]->location;
             rel -= here;
-
-            if (cels[i]->type == star && s->HD == 37128)
-            {
-                j=1;
-            }
 
             try
             {
@@ -349,7 +343,42 @@ int main (int argc, char** argv)
                 cels[i]->drawny = dy;
                 if (dx < 0 or dx >= io.DisplaySize.x) continue;
                 if (dy < 0 or dy >= io.DisplaySize.y) continue;
-                ImVec2 xycoord = ImVec2(dx, dy);
+            }
+            catch (...)
+            {
+                // Object is behind the camera.
+                s->drawnx = s->drawny = -1e9;;
+            }
+        }
+
+        // Draw objects.
+        for (i=0; cels[i] && i<MAX_CELOBJS; i++)
+        {
+            Star* s = (Star*)cels[i];
+            Point rel = cels[i]->location;
+            rel -= here;
+            {
+                if (s->drawnx < 0 or s->drawnx >= io.DisplaySize.x) continue;
+                if (s->drawny < 0 or s->drawny >= io.DisplaySize.y) continue;
+
+                // Any brighter object within reach, skip this one.
+                bool skip = false;
+                for (j=0; cels[j] && j<MAX_CELOBJS; j++)
+                {
+                    if (j==i) continue;
+                    if (fabs(s->drawnx - cels[j]->drawnx) < 3
+                        &&
+                        fabs(s->drawny - cels[j]->drawny) < 3
+                        && cels[j]->viewer_magnitude(here) < s->viewer_magnitude(here)
+                        )
+                    {
+                        skip = true;
+                        break;
+                    }
+                }
+                if (skip) continue;
+
+                ImVec2 xycoord = ImVec2(s->drawnx, s->drawny);
                 float appmag = (cels[i]->type == star) ? s->viewer_magnitude(here) : cels[i]->absolute_magnitude;
                 float magrad = (6.0 - appmag)*1.5;
                 if (magrad < 1) magrad = 1;
@@ -360,12 +389,8 @@ int main (int argc, char** argv)
                     ImGui::GetBackgroundDrawList()->AddCircleFilled(xycoord, 0.7+0.8*j, IM_COL32(rgb.r, rgb.g, rgb.b, 255), 0);
                 }
             }
-            catch (...)
-            {
-                // Object is behind the camera.
-                ;
-            }
         }
+
 
         // Custom mouse cursor.
         if (!is_mouse_over_window)

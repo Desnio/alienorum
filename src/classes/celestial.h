@@ -55,7 +55,7 @@ class CelestialObject
     cel_obj_type type = star;
     std::string name;
 
-    int drawnx=0, drawny=0;
+    int drawnx=-1e9, drawny=-1e9;
 
     CelestialObject() {};
     CelestialLocation location;
