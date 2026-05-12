@@ -380,7 +380,7 @@ int main (int argc, char** argv)
                         continue;
                     }
 
-                    if (j > -80)
+                    if (i)
                     {
                         int dx1 = dispcx + zdes.x * dispcx,
                             dy1 = dispcy + zdes.y * dispcx,
