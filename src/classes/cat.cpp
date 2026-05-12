@@ -465,6 +465,11 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
     return num_read;
 }
 
+int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
+{
+    return 0;
+}
+
 int CatalogReader::read_starname_dat(CelestialObject **cels)
 {
     std::string path = "starname.dat";
