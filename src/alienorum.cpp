@@ -51,9 +51,9 @@ int main (int argc, char** argv)
     double obj_magn_under_cursor;
     std::string objname, objinfo;
     bool is_mouse_over_window;
-    int tsatwnd_hei = 0;
+    int objinfwnd_hei = 0;
     int timeout_ms = 5;
-    bool interacted;
+    bool dragging, viewchanged;
     int lmx, lmy;
 
     std::filesystem::path p = "catalogs";
@@ -117,7 +117,8 @@ int main (int argc, char** argv)
     std::vector<std::string> cats = cr.find_catalogs("catalogs");
 
     bool have_Gliese = false, have_BSC = false, have_HIP = false;
-    for (i=0; i<cats.size(); i++)
+    n = cats.size();
+    for (i=0; i<n; i++)
     {
         cout << "Found " << cats[i] << endl;
         if (!strcmp(cats[i].c_str(), "catalogs/Gliese")) have_Gliese = true;
@@ -125,8 +126,8 @@ int main (int argc, char** argv)
         if (!strcmp(cats[i].c_str(), "catalogs/Hipparcos")) have_HIP = true;
     }
 
-    if (have_Gliese) cr.read_Gliese_catalog(cels, MAX_CELOBJS);
-    if (have_BSC) cr.read_BrightStars_catalog(cels, MAX_CELOBJS);
+    if (have_Gliese) ncelobjs += cr.read_Gliese_catalog(cels, MAX_CELOBJS);
+    if (have_BSC) ncelobjs += cr.read_BrightStars_catalog(cels, MAX_CELOBJS);
 
     // Cache star indices of consline termini
     int consaidx[nclonsln+4], consbidx[nclonsln+4];
@@ -146,7 +147,7 @@ int main (int argc, char** argv)
                     ||
                     (
                         consline_a[i].c_str()[0] == 'H' && consline_a[i].c_str()[1] == 'D'
-                        && s->HD && atoi(&consline_a[i].c_str()[2]) == s->HD
+                        && s->HD && (unsigned)atoi(&consline_a[i].c_str()[2]) == s->HD
                     )
                 ))
             {
@@ -161,7 +162,7 @@ int main (int argc, char** argv)
                     ||
                     (
                         consline_b[i].c_str()[0] == 'H' && consline_b[i].c_str()[1] == 'D'
-                        && s->HD && atoi(&consline_b[i].c_str()[2]) == s->HD
+                        && s->HD && (unsigned)atoi(&consline_b[i].c_str()[2]) == s->HD
                     )
                 ))
             {
@@ -294,8 +295,8 @@ int main (int argc, char** argv)
 
     // Main loop
     bool done = false;
-    bool tsatwnd = true;
-    bool frist = true;
+    bool objinfwnd = true;
+    viewchanged = true;
     while (!done)
     {
         if (!is_mouse_over_window) SDL_ShowCursor(SDL_DISABLE);
@@ -407,7 +408,7 @@ int main (int argc, char** argv)
         }
 
         // Compute object draw coordinates.
-        for (i=0; cels[i] && i<MAX_CELOBJS; i++)
+        if (viewchanged) for (i=0; cels[i] && i<MAX_CELOBJS; i++)
         {
             Star* s = (Star*)cels[i];
             Point rel = cels[i]->location;
@@ -498,38 +499,40 @@ int main (int argc, char** argv)
             }
         }
 
-
         // Custom mouse cursor.
+        bool is_click = io.MouseReleased[0];
         if (!is_mouse_over_window)
         {
-            cursor_size = (int)io.DisplaySize.x/93;
-            circle_size = cursor_size / 3;
+            if (!ImGui::IsMouseDown(0) && !ImGui::IsMouseDown(1) && !ImGui::IsMouseDown(2))
+            {
+                cursor_size = (int)io.DisplaySize.x/93;
+                circle_size = cursor_size / 3;
 
-            ImU32 c = rgba_apply_redlight(cursor_color);
-            ImGui::GetBackgroundDrawList()->AddLine(
-                ImVec2(io.MousePos.x, io.MousePos.y - cursor_size),
-                ImVec2(io.MousePos.x, io.MousePos.y - circle_size - 1),
-                c, 1);
-            ImGui::GetBackgroundDrawList()->AddLine(
-                ImVec2(io.MousePos.x, io.MousePos.y + cursor_size + 1),
-                ImVec2(io.MousePos.x, io.MousePos.y + circle_size + 2),
-                c, 1);
-            ImGui::GetBackgroundDrawList()->AddLine(
-                ImVec2(io.MousePos.x - cursor_size, io.MousePos.y),
-                ImVec2(io.MousePos.x - circle_size - 1, io.MousePos.y),
-                c, 1);
-            ImGui::GetBackgroundDrawList()->AddLine(
-                ImVec2(io.MousePos.x + cursor_size + 1, io.MousePos.y),
-                ImVec2(io.MousePos.x + circle_size + 2, io.MousePos.y),
-                c, 1);
-            ImGui::GetBackgroundDrawList()->AddCircle(
-                ImVec2(io.MousePos.x, io.MousePos.y),
-                circle_size, c, 8, 1);
+                ImU32 c = rgba_apply_redlight(cursor_color);
+                ImGui::GetBackgroundDrawList()->AddLine(
+                    ImVec2(io.MousePos.x, io.MousePos.y - cursor_size),
+                    ImVec2(io.MousePos.x, io.MousePos.y - circle_size - 1),
+                    c, 1);
+                ImGui::GetBackgroundDrawList()->AddLine(
+                    ImVec2(io.MousePos.x, io.MousePos.y + cursor_size + 1),
+                    ImVec2(io.MousePos.x, io.MousePos.y + circle_size + 2),
+                    c, 1);
+                ImGui::GetBackgroundDrawList()->AddLine(
+                    ImVec2(io.MousePos.x - cursor_size, io.MousePos.y),
+                    ImVec2(io.MousePos.x - circle_size - 1, io.MousePos.y),
+                    c, 1);
+                ImGui::GetBackgroundDrawList()->AddLine(
+                    ImVec2(io.MousePos.x + cursor_size + 1, io.MousePos.y),
+                    ImVec2(io.MousePos.x + circle_size + 2, io.MousePos.y),
+                    c, 1);
+                ImGui::GetBackgroundDrawList()->AddCircle(
+                    ImVec2(io.MousePos.x, io.MousePos.y),
+                    circle_size, c, 8, 1);
+            }
 
             // Object under cursor
             is_an_obj_under_cursor = false;
             obj_magn_under_cursor = 1e9;
-            bool is_click = io.MouseReleased[0];
             for (i=0; cels[i] && i<MAX_CELOBJS; i++)
             {
                 if (abs(cels[i]->drawnx - io.MousePos.x) < circle_size
@@ -554,12 +557,12 @@ int main (int argc, char** argv)
                             if (((Star*)cels[i])->HR) objinfo += (std::string)"HR" + std::to_string(((Star*)cels[i])->HR) + (std::string)"\n";
                             if (((Star*)cels[i])->HIP) objinfo += (std::string)"HIP" + std::to_string(((Star*)cels[i])->HIP) + (std::string)"\n";
                         }
-                        objinfo += (std::string)"RA: " + cels[i]->RA_as_hms() + (std::string)"\n"
-                                + (std::string)"Decl: " + cels[i]->Decl_as_degms() + (std::string)"\n"
-                                + (std::string)"Mag: " + std::to_string(lmag) + (std::string)"\n"
+                        objinfo += (std::string)"RA:    " + cels[i]->RA_as_hms() + (std::string)"\n"
+                                + (std::string)"Decl:  " + cels[i]->Decl_as_degms() + (std::string)"\n"
+                                + (std::string)"Mag:   " + std::to_string(lmag) + (std::string)"\n"
                                 ;
                         if (cels[i]->distance_known)
-                            objinfo += (std::string)"Dist: " + cels[i]->scaled_distance(here) + (std::string)"\n";
+                            objinfo += (std::string)"Dist:  " + cels[i]->scaled_distance(here) + (std::string)"\n";
                         if (cels[i]->type == star)
                         {
                             Star* s = (Star*)cels[i];
@@ -573,42 +576,46 @@ int main (int argc, char** argv)
 
             if (!is_an_obj_under_cursor)
             {
-                objname = "Press N to toggle";
-                objinfo = "this window.\n\n";
+                objname = std::to_string(ncelobjs) + (std::string)" objects.";
+                objinfo = "Press N to toggle\nthis window.\n\n";
                 if (is_click) selected = -1;
             }
         }
 
         // Object under cursor info
         is_mouse_over_window = false;
-        if (tsatwnd)
+        if (objinfwnd)
         {
             // TODO: If redlight_mode, set all window and text colors accordingly.
-            ImGui::Begin("Object", &tsatwnd);
+            ImGui::Begin("Object", &objinfwnd);
             ImGui::Text(objname.c_str());
             ImGui::Text(objinfo.c_str());
             /* if (ImGui::Button("Close Me"))
-                tsatwnd = false; */
+                objinfwnd = false; */
             int txtlines = std::count(objinfo.begin(), objinfo.end(), '\n') + 2;
             float txtyscale = ImGui::GetTextLineHeightWithSpacing();
-            int tsattop = 18, tsatleft = (int)io.DisplaySize.x - 225, tsatwidth = 211, tsatheight = (int)txtlines*txtyscale;
-            if (tsatheight > tsatwnd_hei) tsatwnd_hei = tsatheight;
-            else tsatheight = tsatwnd_hei;
-            ImGui::SetWindowSize(ImVec2(tsatwidth, tsatheight));
-            ImGui::SetWindowPos(ImVec2(tsatleft, tsattop));
+            int objinftop = 18, objinfleft = (int)io.DisplaySize.x - 225, objinfwidth = 211, objinfheight = (int)txtlines*txtyscale;
+            if (objinfheight > objinfwnd_hei) objinfwnd_hei = objinfheight;
+            else objinfheight = objinfwnd_hei;
+            ImGui::SetWindowSize(ImVec2(objinfwidth, objinfheight));
+            ImGui::SetWindowPos(ImVec2(objinfleft, objinftop));
             ImGui::End();
 
-            if (io.MousePos.x >= tsatleft && io.MousePos.y >= tsattop
-                && io.MousePos.x < tsatleft+tsatwidth && io.MousePos.y < tsattop+tsatheight)
+            if (io.MousePos.x >= objinfleft && io.MousePos.y >= objinftop
+                && io.MousePos.x < objinfleft+objinfwidth && io.MousePos.y < objinftop+objinfheight)
                 is_mouse_over_window = true;
         }
 
         // Positioning updates
         here.local_position += velocity;
         azimuth += spin;
+        viewchanged = spin || velocity.magnitude();
 
         // Pan with crosshairs
-        if (io.MouseDown && !is_mouse_over_window)
+        bool is_mouse_down = ImGui::IsMouseDown(0) || ImGui::IsMouseDown(1) || ImGui::IsMouseDown(2);
+        if (is_mouse_down && (io.MousePos.x != lmx || io.MousePos.y != lmy)) dragging = true;
+        else if (is_click) dragging = false;
+        if (is_mouse_down && !is_mouse_over_window && dragging)
         {
             if (ImGui::IsMouseDown(2))
             {
@@ -617,11 +624,12 @@ int main (int argc, char** argv)
                 if (altitude >  M_PI/2) altitude =  M_PI/2;
                 if (altitude < -M_PI/2) altitude = -M_PI/2;
                 spin = 0;
+                viewchanged = true;
 
                 ImVec2 topcen(dispcx, 0), botcen(dispcx, (int)io.DisplaySize.y-1),
                     leftcen(0, dispcy), rightcen((int)io.DisplaySize.x-1, dispcy);
-                ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, rgba_apply_redlight(IM_COL32(0, 0, 255, 96)), 1);
-                ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, rgba_apply_redlight(IM_COL32(0, 0, 255, 96)), 1);
+                ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, rgba_apply_redlight(IM_COL32(0, 0, 255, 128)), 1);
+                ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, rgba_apply_redlight(IM_COL32(0, 0, 255, 128)), 1);
             }
             else if (ImGui::IsMouseDown(1))
             {
@@ -630,11 +638,12 @@ int main (int argc, char** argv)
                 if (altitude >  M_PI/2) altitude =  M_PI/2;
                 if (altitude < -M_PI/2) altitude = -M_PI/2;
                 spin = 0;
+                viewchanged = true;
 
                 ImVec2 topcen(dispcx, 0), botcen(dispcx, (int)io.DisplaySize.y-1),
                     leftcen(0, dispcy), rightcen((int)io.DisplaySize.x-1, dispcy);
-                ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, rgba_apply_redlight(IM_COL32(0, 255, 0, 40)), 1);
-                ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, rgba_apply_redlight(IM_COL32(0, 255, 0, 40)), 1);
+                ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, rgba_apply_redlight(IM_COL32(0, 255, 0, 64)), 1);
+                ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, rgba_apply_redlight(IM_COL32(0, 255, 0, 64)), 1);
             }
             else if (ImGui::IsMouseDown(0))
             {
@@ -643,11 +652,12 @@ int main (int argc, char** argv)
                 if (altitude >  M_PI/2) altitude =  M_PI/2;
                 if (altitude < -M_PI/2) altitude = -M_PI/2;
                 spin = 0;
+                viewchanged = true;
 
                 ImVec2 topcen(dispcx, 0), botcen(dispcx, (int)io.DisplaySize.y-1),
                     leftcen(0, dispcy), rightcen((int)io.DisplaySize.x-1, dispcy);
-                ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, rgba_apply_redlight(IM_COL32(255, 0, 0, 64)), 1);
-                ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, rgba_apply_redlight(IM_COL32(255, 0, 0, 64)), 1);
+                ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, rgba_apply_redlight(IM_COL32(255, 96, 0, 96)), 1);
+                ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, rgba_apply_redlight(IM_COL32(255, 96, 0, 96)), 1);
             }
         }
 
@@ -656,11 +666,13 @@ int main (int argc, char** argv)
         {
             zoom *= 1.1;
             global_brightness *= 1.1;
+            viewchanged = true;
         }
         else if (io.MouseWheel < 0 && zoom > 1)
         {
             zoom *= 0.9;
             global_brightness *= 0.9;
+            viewchanged = true;
         }
 
         // Keyboard commands
@@ -674,10 +686,11 @@ int main (int argc, char** argv)
                 velocity.z =  cos(azimuth) * cos(altitude) * light_year / 10;
                 velocity.y =  sin(altitude) * light_year / 10;
                 spin = 0;
+                viewchanged = true;
                 break;
 
                 case 'n':
-                tsatwnd = !tsatwnd;
+                objinfwnd = !objinfwnd;
                 break;
 
                 case 'c':
@@ -697,25 +710,30 @@ int main (int argc, char** argv)
                     velocity.z =  cos(azimuth) * cos(altitude) * 1000;
                     velocity.y =  sin(altitude) * 1000;
                 }
+                viewchanged = true;
                 break;
 
                 case '-':
                 vm = velocity.magnitude();
                 velocity.scale(vm * 0.666);
+                viewchanged = true;
                 break;
 
                 case 'x':
                 velocity = Point(0,0,0);
+                viewchanged = true;
                 break;
 
                 case 'o':
                 if (selected >= 0) here = cels[selected]->location;
+                viewchanged = true;
                 break;
 
                 case 'r':
                 velocity = Point(0,0,0);
                 spin = 0;
                 here.local_position = here.system_center = Point(0,0,0);
+                viewchanged = true;
                 break;
 
                 case 'R':
@@ -763,7 +781,7 @@ int main (int argc, char** argv)
         }
         else
         {
-            timeout_ms *= 1.25;
+            timeout_ms *= 1.5;
             if (timeout_ms > 250) timeout_ms = 250;
         }
 
@@ -771,7 +789,6 @@ int main (int argc, char** argv)
 
         lmx = io.MousePos.x;
         lmy = io.MousePos.y;
-        frist = false;
     }
 
     for (i=0; cels[i]; i++) delete cels[i];
