@@ -1,6 +1,7 @@
 
 #include <math.h>
 #include <iomanip>
+#include <sstream>
 #include "celestial.h"
 
 double CelestialObject::viewer_magnitude(CelestialLocation seen_from)
