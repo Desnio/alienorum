@@ -11,7 +11,7 @@
 CPP = g++
 CPPFLAGS = -std=c++17 -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends -g -Wall -Wformat
 
-# Debug mode
+# Uncomment for debug mode
 # CPPFLAGS += -g
 
 IMGUI_DIR = src/imgui
@@ -115,3 +115,4 @@ $(OBJ)/star.o: $(CLASSES_DIR)/star.cpp $(CLASSES_DIR)/star.h makefile
 
 $(BIN)/alienorum: src/alienorum.cpp $(OBJS)
 	$(CPP) src/alienorum.cpp $(OBJ)/*.o -o $(BIN)/alienorum $(CPPFLAGS) $(LIBS)
+

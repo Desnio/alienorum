@@ -54,6 +54,7 @@ int main (int argc, char** argv)
     int tsatwnd_hei = 0;
     int timeout_ms = 5;
     bool interacted;
+    int lmx, lmy;
 
     std::filesystem::path p = "catalogs";
     bool catalogs_found = false;
@@ -115,12 +116,17 @@ int main (int argc, char** argv)
     cr.download_catalogs();
     std::vector<std::string> cats = cr.find_catalogs("catalogs");
 
+    bool have_Gliese = false, have_BSC = false, have_HIP = false;
     for (i=0; i<cats.size(); i++)
     {
         cout << "Found " << cats[i] << endl;
-        if (!strcmp(cats[i].c_str(), "catalogs/BSC"))
-            cr.read_BrightStars_catalog(cels, MAX_CELOBJS);
+        if (!strcmp(cats[i].c_str(), "catalogs/Gliese")) have_Gliese = true;
+        if (!strcmp(cats[i].c_str(), "catalogs/BSC")) have_BSC = true;
+        if (!strcmp(cats[i].c_str(), "catalogs/Hipparcos")) have_HIP = true;
     }
+
+    if (have_Gliese) cr.read_Gliese_catalog(cels, MAX_CELOBJS);
+    if (have_BSC) cr.read_BrightStars_catalog(cels, MAX_CELOBJS);
 
     // Cache star indices of consline termini
     int consaidx[nclonsln+4], consbidx[nclonsln+4];
@@ -538,7 +544,15 @@ int main (int argc, char** argv)
                         obj_magn_under_cursor = lmag;
 
                         objname = cels[i]->name;
-                        objinfo = (std::string)"RA: " + cels[i]->RA_as_hms() + (std::string)"\n"
+                        objinfo = "";
+                        if (cels[i]->type == star)
+                        {
+                            if (((Star*)cels[i])->Gliese.size()) objinfo += ((Star*)cels[i])->Gliese + (std::string)"\n";
+                            if (((Star*)cels[i])->HD) objinfo += (std::string)"HD" + std::to_string(((Star*)cels[i])->HD) + (std::string)"\n";
+                            if (((Star*)cels[i])->HR) objinfo += (std::string)"HR" + std::to_string(((Star*)cels[i])->HR) + (std::string)"\n";
+                            if (((Star*)cels[i])->HIP) objinfo += (std::string)"HIP" + std::to_string(((Star*)cels[i])->HIP) + (std::string)"\n";
+                        }
+                        objinfo += (std::string)"RA: " + cels[i]->RA_as_hms() + (std::string)"\n"
                                 + (std::string)"Decl: " + cels[i]->Decl_as_degms() + (std::string)"\n"
                                 + (std::string)"Mag: " + std::to_string(lmag) + (std::string)"\n"
                                 ;
@@ -735,19 +749,21 @@ int main (int argc, char** argv)
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         SDL_GL_SwapWindow(window);
 
-        if (io.MousePos.x != io.MousePosPrev.x || io.MousePos.y != io.MousePosPrev.y || velocity.magnitude())
+        if (io.MousePos.x != lmx || io.MousePos.y != lmy || velocity.magnitude())
         {
-            timeout_ms *= 0.5;
+            timeout_ms *= 0.333;
             if (timeout_ms < 5) timeout_ms = 5;
         }
         else
         {
-            timeout_ms *= 1.1;
+            timeout_ms *= 1.25;
             if (timeout_ms > 250) timeout_ms = 250;
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(timeout_ms));
 
+        lmx = io.MousePos.x;
+        lmy = io.MousePos.y;
         frist = false;
     }
 

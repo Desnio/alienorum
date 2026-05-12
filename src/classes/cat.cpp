@@ -126,14 +126,17 @@ void CatalogReader::download_catalogs()
     }
 }
 
-int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
+// Assumes no other catalogs have been loaded before Gliese,
+// since Gliese contains the Sun.
+int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
 {
-    std::string path = "catalogs/BSC/catalog";
+    std::string path = "catalogs/Gliese/catalog.dat";
     char buffer[65536];
     char field[32];
     int num_read = 0;
-    int offset;
-    double deg, mnt, sec;
+    int offset, j;
+    double deg, mnt, sec, pm, pmtheta, absmagn;
+    std::string build_name;
 
     for (offset=0; offset<max && cels[offset]; offset++);
     if (offset >= max) return 0;
@@ -145,6 +148,167 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
         Star* s = new Star();
         s->type = star;
 
+        //    1-  8  A8     ---     Name    *Identifier ; see remarks.
+        // Note on Name: the following acronyms are used:
+        //      Gl   Gliese: CNS2,                                 =1969VeARI..22....1G
+        //      GJ   Gliese & Jahreiss, A&AS, 38, 423 (1979)
+        //      Wo   Woolley et al.,   Roy. Obs. Ann. No. 5 (1970)
+        //      NN   newly added stars (number added at CDS)
+        //           See the Nomemclature Note above !
+        read_field_onebased(buffer, 1, 10, field);
+        if (field[0] == 'G' && field[1] == 'l')
+            build_name = "Gliese ";
+        else if (field[0] == 'G' && field[1] == 'J')
+            build_name = "GJ ";
+        else if (field[0] == 'W' && field[1] == 'o')
+            build_name = "Woolley ";
+        else if (field[0] == 'N' && field[1] == 'N')
+            build_name = "NN ";
+        else build_name = trim(field);
+
+        j = atoi(&field[2]);
+        if (j)
+        {
+            build_name += std::to_string(j);
+            if (field[6] == '.')
+                build_name += std::string(&field[6]);
+        }
+
+        s->name = build_name;
+        s->Gliese = build_name;
+
+        //  13- 14  I2     h       RAh      ? Right Ascension B1950 (hours)
+        read_field_onebased(buffer, 13, 14, field);
+        deg = atof(field) * 15;
+
+        //  16- 17  I2     min     RAm      ? Right Ascension B1950 (minutes)
+        read_field_onebased(buffer, 16, 17, field);
+        mnt = atof(field) * 15;
+
+        //  19- 20  I2     s       RAs      ? Right Ascension B1950 (seconds)
+        read_field_onebased(buffer, 19, 20, field);
+        sec = atof(field) * 15;
+
+        s->right_ascension = (deg + mnt/60 + sec/3600) * fiftyseventh;
+
+        //      22  A1     ---     DE-      Declination B1950 (sign)
+        read_field_onebased(buffer, 22, 22, field);
+        int sgndecl = (field[0] == '-') ? -1 : 1;
+
+        //  23- 24  I2     deg     DEd      ? Declination B1950 (degrees)
+        read_field_onebased(buffer, 23, 24, field);
+        deg = atof(field);
+
+        //  26- 29  F4.1   arcmin  DEm      ? Declination B1950 (minutes)
+        read_field_onebased(buffer, 26, 29, field);
+        mnt = atof(field);
+        sec = 0;
+
+        s->declination = (deg + mnt/60 + sec/3600) * fiftyseventh * sgndecl;
+        s->epoch = 2433282.42345905;
+
+        //  31- 36  F6.3 arcsec/yr pm       ? Total proper motion
+        read_field_onebased(buffer, 31, 36, field);
+        pm = atof(field) / 3600 * fiftyseventh / year;
+
+        //  38- 42  F5.1   deg     pmPA     ? Direction angle of proper motion
+        read_field_onebased(buffer, 38, 42, field);
+        pmtheta = atof(field) * fiftyseventh;
+
+        s->proper_motion_RA = pm * sin(pmtheta);
+        s->proper_motion_decl = pm * cos(pmtheta);
+
+        //  44- 49  F6.1   km/s    RV       ? Radial velocity
+        read_field_onebased(buffer, 44, 49, field);
+        s->radial_velocity = atof(field) * 1000;
+
+        //  55- 66  A12    ---     Sp       Spectral type or color class
+        read_field_onebased(buffer, 55, 66, field);
+        s->spectral_type = trim(field);
+
+        //  68- 73  F6.2   mag     Vmag     Apparent magnitude
+        read_field_onebased(buffer, 68, 73, field);
+        s->apparent_magnitude = atof(field);
+
+        //  76- 80  F5.2   mag     B-V      ? color
+        read_field_onebased(buffer, 76, 80, field);
+        s->BV_magnitude = atof(field);
+
+        //  83- 87  F5.2   mag     U-B      ? color
+        read_field_onebased(buffer, 83, 87, field);
+        s->UB_magnitude = atof(field);
+
+        //  90- 94  F5.2   mag     R-I      ? color
+        read_field_onebased(buffer, 90, 94, field);
+        s->RI_magnitude = atof(field);
+
+        // 122-126  F5.2   mag     Mv       Absolute visual magnitude
+        read_field_onebased(buffer, 122, 126, field);
+        absmagn = atof(field);
+        s->absolute_magnitude = absmagn;
+        s->distance = CelestialObject::distance_from_magnitudes(s->apparent_magnitude, absmagn);
+        if (absmagn && s->apparent_magnitude) s->distance_known = true;
+
+        // Sun is distance zero.
+        if (!s->right_ascension && !s->declination) s->distance = 0;
+
+        // 147-152  I6     ---     HD       [15/352860]? designation
+        read_field_onebased(buffer, 147, 152, field);
+        s->HD = atoi(field);
+
+        s->update_location(2451544.5);
+
+        cels[offset+num_read] = s;
+        num_read++;
+        if ((offset+num_read) >= (max-1)) break;
+    }
+
+    fclose(fp);
+    return num_read;
+}
+
+int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
+{
+    std::string path = "catalogs/BSC/catalog";
+    char buffer[65536];
+    char field[32];
+    int num_read = 0;
+    int offset, HDno, j;
+    double deg, mnt, sec;
+    bool HDfound;
+
+    for (offset=0; offset<max && cels[offset]; offset++);
+    if (offset >= max) return 0;
+
+    FILE* fp = fopen(path.c_str(), "rb");
+
+    while (fgets(buffer, 65520, fp))
+    {
+        Star* s;
+
+        read_field_onebased(buffer, 26, 31, field);
+        HDno = atoi(field);
+
+        HDfound = false;
+        if (HDno)
+        {
+            for (j=0; j<offset; j++)
+            {
+                if (((Star*)cels[j])->HD == HDno)
+                {
+                    HDfound = true;
+                    s = (Star*)cels[j];
+                    break;
+                }
+            }
+        }
+
+        if (!HDfound)
+        {
+            s = new Star();
+            s->type = star;
+        }
+
         //    Bytes Format  Units   Label    Explanations
         // --------------------------------------------------------------------------------
         //    1-  4  I4     ---     HR       [1/9110]+ Harvard Revised Number
@@ -153,7 +317,7 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
 
         //    5- 14  A10    ---     Name     Name, generally Bayer and/or Flamsteed name
         read_field_onebased(buffer, 5, 14, field);
-        s->name = trim(field);
+        if (strlen(trim(field).c_str())) s->name = trim(field);
 
         read_field_onebased(buffer, 5, 7, field);
         int flamsteed = atoi(field);
@@ -179,7 +343,7 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
 
         //   26- 31  I6     ---     HD       [1/225300]? Henry Draper Catalog Number
         read_field_onebased(buffer, 26, 31, field);
-        s->HD = atoi(field);
+        if (strlen(trim(field).c_str())) s->HD = atoi(field);
 
         //   32- 37  I6     ---     SAO      [1/258997]? SAO Catalog Number
         read_field_onebased(buffer, 32, 37, field);
@@ -281,9 +445,12 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
 
         s->update_location(2451544.5);
 
-        cels[offset+num_read] = s;
-        num_read++;
-        if ((offset+num_read) >= (max-1)) break;
+        if (!HDfound)
+        {
+            cels[offset+num_read] = s;
+            num_read++;
+            if ((offset+num_read) >= (max-1)) break;
+        }
     }
     fclose(fp);
     return num_read;

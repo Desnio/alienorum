@@ -63,6 +63,7 @@ class CelestialObject
     void update_location(double epoch);         // Only applicable if we have an orbit; otherwise just return.
 
     double viewer_magnitude(CelestialLocation seen_from);
+    static double distance_from_magnitudes(double apparent, double absolute);
     std::string RA_as_hms();
     std::string Decl_as_degms();
     std::string scaled_distance(CelestialLocation fromwhere);

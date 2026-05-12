@@ -11,6 +11,14 @@ double CelestialObject::viewer_magnitude(CelestialLocation seen_from)
     return -log(apparent) / log(magnbase);
 }
 
+double CelestialObject::distance_from_magnitudes(double apparent, double absolute)
+{
+    double flux = pow(magnbase, -apparent);
+    double intrinsic = pow(magnbase, -absolute);
+    double ratio = intrinsic / flux;
+    return parsec * 10 * sqrt(ratio);
+}
+
 std::string CelestialObject::RA_as_hms()
 {
     double RA = right_ascension * fiftyseven / 15;

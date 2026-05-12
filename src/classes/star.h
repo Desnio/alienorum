@@ -17,6 +17,7 @@ class Star : public CelestialObject
     std::string spectral_type;
     std::string Bayer;
     std::string Flamsteed;
+    std::string Gliese;
 
     __uint32_t HR = 0;                      // Harvard Revised catalog number
     __uint32_t HD = 0;                      // Henry Draper catalog number

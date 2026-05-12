@@ -8,7 +8,7 @@
 #define parsec 3.08567758128E+16
 #define AU 149597870700.0
 #define day 86400
-#define year 365 * 86400 + 5 * 3600 + 48 * 60 + 45
+#define year (365 * 86400 + 5 * 3600 + 48 * 60 + 45)
 #define speed_of_light 299792458.0
 #define earth_mass 5.972e+27
 #define jupiter_mass 1.898e+30
@@ -18,8 +18,8 @@
 #define solar_radius 6.95700e+8
 #define fiftyseven (180.0/M_PI)
 #define fiftyseventh (M_PI/180)
-#define arcminute fiftyseventh / 60
-#define arcsecond arcminute / 60
+#define arcminute (fiftyseventh / 60)
+#define arcsecond (arcminute / 60)
 
 #define its_behind_you 0xbe419d10
 
