@@ -696,6 +696,14 @@ int main (int argc, char** argv)
                 here.local_position = here.system_center = Point(0,0,0);
                 break;
 
+                case 'b':
+                global_brightness *= 1.5;
+                break;
+
+                case 'B':
+                global_brightness *= 0.666;
+                break;
+
                 case '`':
                 gamma += 0.2;
                 set_gamma(gamma);
