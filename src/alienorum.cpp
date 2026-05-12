@@ -557,7 +557,8 @@ int main (int argc, char** argv)
 
             if (!is_an_obj_under_cursor)
             {
-                objname = objinfo = "";
+                objname = "Press N to toggle";
+                objinfo = "this window.\n\n";
                 if (is_click) selected = -1;
             }
         }
@@ -656,6 +657,10 @@ int main (int argc, char** argv)
                 velocity.z =  cos(azimuth) * cos(altitude) * light_year / 10;
                 velocity.y =  sin(altitude) * light_year / 10;
                 spin = 0;
+                break;
+
+                case 'n':
+                tsatwnd = !tsatwnd;
                 break;
 
                 case 'c':
