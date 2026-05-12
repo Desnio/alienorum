@@ -335,6 +335,7 @@ int main (int argc, char** argv)
         if (show_grid)
         {
             Cartesian2D prev, zdes;
+            ImU32 gc = rgba_apply_redlight(grid_color);
             bool prev_valid = false;
             // RA and Dec lines.
             for (i=0; i<24; i++)
@@ -363,7 +364,7 @@ int main (int argc, char** argv)
                             if (prev_valid)
                             ImGui::GetBackgroundDrawList()->AddLine(
                                 ImVec2(dx1, dy1), ImVec2(dx2, dy2),
-                                grid_color, 1);
+                                gc, 1);
                     }
 
                     prev = zdes;
@@ -396,7 +397,7 @@ int main (int argc, char** argv)
                             if (prev_valid)
                             ImGui::GetBackgroundDrawList()->AddLine(
                                 ImVec2(dx1, dy1), ImVec2(dx2, dy2),
-                                grid_color, 1);
+                                gc, 1);
                     }
 
                     prev = zdes;
@@ -449,7 +450,7 @@ int main (int argc, char** argv)
 
                 ImGui::GetBackgroundDrawList()->AddLine(
                     ImVec2(dx1, dy1), ImVec2(dx2, dy2),
-                    consline_color, 1);
+                    rgba_apply_redlight(consline_color), 1);
             }
         }
 
@@ -492,7 +493,7 @@ int main (int argc, char** argv)
                 }
                 if (selected == i)
                 {
-                    ImGui::GetBackgroundDrawList()->AddCircle(xycoord, magrad+2, selected_color, 0, 2);
+                    ImGui::GetBackgroundDrawList()->AddCircle(xycoord, magrad+2, rgba_apply_redlight(selected_color), 0, 2);
                 }
             }
         }
@@ -504,25 +505,26 @@ int main (int argc, char** argv)
             cursor_size = (int)io.DisplaySize.x/93;
             circle_size = cursor_size / 3;
 
+            ImU32 c = rgba_apply_redlight(cursor_color);
             ImGui::GetBackgroundDrawList()->AddLine(
                 ImVec2(io.MousePos.x, io.MousePos.y - cursor_size),
                 ImVec2(io.MousePos.x, io.MousePos.y - circle_size - 1),
-                cursor_color, 1);
+                c, 1);
             ImGui::GetBackgroundDrawList()->AddLine(
                 ImVec2(io.MousePos.x, io.MousePos.y + cursor_size + 1),
                 ImVec2(io.MousePos.x, io.MousePos.y + circle_size + 2),
-                cursor_color, 1);
+                c, 1);
             ImGui::GetBackgroundDrawList()->AddLine(
                 ImVec2(io.MousePos.x - cursor_size, io.MousePos.y),
                 ImVec2(io.MousePos.x - circle_size - 1, io.MousePos.y),
-                cursor_color, 1);
+                c, 1);
             ImGui::GetBackgroundDrawList()->AddLine(
                 ImVec2(io.MousePos.x + cursor_size + 1, io.MousePos.y),
                 ImVec2(io.MousePos.x + circle_size + 2, io.MousePos.y),
-                cursor_color, 1);
+                c, 1);
             ImGui::GetBackgroundDrawList()->AddCircle(
                 ImVec2(io.MousePos.x, io.MousePos.y),
-                circle_size, cursor_color, 8, 1);
+                circle_size, c, 8, 1);
 
             // Object under cursor
             is_an_obj_under_cursor = false;
@@ -581,6 +583,7 @@ int main (int argc, char** argv)
         is_mouse_over_window = false;
         if (tsatwnd)
         {
+            // TODO: If redlight_mode, set all window and text colors accordingly.
             ImGui::Begin("Object", &tsatwnd);
             ImGui::Text(objname.c_str());
             ImGui::Text(objinfo.c_str());
@@ -617,8 +620,8 @@ int main (int argc, char** argv)
 
                 ImVec2 topcen(dispcx, 0), botcen(dispcx, (int)io.DisplaySize.y-1),
                     leftcen(0, dispcy), rightcen((int)io.DisplaySize.x-1, dispcy);
-                ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, IM_COL32(0, 0, 255, 96), 1);
-                ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, IM_COL32(0, 0, 255, 96), 1);
+                ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, rgba_apply_redlight(IM_COL32(0, 0, 255, 96)), 1);
+                ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, rgba_apply_redlight(IM_COL32(0, 0, 255, 96)), 1);
             }
             else if (ImGui::IsMouseDown(1))
             {
@@ -630,8 +633,8 @@ int main (int argc, char** argv)
 
                 ImVec2 topcen(dispcx, 0), botcen(dispcx, (int)io.DisplaySize.y-1),
                     leftcen(0, dispcy), rightcen((int)io.DisplaySize.x-1, dispcy);
-                ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, IM_COL32(0, 255, 0, 40), 1);
-                ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, IM_COL32(0, 255, 0, 40), 1);
+                ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, rgba_apply_redlight(IM_COL32(0, 255, 0, 40)), 1);
+                ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, rgba_apply_redlight(IM_COL32(0, 255, 0, 40)), 1);
             }
             else if (ImGui::IsMouseDown(0))
             {
@@ -643,8 +646,8 @@ int main (int argc, char** argv)
 
                 ImVec2 topcen(dispcx, 0), botcen(dispcx, (int)io.DisplaySize.y-1),
                     leftcen(0, dispcy), rightcen((int)io.DisplaySize.x-1, dispcy);
-                ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, IM_COL32(255, 0, 0, 64), 1);
-                ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, IM_COL32(255, 0, 0, 64), 1);
+                ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, rgba_apply_redlight(IM_COL32(255, 0, 0, 64)), 1);
+                ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, rgba_apply_redlight(IM_COL32(255, 0, 0, 64)), 1);
             }
         }
 
@@ -713,6 +716,10 @@ int main (int argc, char** argv)
                 velocity = Point(0,0,0);
                 spin = 0;
                 here.local_position = here.system_center = Point(0,0,0);
+                break;
+
+                case 'R':
+                redlight_mode = !redlight_mode;
                 break;
 
                 case 'b':

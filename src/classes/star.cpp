@@ -12,7 +12,10 @@ void Star::update_location(double new_epoch)
     // Estimate distance using radial velocity
     double l_dist = distance + radial_velocity * elapsed;
 
+    // Compute new location
+    Point newloc = Point::from_ra_dec(l_RA, l_Decl, l_dist);
+
     // Set system location
-    location.system_center = Point::from_ra_dec(l_RA, l_Decl, l_dist);
+    location.system_center = newloc;
 }
 

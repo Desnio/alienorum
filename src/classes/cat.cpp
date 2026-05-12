@@ -174,6 +174,11 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
                 build_name += std::string(&field[6]);
         }
 
+        //   9- 10  A2     ---     Comp     Components (A,B,C,... )
+        read_field_onebased(buffer, 9, 10, field);
+        std::string comp = trim(field);
+        if (comp.size()) build_name += (std::string)" " + comp;
+
         s->name = build_name;
         s->Gliese = build_name;
 
@@ -206,6 +211,11 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
 
         s->declination = (deg + mnt/60 + sec/3600) * fiftyseventh * sgndecl;
         s->epoch = 2433282.42345905;
+
+        // TODO: Keep the epoch but translate the coordinates to the J2000 system.
+        // Have to apply precession of the equinoxes; this is the major component.
+        // Also take into account nutation, at least the two largest terms.
+        // See: https://en.wikipedia.org/wiki/Nutation#Earth
 
         //  31- 36  F6.3 arcsec/yr pm       ? Total proper motion
         read_field_onebased(buffer, 31, 36, field);
