@@ -92,7 +92,7 @@ Tau Boo, Ups Boo
 ~Cae, Caelum
 Alp Cae, Bet Cae
 Bet Cae, Gam1Cae
-~Cam, Cam
+~Cam, Camelopardalis
 7   Cam, Bet Cam
 Bet Cam, Alp Cam
 Alp Cam, Gam Cam
@@ -164,7 +164,7 @@ Bet Cas, Alp Cas
 Alp Cas, Gam Cas
 Gam Cas, Del Cas
 Del Cas, Eps Cas
-~Cen, Cenrus
+~Cen, Centaurus
 Alp1Cen, Eps Cen
 Bet Cen, Eps Cen
 Eps Cen, Zet Cen
@@ -652,7 +652,7 @@ Iot Psc, 19  Psc
 19  Psc, Lam Psc
 Lam Psc, Kap Psc
 Kap Psc, Gam Psc
-~PsA, Pisces Austrinus
+~PsA, Piscis Austrinus
 Alp PsA, Del PsA
 Del PsA, Gam PsA
 Gam PsA, Bet PsA
@@ -661,10 +661,7 @@ Iot PsA, The PsA
 The PsA, Lam PsA
 Lam PsA, Eps PsA
 Eps PsA, Alp PsA
-~Pyx, Pyxis
-Bet Pyx, Alp Pyx
-Alp Pyx, Gam Pyx
-~Pup, Pup
+~Pup, Puppis
 11  Pup, Xi  Pup
 Xi  Pup, HD61429
 HD61429, Pi  Pup
@@ -675,6 +672,9 @@ HD56022, Sig Pup
 Sig Pup, Zet Pup
 Zet Pup, Rho Pup
 Rho Pup, 11  Pup
+~Pyx, Pyxis
+Bet Pyx, Alp Pyx
+Alp Pyx, Gam Pyx
 ~Ret, Reticulum
 Alp Ret, Bet Ret
 Bet Ret, Del Ret
@@ -785,7 +785,7 @@ Alp Tel, Zet Tel
 Alp Tri, Bet Tri
 Bet Tri, Gam Tri
 Gam Tri, Alp Tri
-~TrA, Triangulum Australe 
+~TrA, Triangulum Australe
 Alp TrA, Bet TrA
 Bet TrA, Gam TrA
 Gam TrA, Alp TrA

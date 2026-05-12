@@ -129,6 +129,8 @@ int main (int argc, char** argv)
     if (have_Gliese) ncelobjs += cr.read_Gliese_catalog(cels, MAX_CELOBJS);
     if (have_BSC) ncelobjs += cr.read_BrightStars_catalog(cels, MAX_CELOBJS);
 
+    cr.read_starname_dat(cels);
+
     // Cache star indices of consline termini
     int consaidx[nclonsln+4], consbidx[nclonsln+4];
     for (i=0; i<nclonsln; i++)
@@ -552,6 +554,14 @@ int main (int argc, char** argv)
                         objinfo = "";
                         if (cels[i]->type == star)
                         {
+                            if (((Star*)cels[i])->Bayer.size() && ((Star*)cels[i])->Flamsteed.size())
+                            {
+                                int Fl = atoi(((Star*)cels[i])->Flamsteed.c_str());
+                                objinfo += std::to_string(Fl) + ((Star*)cels[i])->Bayer + (std::string)"\n";
+                            }
+                            else if (((Star*)cels[i])->Flamsteed.size()) objinfo += ((Star*)cels[i])->Flamsteed + (std::string)"\n";
+                            else if (((Star*)cels[i])->Bayer.size()) objinfo += ((Star*)cels[i])->Bayer + (std::string)"\n";
+
                             if (((Star*)cels[i])->Gliese.size()) objinfo += ((Star*)cels[i])->Gliese + (std::string)"\n";
                             if (((Star*)cels[i])->HD) objinfo += (std::string)"HD" + std::to_string(((Star*)cels[i])->HD) + (std::string)"\n";
                             if (((Star*)cels[i])->HR) objinfo += (std::string)"HR" + std::to_string(((Star*)cels[i])->HR) + (std::string)"\n";

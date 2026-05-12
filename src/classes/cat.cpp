@@ -154,8 +154,7 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
         //      GJ   Gliese & Jahreiss, A&AS, 38, 423 (1979)
         //      Wo   Woolley et al.,   Roy. Obs. Ann. No. 5 (1970)
         //      NN   newly added stars (number added at CDS)
-        //           See the Nomemclature Note above !
-        read_field_onebased(buffer, 1, 10, field);
+        read_field_onebased(buffer, 1, 8, field);
         if (field[0] == 'G' && field[1] == 'l')
             build_name = "Gliese ";
         else if (field[0] == 'G' && field[1] == 'J')
@@ -466,9 +465,53 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
     return num_read;
 }
 
+int CatalogReader::read_starname_dat(CelestialObject **cels)
+{
+    std::string path = "starname.dat";
+    char buffer[1024];
+    char field[32];
+    int num_read = 0;
+    int HD, HIP, i;
+    std::string Gliese;
+
+    FILE* fp = fopen(path.c_str(), "rb");
+    if (!fp) return 0;
+
+    while (fgets(buffer, 1020, fp))
+    {
+        read_field_onebased(buffer, 26, 32, field);
+        HD = atoi(field);
+
+        read_field_onebased(buffer, 34, 39, field);
+        HIP = atoi(field);
+
+        read_field_onebased(buffer, 41, 48, field);
+        i = atoi(field);
+        Gliese = trim(field);
+        if (i >= 9000) Gliese = std::string("Woolley ") + Gliese;
+        else if (i >= 3000) Gliese = std::string("NN ") + Gliese;
+        else if (i >= 1000) Gliese = std::string("GJ ") + Gliese;
+        else Gliese = std::string("Gliese ") + Gliese;
+
+        read_field_onebased(buffer, 1, 25, field);
+
+        for (i=0; cels[i]; i++)
+        {
+            Star* s = (Star*)cels[i];
+            if (s->HD == HD || s->HIP == HIP || s->Gliese == Gliese)
+            {
+                s->name = field;
+                num_read++;
+                break;
+            }
+        }
+    }
+
+    return num_read;
+}
+
 void CatalogReader::read_field_onebased(char *buffer, int start, int end, char *out)
 {
-    // Non-programmers, smh.
     start--;
     int len = end - start;
     int i;
