@@ -178,8 +178,8 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
         std::string comp = trim(field);
         if (comp.size()) build_name += (std::string)" " + comp;
 
-        s->name = build_name;
-        s->Gliese = build_name;
+        s->name = trim(build_name.c_str());
+        s->Gliese = trim(build_name.c_str());
 
         //  13- 14  I2     h       RAh      ? Right Ascension B1950 (hours)
         read_field_onebased(buffer, 13, 14, field);
@@ -612,7 +612,7 @@ int CatalogReader::read_starname_dat(CelestialObject **cels)
             Star* s = (Star*)cels[i];
             if ((HD && s->HD == HD) || (HIP && s->HIP == HIP) || (Gliese.size() && s->Gliese == Gliese))
             {
-                s->name = field;
+                s->name = trim(field);
                 num_read++;
                 break;
             }

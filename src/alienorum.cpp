@@ -48,7 +48,7 @@ int main (int argc, char** argv)
     int i, j, l, n;
     double gamma = 1.8;
     double zoom = 1, vm;
-    bool show_grid = true, show_consln = true, show_xonsm = false;
+    bool show_grid = true, show_consln = true, show_xonsm = false, show_labels = true;
     int cursor_size = 10, circle_size = 3, xaorngsim = 0;
     ImU32 cursor_color = IM_COL32(255, 32, 0, 255);
     ImU32 grid_color = IM_COL32(255, 0, 0, 96);
@@ -56,6 +56,7 @@ int main (int argc, char** argv)
     ImU32 consline_color = IM_COL32(0, 128, 255, 128);
     ImU32 conslbl_color = IM_COL32(255, 192, 0, 128);
     ImU32 selected_color = IM_COL32(0, 255, 96, 192);
+    ImU32 objlbl_color = IM_COL32(64, 255, 0, 176);
     bool is_an_obj_under_cursor;
     double obj_magn_under_cursor;
     std::string objname, objinfo;
@@ -567,7 +568,7 @@ int main (int argc, char** argv)
 
             // Constellation labels
             n=l;
-            for (l=0; l<n; l++)
+            if (show_labels) for (l=0; l<n; l++)
             {
                 if (!lnpercons[l]) continue;
                 conscen[l] /= lnpercons[l];
@@ -619,7 +620,7 @@ int main (int argc, char** argv)
                 }
                 if (skip) continue;
 
-                ImVec2 xycoord = ImVec2(s->drawnx, s->drawny);
+                ImVec2 xycoord = ImVec2(cels[i]->drawnx, cels[i]->drawny);
                 float appmag = (cels[i]->type == star) ? vmag_cache[i] : cels[i]->absolute_magnitude;
                 float magrad = (3.0 - appmag)*1.25;
                 if (magrad < 1) magrad = 1;
@@ -637,6 +638,13 @@ int main (int argc, char** argv)
                 if (selected == i)
                 {
                     ImGui::GetBackgroundDrawList()->AddCircle(xycoord, magrad+2, rgba_apply_redlight(selected_color), 0, 2);
+                }
+                if (show_labels && appmag <= 1.5)
+                {
+                    ImVec2 sz = ImGui::CalcTextSize(cels[i]->name.c_str());
+                    ImGui::GetBackgroundDrawList()->AddText(ImVec2(cels[i]->drawnx - sz.x/2, cels[i]->drawny+magrad+1),
+                        rgba_apply_redlight(objlbl_color),
+                        cels[i]->name.c_str());
                 }
             }
         }
@@ -832,6 +840,28 @@ int main (int argc, char** argv)
             ImWchar c = io.InputQueueCharacters[i];
             switch (c)
             {
+                case 'b': global_brightness *= 1.5; break;
+                case 'B': global_brightness *= 0.666; break;
+                case 'c': show_consln = !show_consln; break;
+                case 'g': show_grid = !show_grid; break;
+                case 'l': show_labels = !show_labels; break;
+                case 'n': objinfwnd = !objinfwnd; break;
+
+                case 'o':
+                if (selected >= 0) here = cels[selected]->location;
+                velocity = Point(0,0,0);
+                viewchanged = true;
+                break;
+
+                case 'r':
+                velocity = Point(0,0,0);
+                spin = 0;
+                here.local_position = here.system_center = Point(0,0,0);
+                viewchanged = true;
+                break;
+
+                case 'R': redlight_mode = !redlight_mode; break;
+
                 case 'w':
                 velocity.x =  sin(azimuth) * cos(altitude) * light_year / 10;
                 velocity.z =  cos(azimuth) * cos(altitude) * light_year / 10;
@@ -840,16 +870,9 @@ int main (int argc, char** argv)
                 viewchanged = true;
                 break;
 
-                case 'n':
-                objinfwnd = !objinfwnd;
-                break;
-
-                case 'c':
-                show_consln = !show_consln;
-                break;
-
-                case 'g':
-                show_grid = !show_grid;
+                case 'x':
+                velocity = Point(0,0,0);
+                viewchanged = true;
                 break;
 
                 case '+':
@@ -870,36 +893,6 @@ int main (int argc, char** argv)
                 viewchanged = true;
                 break;
 
-                case 'x':
-                velocity = Point(0,0,0);
-                viewchanged = true;
-                break;
-
-                case 'o':
-                if (selected >= 0) here = cels[selected]->location;
-                velocity = Point(0,0,0);
-                viewchanged = true;
-                break;
-
-                case 'r':
-                velocity = Point(0,0,0);
-                spin = 0;
-                here.local_position = here.system_center = Point(0,0,0);
-                viewchanged = true;
-                break;
-
-                case 'R':
-                redlight_mode = !redlight_mode;
-                break;
-
-                case 'b':
-                global_brightness *= 1.5;
-                break;
-
-                case 'B':
-                global_brightness *= 0.666;
-                break;
-
                 case '`':
                 gamma += 0.2;
                 set_gamma(gamma);
@@ -909,7 +902,6 @@ int main (int argc, char** argv)
                 gamma -= 0.2;
                 set_gamma(gamma);
                 break;
-
 
                 default:
                 ;
