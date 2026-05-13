@@ -251,6 +251,10 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
         read_field_onebased(buffer, 90, 94, field);
         s->RI_magnitude = atof(field);
 
+        // 109-114  F6.1   mas     plx      ? Resulting parallax
+        read_field_onebased(buffer, 109, 114, field);
+        s->parallax = atof(field) / 1000 / 3600 * fiftyseventh;
+
         // 122-126  F5.2   mag     Mv       Absolute visual magnitude
         read_field_onebased(buffer, 122, 126, field);
         absmagn = atof(field);
@@ -531,7 +535,12 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         //  80- 86  F7.2  mas     Plx       ? Trigonometric parallax
         read_field_onebased(buffer, 80, 86, field);
         f = atof(field) / 1000 / 3600 * fiftyseventh;
-        if (f) s->parallax = f;
+        if (f)
+        {
+            s->parallax = f;
+            s->distance = (s->parallax > 0) ? (parsec / atof(field) * 1000) : light_year*1e4;
+            s->distance_known = true;
+        }
 
         //  88- 95  F8.2 mas/yr   pmRA     *? Proper motion mu_alpha.cos(delta), ICRS
         read_field_onebased(buffer, 88, 95, field);
@@ -547,6 +556,8 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         read_field_onebased(buffer, 231, 236, field);
         f = atof(field);
         if (f || trim(field).size()) s->apparent_magnitude = f;
+        double intrinsic_brightness = pow(magnbase, -s->apparent_magnitude) * pow(fmax(AU, s->distance) / parsec / 10, 2);
+        s->absolute_magnitude = -log(intrinsic_brightness) / log(magnbase);
 
         // 246-251  F6.3  mag     B-V       ? Johnson B-V colour
         read_field_onebased(buffer, 246, 251, field);
@@ -556,6 +567,8 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         // 436-447  A12   ---     SpType    Spectral type
         read_field_onebased(buffer, 436, 447, field);
         if (trim(field).size()) s->spectral_type = field;
+
+        s->update_location(2451544.5);
 
         num_read++;
     }
