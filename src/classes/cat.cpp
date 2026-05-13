@@ -467,7 +467,101 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
 
 int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
 {
-    return 0;
+    std::string path = "catalogs/Hipparcos/hip_main.dat";
+    char buffer[1024];
+    char field[32];
+    int num_read = 0;
+    int offset, HD, HIP, j;
+    double RA, Decl, f;
+    Star* s;
+
+    for (offset=0; offset<max && cels[offset]; offset++);
+    if (offset >= max) return 0;
+
+    FILE* fp = fopen(path.c_str(), "rb");
+    while (fgets(buffer, 1020, fp))
+    {
+        //   9- 14  I6    ---     HIP       Identifier (HIP number)
+        read_field_onebased(buffer, 9, 14, field);
+        HIP = atoi(field);
+
+        // 391-396  I6    ---     HD        [1/359083]? HD number <III/135>
+        read_field_onebased(buffer, 391, 396, field);
+        HD = atoi(field);
+
+        // For now, do not load Hipparcos stars.
+        // Only use this catalog to refine positional data of already loaded stars.
+        // Later, we can expand program functionality to filter by absolute magnitude
+        // and by distance to the user's current POV.
+        // Note Hipparcos RA/Decl coordinates are in J1991.25 epoch.
+        // Even if the star already has coordinates in J2000,
+        // use the Hipparcos coordinates because they are high accuracy.
+        s = nullptr;
+        for (j=0; j<offset; j++)
+        {
+            if ((HD && ((Star*)cels[j])->HD == HD)
+                ||
+                (HIP && ((Star*)cels[j])->HIP == HIP)
+                )
+            {
+                s = (Star*)cels[j];
+                break;
+            }
+        }
+        if (!s) continue;
+
+        s->HD = HD;
+        s->HIP = HIP;
+
+        //  52- 63  F12.8 deg     RAdeg    *? alpha, degrees (ICRS, Epoch=J1991.25)
+        read_field_onebased(buffer, 52, 63, field);
+        RA = atof(field) * fiftyseventh;
+
+        //  65- 76  F12.8 deg     DEdeg    *? delta, degrees (ICRS, Epoch=J1991.25)
+        read_field_onebased(buffer, 65, 76, field);
+        Decl = atof(field) * fiftyseventh;
+
+        if (RA && Decl)
+        {
+            s->right_ascension = RA;
+            s->declination = Decl;
+            s->epoch = 2448349.0625;
+        }
+
+        //  80- 86  F7.2  mas     Plx       ? Trigonometric parallax
+        read_field_onebased(buffer, 80, 86, field);
+        f = atof(field) / 1000 / 3600 * fiftyseventh;
+        if (f) s->parallax = f;
+
+        //  88- 95  F8.2 mas/yr   pmRA     *? Proper motion mu_alpha.cos(delta), ICRS
+        read_field_onebased(buffer, 88, 95, field);
+        f = atof(field) / 1000 / 3600 / year * fiftyseventh;
+        if (f) s->proper_motion_RA = f;
+
+        //  97-104  F8.2 mas/yr   pmDE     *? Proper motion mu_delta, ICRS 
+        read_field_onebased(buffer, 97, 104, field);
+        f = atof(field) / 1000 / 3600 / year * fiftyseventh;
+        if (f) s->proper_motion_decl = f;
+
+        // 231-236  F6.3  mag     VTmag     ? Mean VT magnitude
+        read_field_onebased(buffer, 231, 236, field);
+        f = atof(field);
+        if (f || trim(field).size()) s->apparent_magnitude = f;
+
+        // 246-251  F6.3  mag     B-V       ? Johnson B-V colour
+        read_field_onebased(buffer, 246, 251, field);
+        f = atof(field);
+        if (f || trim(field).size()) s->BV_magnitude = f;
+
+        // 436-447  A12   ---     SpType    Spectral type
+        read_field_onebased(buffer, 436, 447, field);
+        if (trim(field).size()) s->spectral_type = field;
+
+        num_read++;
+    }
+
+    fclose(fp);
+    return num_read;
 }
 
 int CatalogReader::read_starname_dat(CelestialObject **cels)

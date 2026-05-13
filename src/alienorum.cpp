@@ -126,8 +126,26 @@ int main (int argc, char** argv)
         if (!strcmp(cats[i].c_str(), "catalogs/Hipparcos")) have_HIP = true;
     }
 
-    if (have_Gliese) ncelobjs += cr.read_Gliese_catalog(cels, MAX_CELOBJS);
-    if (have_BSC) ncelobjs += cr.read_BrightStars_catalog(cels, MAX_CELOBJS);
+    if (have_Gliese)
+    {
+        cout << "Reading Gliese catalog..." << endl << flush;
+        int nGliese = cr.read_Gliese_catalog(cels, MAX_CELOBJS);
+        cout << "Read " << nGliese << " objects." << endl << flush;
+        ncelobjs += nGliese;
+    }
+    if (have_BSC)
+    {
+        cout << "Reading Bright Star Catalog..." << endl << flush;
+        int nBSC = cr.read_BrightStars_catalog(cels, MAX_CELOBJS);
+        cout << "Read " << nBSC << " objects." << endl << flush;
+        ncelobjs += nBSC;
+    }
+    if (have_HIP)
+    {
+        cout << "Reading Hipparcos catalog..." << endl << flush;
+        int nHIP = cr.read_Hipparcos_catalog(cels, MAX_CELOBJS);
+        cout << "Updated " << nHIP << " objects." << endl << flush;
+    }
 
     cr.read_starname_dat(cels);
 
@@ -570,6 +588,7 @@ int main (int argc, char** argv)
                         objinfo += (std::string)"RA:    " + cels[i]->RA_as_hms() + (std::string)"\n"
                                 + (std::string)"Decl:  " + cels[i]->Decl_as_degms() + (std::string)"\n"
                                 + (std::string)"Mag:   " + std::to_string(lmag) + (std::string)"\n"
+                                + (std::string)"Epoch: " + std::to_string((cels[i]->epoch-J2000)/365.2425+2000) + (std::string)"\n"
                                 ;
                         if (cels[i]->distance_known)
                             objinfo += (std::string)"Dist:  " + cels[i]->scaled_distance(here) + (std::string)"\n";

@@ -9,6 +9,7 @@
 #define AU 149597870700.0
 #define day 86400
 #define year (365 * 86400 + 5 * 3600 + 48 * 60 + 45)
+#define J2000 2451544.5
 #define speed_of_light 299792458.0
 #define earth_mass 5.972e+27
 #define jupiter_mass 1.898e+30

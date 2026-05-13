@@ -11,6 +11,10 @@ CGO                 https://cdsarc.cds.unistra.fr/viz-bin/nph-Cat/tar.gz?III/274
 # REGALADE            https://cdsarc.cds.unistra.fr/viz-bin/nph-Cat/tar.gz?J/A+A/706/A284
 GALEX               https://cdsarc.cds.unistra.fr/viz-bin/nph-Cat/tar.gz?J/ApJS/173/185
 
+# REGALADE is not available for auto download because the gzipped tarball is too big,
+# however this may still be a good resource to use with the caveat that the user must
+# download the catalog manually.
+
 # solar system objects
 astorb              https://cdsarc.cds.unistra.fr/viz-bin/nph-Cat/tar.gz?B/astorb
 comets              https://cdsarc.cds.unistra.fr/viz-bin/nph-Cat/tar.gz?B/comets
