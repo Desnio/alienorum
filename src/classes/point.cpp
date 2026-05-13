@@ -282,10 +282,6 @@ Point compute_normal(Point& pt1, Point& pt2, Point& pt3)
 
 double CelestialLocation::distance_to(CelestialLocation &other)
 {
-    double system_distance = system_center.distance_to(other.system_center);
-    double local_distance = local_position.distance_to(other.local_position);
-
-    Point mine = system_center + local_position;
-    Point yours = other.system_center + other.local_position;
-    return mine.distance_to(yours);
+    Point relloc = (system_center - other.system_center) + (local_position - other.local_position);
+    return relloc.magnitude();
 }

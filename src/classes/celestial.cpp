@@ -57,6 +57,48 @@ std::string CelestialObject::Decl_as_degms()
         + std::to_string((int)seconds);
 }
 
+std::string CelestialObject::RA_as_hms(CelestialLocation seen_from)
+{
+    Point relloc = (location.system_center - seen_from.system_center) + (location.local_position - seen_from.local_position);
+    double relRA = find_angle(relloc.z, -relloc.x) * fiftyseven / 15;
+    int hours = floor(relRA);
+    relRA = (relRA-hours) * 60;
+    int minutes = floor(relRA);
+    float seconds = (relRA-minutes) * 60;
+
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(1) << seconds;
+    std::string sec = oss.str();
+
+    return std::string(hours<10 ? "0" : "")
+        + std::to_string(hours) + std::string(":")
+        + std::string(minutes<10 ? "0" : "")
+        + std::to_string(minutes) + std::string(":")
+        + std::string(seconds<10 ? "0" : "")
+        + sec;
+}
+
+std::string CelestialObject::Decl_as_degms(CelestialLocation seen_from)
+{
+    Point relloc = (location.system_center - seen_from.system_center) + (location.local_position - seen_from.local_position);
+    double relDecl = find_angle(sqrt(relloc.x*relloc.x+relloc.z*relloc.z), relloc.y) * fiftyseven;
+    if (relDecl > 90) relDecl -= 360;
+    int sign = (relDecl < 0) ? -1 : 1;
+    double decl = fabs(relDecl);
+    int degrees = floor(decl);
+    decl = (decl-degrees) * 60;
+    int minutes = floor(decl);
+    float seconds = (decl-minutes) * 60;
+    return std::string( sign < 0 ? "-" : "+" )
+        + std::string(degrees<10 ? "0" : "")
+        + std::to_string(degrees) + std::string(":")
+        + std::string(minutes<10 ? "0" : "")
+        + std::to_string(minutes) + std::string(":")
+        + std::string(seconds<10 ? "0" : "")
+        + std::to_string((int)seconds);
+    return std::string();
+}
+
 std::string CelestialObject::scaled_distance(CelestialLocation fromwhere)
 {
     double r = location.distance_to(fromwhere), dispr = r;

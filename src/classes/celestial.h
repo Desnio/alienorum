@@ -66,6 +66,8 @@ class CelestialObject
     static double distance_from_magnitudes(double apparent, double absolute);
     std::string RA_as_hms();
     std::string Decl_as_degms();
+    std::string RA_as_hms(CelestialLocation seen_from);
+    std::string Decl_as_degms(CelestialLocation seen_from);
     std::string scaled_distance(CelestialLocation fromwhere);
 };
 

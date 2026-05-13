@@ -252,7 +252,6 @@ Eps CrB, Iot CrB
 Alp Crv, Eps Crv
 Eps Crv, Gam Crv
 Gam Crv, Del Crv
-Del Crv, Bet Crv
 Bet Crv, Eps Crv
 ~Crt, Crater
 Alp Crt, Bet Crt
@@ -481,19 +480,20 @@ Gam Lib, The Lib
 Sig Lib, Ups Lib
 Ups Lib, Tau Lib
 ~Lup, Lupus
+Alp Lup, Iot Lup
 Alp Lup, Bet Lup
 Bet Lup, Del Lup
 Del Lup, Gam Lup
 Gam Lup, Eps Lup
-Eps Lup, Kap Lup
-Kap Lup, Zet Lup
-Eps Lup, Kap1Lup
-Kap1Lup, Zet Lup
-Zet Lup, Alp Lup
+Alp Lup, Kap Lup
+Alp Lup, Zet Lup
+Alp Lup, Kap1Lup
+Eps Lup, Lam Lup
+Lam Lup, Alp Lup
 Del Lup, Phi1Lup
 Phi1Lup, Chi Lup
 Gam Lup, Eta Lup
-Eta Lup, The Lup 
+Gam Lup, The Lup 
 ~Lyn, Lynx
 2   Lyn, 15  Lyn
 15  Lyn, 21  Lyn
@@ -520,12 +520,15 @@ Alp Mic, Gam Mic
 Gam Mic, Eps Mic
 Eps Mic, The1Mic
 ~Mon, Monoceros
-Zet Mon, Alp Mon
-Alp Mon, Del Mon
+27  Mon, Alp Mon
+27  Mon, Del Mon
 Del Mon, Bet Mon
-Bet Mon, Gam Mon
-Gam Mon, Eps Mon
+Del Mon, 18  Mon
+18  Mon, Eps Mon
+Del Mon, Gam Mon
 Eps Mon, 13  Mon
+Zet Mon, 28  Mon
+28  Mon, 27  Mon
 ~Mus, Musca
 Lam Mus, Eps Mus
 Eps Mus, Alp Mus

@@ -45,6 +45,7 @@ int main (int argc, char** argv)
     int cursor_size = 10, circle_size = 3;
     ImU32 cursor_color = IM_COL32(255, 32, 0, 255);
     ImU32 grid_color = IM_COL32(255, 0, 0, 96);
+    ImU32 grid_color_brighter = IM_COL32(255, 0, 0, 140);
     ImU32 consline_color = IM_COL32(0, 128, 255, 128);
     ImU32 selected_color = IM_COL32(0, 255, 96, 192);
     bool is_an_obj_under_cursor;
@@ -357,6 +358,7 @@ int main (int argc, char** argv)
         {
             Cartesian2D prev, zdes;
             ImU32 gc = rgba_apply_redlight(grid_color);
+            ImU32 gcb = rgba_apply_redlight(grid_color_brighter);
             bool prev_valid = false;
             // RA and Dec lines.
             for (i=0; i<24; i++)
@@ -418,7 +420,7 @@ int main (int argc, char** argv)
                             if (prev_valid)
                             ImGui::GetBackgroundDrawList()->AddLine(
                                 ImVec2(dx1, dy1), ImVec2(dx2, dy2),
-                                gc, 1);
+                                j?gc:gcb, 1);
                     }
 
                     prev = zdes;
@@ -525,8 +527,8 @@ int main (int argc, char** argv)
         {
             if (!ImGui::IsMouseDown(0) && !ImGui::IsMouseDown(1) && !ImGui::IsMouseDown(2))
             {
-                cursor_size = (int)io.DisplaySize.x/93;
-                circle_size = cursor_size / 3;
+                cursor_size = (int)io.DisplaySize.x/81;
+                circle_size = cursor_size / 2.5;
 
                 ImU32 c = rgba_apply_redlight(cursor_color);
                 ImGui::GetBackgroundDrawList()->AddLine(
@@ -585,8 +587,8 @@ int main (int argc, char** argv)
                             if (((Star*)cels[i])->HR) objinfo += (std::string)"HR" + std::to_string(((Star*)cels[i])->HR) + (std::string)"\n";
                             if (((Star*)cels[i])->HIP) objinfo += (std::string)"HIP" + std::to_string(((Star*)cels[i])->HIP) + (std::string)"\n";
                         }
-                        objinfo += (std::string)"RA:    " + cels[i]->RA_as_hms() + (std::string)"\n"
-                                + (std::string)"Decl:  " + cels[i]->Decl_as_degms() + (std::string)"\n"
+                        objinfo += (std::string)"RA:    " + cels[i]->RA_as_hms(here) + (std::string)"\n"
+                                + (std::string)"Decl:  " + cels[i]->Decl_as_degms(here) + (std::string)"\n"
                                 + (std::string)"Mag:   " + std::to_string(lmag) + (std::string)"\n"
                                 + (std::string)"Epoch: " + std::to_string((cels[i]->epoch-J2000)/365.2425+2000) + (std::string)"\n"
                                 ;
