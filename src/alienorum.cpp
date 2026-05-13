@@ -524,7 +524,9 @@ int main (int argc, char** argv)
 
                 // Any brighter object within reach, skip this one.
                 bool skip = false;
-                for (j=0; cels[j] && j<MAX_CELOBJS; j++)
+                // TODO: Find a better way than the commented out block below.
+                // It does the job well, however it is a huge performance killer.
+                /*for (j=0; cels[j] && j<MAX_CELOBJS; j++)
                 {
                     if (j==i) continue;
                     if (fabs(s->drawnx - cels[j]->drawnx) < 3
@@ -536,7 +538,7 @@ int main (int argc, char** argv)
                         skip = true;
                         break;
                     }
-                }
+                }*/
                 if (skip) continue;
 
                 ImVec2 xycoord = ImVec2(s->drawnx, s->drawny);
