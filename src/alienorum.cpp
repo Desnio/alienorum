@@ -27,6 +27,7 @@ using namespace std;
 int main (int argc, char** argv)
 {
     CelestialObject **cels = new CelestialObject*[MAX_CELOBJS];
+    double *vmag_cache = new double[MAX_CELOBJS];
     memset(cels, 0, MAX_CELOBJS*sizeof(CelestialObject*));
 
     std::vector<std::string> consline_a, consline_b;
@@ -476,6 +477,7 @@ int main (int argc, char** argv)
                 int dx = (int)(dispcx + cart.x * dispcx), dy = (int)(dispcy + cart.y * dispcx);
                 cels[i]->drawnx = dx;
                 cels[i]->drawny = dy;
+                if (viewchanged) vmag_cache[i] = s->viewer_magnitude(here);
                 if (dx < 0 or dx >= io.DisplaySize.x) continue;
                 if (dy < 0 or dy >= io.DisplaySize.y) continue;
             }
@@ -532,7 +534,7 @@ int main (int argc, char** argv)
                     if (fabs(s->drawnx - cels[j]->drawnx) < 3
                         &&
                         fabs(s->drawny - cels[j]->drawny) < 3
-                        && cels[j]->viewer_magnitude(here) < s->viewer_magnitude(here)
+                        && vmag_cache[j] < vmag_cache[i]
                         )
                     {
                         skip = true;
@@ -542,7 +544,7 @@ int main (int argc, char** argv)
                 if (skip) continue;
 
                 ImVec2 xycoord = ImVec2(s->drawnx, s->drawny);
-                float appmag = (cels[i]->type == star) ? s->viewer_magnitude(here) : cels[i]->absolute_magnitude;
+                float appmag = (cels[i]->type == star) ? vmag_cache[i] : cels[i]->absolute_magnitude;
                 float magrad = (3.0 - appmag)*1.25;
                 if (magrad < 1) magrad = 1;
                 Color col = Color::color_from_magnitude_indices(appmag, s->BV_magnitude);
@@ -607,7 +609,7 @@ int main (int argc, char** argv)
                     is_an_obj_under_cursor = true;
 
                     // Prioritize by brightness.
-                    double lmag = cels[i]->viewer_magnitude(here);
+                    double lmag = vmag_cache[i];
                     if (lmag < obj_magn_under_cursor)
                     {
                         obj_magn_under_cursor = lmag;
@@ -869,5 +871,6 @@ int main (int argc, char** argv)
 
     for (i=0; cels[i]; i++) delete cels[i];
     delete[] cels;
+    delete[] vmag_cache;
     return 0;
 }
