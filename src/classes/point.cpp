@@ -90,6 +90,44 @@ Cartesian2D::Cartesian2D(Point pt, double az, double alt, double m)
     y = -pt.y / pt.z * m;
 }
 
+Cartesian2D Cartesian2D::operator+(Cartesian2D other)
+{
+    return Cartesian2D(x + other.x, y + other.y);
+}
+
+Cartesian2D &Cartesian2D::operator+=(Cartesian2D other)
+{
+    x += other.x;
+    y += other.y;
+    return *this;
+}
+
+Cartesian2D Cartesian2D::operator*(double multiplier)
+{
+    return Cartesian2D(x * multiplier, y * multiplier);
+}
+
+Cartesian2D &Cartesian2D::operator*=(double multiplier)
+{
+    x *= multiplier;
+    y *= multiplier;
+    return *this;
+}
+
+Cartesian2D Cartesian2D::operator/(double divisor)
+{
+    double multiplier = 1.0 / divisor;
+    return Cartesian2D(x * multiplier, y * multiplier);
+}
+
+Cartesian2D &Cartesian2D::operator/=(double divisor)
+{
+    double multiplier = 1.0 / divisor;
+    x *= multiplier;
+    y *= multiplier;
+    return *this;
+}
+
 double frand(double lmin, double lmax)
 {
     int r = rand();

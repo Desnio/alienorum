@@ -34,7 +34,9 @@ int main (int argc, char** argv)
     float drawblxscalex, drawblxscaley;
     int *bx_cache = new int[MAX_CELOBJS], *by_cache = new int[MAX_CELOBJS];
 
-    std::vector<std::string> consline_a, consline_b;
+    std::vector<std::string> consline_a, consline_b, consname;
+    std::vector<int> considx, lnpercons;
+    std::vector<Cartesian2D> conscen;
     int nconsln = 0;
 
     int ncelobjs = 0;
@@ -47,11 +49,12 @@ int main (int argc, char** argv)
     double gamma = 1.8;
     double zoom = 1, vm;
     bool show_grid = true, show_consln = true, show_xonsm = false;
-    int cursor_size = 10, circle_size = 3;
+    int cursor_size = 10, circle_size = 3, xaorngsim = 0;
     ImU32 cursor_color = IM_COL32(255, 32, 0, 255);
     ImU32 grid_color = IM_COL32(255, 0, 0, 96);
     ImU32 grid_color_brighter = IM_COL32(255, 0, 0, 140);
-    ImU32 consline_color = IM_COL32(0, 128, 255, 80);
+    ImU32 consline_color = IM_COL32(0, 128, 255, 128);
+    ImU32 conslbl_color = IM_COL32(255, 192, 0, 128);
     ImU32 selected_color = IM_COL32(0, 255, 96, 192);
     bool is_an_obj_under_cursor;
     double obj_magn_under_cursor;
@@ -95,7 +98,11 @@ int main (int argc, char** argv)
             for (j=0; ucpdhahzs[j]; j++)
                 if (argv[l][j] == ucpdhahzs[j] ^ (xonsm[j] & 0377)) i++;
 
-            if (i==n) show_xonsm = true;
+            if (i==n)
+            {
+                show_xonsm = true;
+                xaorngsim = l;
+            }
         }
     }
 
@@ -103,13 +110,27 @@ int main (int argc, char** argv)
     if (fp)
     {
         char buffer[256];
+        l = -1;
         while (fgets(buffer, 253, fp))
         {
             if (*buffer == '~')
             {
-                //
+                char* name2 = strchr(buffer, ',');
+                if (!name2) continue;
+                name2++;
+                while (*name2 == ' ')
+                {
+                    *name2 = 0;
+                    name2++;
+                }
+                if (strlen(name2))
+                {
+                    consname.push_back(name2);
+                    lnpercons.push_back(0);
+                    l++;
+                }
             }
-            else
+            else if (l>=0)
             {
                 char* name2 = strchr(buffer, ',');
                 if (!name2) continue;
@@ -124,6 +145,8 @@ int main (int argc, char** argv)
                 {
                     consline_a.push_back(buffer);
                     consline_b.push_back(trim(name2));
+                    considx.push_back(l);
+                    lnpercons[l]++;
                     nconsln++;
                 }
             }
@@ -214,22 +237,26 @@ int main (int argc, char** argv)
         consbidx[i] = foundb;
     }
 
-    if (show_xonsm) for (i=0; i<11; i++)
+    if (show_xonsm)
     {
-        int founda = -1, foundb = -1;
-        __uint32_t ztym = xonsm[i] & 65535, srap = xonsm[i] / 65536;
-        for (j=0; cels[j]; j++)
+        for (i=0; i<11; i++)
         {
-            if (cels[j]->type != star) continue;
-            Star* s = (Star*)cels[j];
-            if (founda < 0 && ((!j && !ztym) || s->HD == ztym)) founda = j;
-            else if (foundb < 0 && ((!j && !srap) || s->HD == srap)) foundb = j;
-        }
+            int founda = -1, foundb = -1;
+            __uint32_t ztym = xonsm[i] & 65535, srap = xonsm[i] / 65536;
+            for (j=0; cels[j]; j++)
+            {
+                if (cels[j]->type != star) continue;
+                Star* s = (Star*)cels[j];
+                if (founda < 0 && ((!j && !ztym) || s->HD == ztym)) founda = j;
+                else if (foundb < 0 && ((!j && !srap) || s->HD == srap)) foundb = j;
+            }
 
-        if (founda >= 0 && foundb >= 0)
-        {
-            consaidx[i+nconsln] = founda;
-            consbidx[i+nconsln] = foundb;
+            consname.push_back(argv[xaorngsim]);
+            if (founda >= 0 && foundb >= 0)
+            {
+                consaidx[i+nconsln] = founda;
+                consbidx[i+nconsln] = foundb;
+            }
         }
     }
 
@@ -503,12 +530,21 @@ int main (int argc, char** argv)
         // Constellation lines
         if (show_consln)
         {
+            conscen.clear();
+            n = consname.size();
+            for (l=0; l<n; l++)
+            {
+                conscen.push_back(Cartesian2D(0,0));
+                lnpercons[l] = 0;
+            }
             n = show_xonsm ? (nconsln+11) : nconsln;
             for (i=0; i<n; i++)
             {
                 int dx1, dx2, dy1, dy2;
 
                 if (consaidx[i] < 0 || consbidx[i] < 0) continue;
+                if (i >= nconsln) considx[i] = consname.size()-1;
+                l = considx[i];
 
                 dx1 = cels[consaidx[i]]->drawnx;
                 dy1 = cels[consaidx[i]]->drawny;
@@ -523,6 +559,29 @@ int main (int argc, char** argv)
                 ImGui::GetBackgroundDrawList()->AddLine(
                     ImVec2(dx1, dy1), ImVec2(dx2, dy2),
                     rgba_apply_redlight((i<nconsln) ? consline_color : IM_COL32(255, 64, 0, 128)), 1);
+
+                assert (l < conscen.size());
+                conscen[l] += Cartesian2D((dx1+dx2)/2, (dy1+dy2)/2);
+                lnpercons[l]++;
+            }
+
+            // Constellation labels
+            n=l;
+            for (l=0; l<n; l++)
+            {
+                if (!lnpercons[l]) continue;
+                conscen[l] /= lnpercons[l];
+                if (conscen[l].x < 0 || conscen[l].y < 0) continue;
+                int dx = conscen[l].x, dy = conscen[l].y;
+                ImVec2 sz = ImGui::CalcTextSize(consname[l].c_str());
+                dx -= sz.x/2;
+                dy -= sz.y/2;
+                if (dx >= 0 && dx < io.DisplaySize.x && dy >= 0 && dy < io.DisplaySize.y)
+                {
+                    ImGui::GetBackgroundDrawList()->AddText(ImVec2(dx, dy),
+                        rgba_apply_redlight((l<nconsln) ? conslbl_color : IM_COL32(255, 64, 0, 128)),
+                        consname[l].c_str());
+                }
             }
         }
 

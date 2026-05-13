@@ -36,7 +36,14 @@ class Cartesian2D
     double y = 0;
 
     Cartesian2D() {};
+    Cartesian2D(double cx, double cy) { x = cx; y = cy; };
     Cartesian2D(Point, double azimuth = 0, double altitude = 0, double zoom = 1.0);
+    Cartesian2D operator+(Cartesian2D other);
+    Cartesian2D& operator+=(Cartesian2D other);
+    Cartesian2D operator*(double multiplier);
+    Cartesian2D& operator*=(double multiplier);
+    Cartesian2D operator/(double divisor);
+    Cartesian2D& operator/=(double divisor);
 };
 
 class Point
