@@ -2,7 +2,7 @@
 
 A cross-platform desktop planetarium app made using the ImGui library. https://github.com/ocornut/imgui
 
-<img width="1102" height="704" alt="image" src="https://github.com/user-attachments/assets/c7ddd5ca-2485-427e-b36e-17270c2bb42b" />
+<img width="1364" height="880" alt="image" src="https://github.com/user-attachments/assets/5262307d-ba07-440e-b709-d32afd47d725" />
 
 The stars are alien suns.
 
