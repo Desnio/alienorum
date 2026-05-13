@@ -1,7 +1,7 @@
 #
 # Makefile for Linux, Windows, Mac OS. Make sure to install SDL2 (http://www.libsdl.org)
 # Linux:
-# 	apt-get install -y libsdl2-dev
+# 	apt-get install -y libsdl2-dev libsdl2-image-dev
 # Mac OS:
 #   brew install sdl2
 # MSYS2:
@@ -30,7 +30,7 @@ OBJS += $(addsuffix .o, $(addprefix $(OBJ)/, $(basename $(notdir $(CLASSES_SRC))
 # Platform-specific stuff for ImGui:
 ifeq ($(UNAME_S), Linux) #LINUX
 	ECHO_MESSAGE = "Building for Linux..."
-	LIBS += $(LINUX_GL_LIBS) -ldl `sdl2-config --libs`
+	LIBS += $(LINUX_GL_LIBS) -ldl `sdl2-config --libs` -lSDL2_image
 
 	CPPFLAGS += `sdl2-config --cflags`
 	CFLAGS = $(CPPFLAGS)
@@ -41,7 +41,7 @@ ifeq ($(UNAME_S), Darwin) #APPLE
 	LIBS += -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo `sdl2-config --libs`
 	LIBS += -L/usr/local/lib -L/opt/local/lib
 
-	CPPFLAGS += `sdl2-config --cflags`
+	CPPFLAGS += `sdl2-config --cflags` -lSDL2_image
 	CPPFLAGS += -I/usr/local/include -I/opt/local/include
 	CFLAGS = $(CPPFLAGS)
 endif
@@ -50,7 +50,7 @@ ifeq ($(OS), Windows_NT)
     ECHO_MESSAGE = "Building for Windows in MinGW..."
     LIBS += -lgdi32 -lopengl32 -limm32 `pkg-config --static --libs sdl2`
 
-    CPPFLAGS += `pkg-config --cflags sdl2`
+    CPPFLAGS += `pkg-config --cflags sdl2` -lSDL2_image
     CFLAGS = $(CPPFLAGS)
 endif
 

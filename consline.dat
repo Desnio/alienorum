@@ -253,6 +253,8 @@ Alp Crv, Eps Crv
 Eps Crv, Gam Crv
 Gam Crv, Del Crv
 Bet Crv, Eps Crv
+Gam Crv, Zet Crv
+Zet Crv, Eps Crv
 ~Crt, Crater
 Alp Crt, Bet Crt
 Bet Crt, Gam Crt
@@ -655,6 +657,10 @@ Iot Psc, 19  Psc
 19  Psc, Lam Psc
 Lam Psc, Kap Psc
 Kap Psc, Gam Psc
+Phi Psc, Tau Psc
+Tau Psc, 91  Psc
+91  Psc, Ups Psc
+Ups Psc, Phi Psc
 ~PsA, Piscis Austrinus
 Alp PsA, Del PsA
 Del PsA, Gam PsA

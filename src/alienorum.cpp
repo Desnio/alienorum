@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <SDL.h>
 #include <SDL_opengl.h>
+#include <SDL_image.h> 
 #ifdef _WIN32
 #include <windows.h>        // SetProcessDPIAware()
 #endif
@@ -334,6 +335,13 @@ int main (int argc, char** argv)
     {
         printf("Error: SDL_CreateWindow(): %s\n", SDL_GetError());
         return 1;
+    }
+
+    SDL_Surface* icon = IMG_Load("assets/icon48.png");
+    if (icon)
+    {
+        SDL_SetWindowIcon(window, icon);
+        SDL_FreeSurface(icon);
     }
 
     SDL_GLContext gl_context = SDL_GL_CreateContext(window);
