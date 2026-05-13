@@ -23,12 +23,16 @@
 
 using namespace std;
 #define MAX_CELOBJS 262144
+#define drawn_cache_split 25
 
 int main (int argc, char** argv)
 {
     CelestialObject **cels = new CelestialObject*[MAX_CELOBJS];
     double *vmag_cache = new double[MAX_CELOBJS];
     memset(cels, 0, MAX_CELOBJS*sizeof(CelestialObject*));
+    std::vector<int> drawnblocks[drawn_cache_split][drawn_cache_split];
+    float drawblxscalex, drawblxscaley;
+    int *bx_cache = new int[MAX_CELOBJS], *by_cache = new int[MAX_CELOBJS];
 
     std::vector<std::string> consline_a, consline_b;
     int nconsln = 0;
@@ -388,6 +392,9 @@ int main (int argc, char** argv)
 
         if (hide_mouse && !is_mouse_over_window) SDL_ShowCursor(SDL_DISABLE);
         int dispcx = (int)io.DisplaySize.x/2, dispcy = (int)io.DisplaySize.y / 2;
+        drawblxscalex = 2.0 / (dispcx/drawn_cache_split);
+        drawblxscaley = 2.0 / (dispcy/drawn_cache_split);
+        for (i=0; i<drawn_cache_split; i++) for (j=0; j<drawn_cache_split; j++) drawnblocks[i][j].clear();
 
         if (show_grid)
         {
@@ -480,6 +487,11 @@ int main (int argc, char** argv)
                 if (viewchanged) vmag_cache[i] = s->viewer_magnitude(here);
                 if (dx < 0 or dx >= io.DisplaySize.x) continue;
                 if (dy < 0 or dy >= io.DisplaySize.y) continue;
+                int bx = dx*drawblxscalex, by = dy*drawblxscaley;
+                if (bx<0 || bx>=drawn_cache_split || by<0 || by>=drawn_cache_split) continue;
+                drawnblocks[bx][by].push_back(i);
+                bx_cache[i] = bx;
+                by_cache[i] = by;
             }
             catch (...)
             {
@@ -528,19 +540,24 @@ int main (int argc, char** argv)
                 bool skip = false;
                 // TODO: Find a better way than the commented out block below.
                 // It does the job well, however it is a huge performance killer.
-                /*for (j=0; cels[j] && j<MAX_CELOBJS; j++)
+                if (bx_cache[i] >= 0 && bx_cache[i] < drawn_cache_split && by_cache[i] >= 0 && by_cache[i] < drawn_cache_split)
                 {
-                    if (j==i) continue;
-                    if (fabs(s->drawnx - cels[j]->drawnx) < 3
-                        &&
-                        fabs(s->drawny - cels[j]->drawny) < 3
-                        && vmag_cache[j] < vmag_cache[i]
-                        )
+                    n = drawnblocks[bx_cache[i]][by_cache[i]].size();
+                    for (l=0; l<n; l++)
                     {
-                        skip = true;
-                        break;
+                        j = drawnblocks[bx_cache[i]][by_cache[i]][l];
+                        if (j==i) continue;
+                        if (fabs(s->drawnx - cels[j]->drawnx) < 3
+                            &&
+                            fabs(s->drawny - cels[j]->drawny) < 3
+                            && vmag_cache[j] < vmag_cache[i]
+                            )
+                        {
+                            skip = true;
+                            break;
+                        }
                     }
-                }*/
+                }
                 if (skip) continue;
 
                 ImVec2 xycoord = ImVec2(s->drawnx, s->drawny);
@@ -872,5 +889,7 @@ int main (int argc, char** argv)
     for (i=0; cels[i]; i++) delete cels[i];
     delete[] cels;
     delete[] vmag_cache;
+    delete[] bx_cache;
+    delete[] by_cache;
     return 0;
 }
