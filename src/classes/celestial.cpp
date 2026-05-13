@@ -59,8 +59,7 @@ std::string CelestialObject::Decl_as_degms()
 
 std::string CelestialObject::RA_as_hms(CelestialLocation seen_from)
 {
-    Point relloc = (location.system_center - seen_from.system_center) + (location.local_position - seen_from.local_position);
-    double relRA = find_angle(relloc.z, -relloc.x) * fiftyseven / 15;
+    double relRA = RA_as_radians(seen_from) * fiftyseven / 15;
     int hours = floor(relRA);
     relRA = (relRA-hours) * 60;
     int minutes = floor(relRA);
@@ -80,8 +79,7 @@ std::string CelestialObject::RA_as_hms(CelestialLocation seen_from)
 
 std::string CelestialObject::Decl_as_degms(CelestialLocation seen_from)
 {
-    Point relloc = (location.system_center - seen_from.system_center) + (location.local_position - seen_from.local_position);
-    double relDecl = find_angle(sqrt(relloc.x*relloc.x+relloc.z*relloc.z), relloc.y) * fiftyseven;
+    double relDecl = Decl_as_radians(seen_from) * fiftyseven;
     if (relDecl > 90) relDecl -= 360;
     int sign = (relDecl < 0) ? -1 : 1;
     double decl = fabs(relDecl);
@@ -97,6 +95,20 @@ std::string CelestialObject::Decl_as_degms(CelestialLocation seen_from)
         + std::string(seconds<10 ? "0" : "")
         + std::to_string((int)seconds);
     return std::string();
+}
+
+double CelestialObject::RA_as_radians(CelestialLocation seen_from)
+{
+    Point relloc = (location.system_center - seen_from.system_center) + (location.local_position - seen_from.local_position);
+    return find_angle(relloc.z, -relloc.x);
+}
+
+double CelestialObject::Decl_as_radians(CelestialLocation seen_from)
+{
+    Point relloc = (location.system_center - seen_from.system_center) + (location.local_position - seen_from.local_position);
+    double result = find_angle(sqrt(relloc.x*relloc.x+relloc.z*relloc.z), relloc.y);
+    if (result > M_PI/2) result -= M_PI*2;
+    return result;
 }
 
 std::string CelestialObject::scaled_distance(CelestialLocation fromwhere)

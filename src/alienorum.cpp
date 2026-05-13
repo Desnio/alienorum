@@ -1,5 +1,8 @@
 
 #include <iostream>
+#include <iomanip>
+#include <sstream>
+#include <string>
 #include <filesystem>
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_sdl2.h"
@@ -65,6 +68,12 @@ int main (int argc, char** argv)
     int timeout_ms = 5;
     bool dragging, dragged, viewchanged;
     int lmx, lmy;
+    double velocmag;
+    time_t simnow = std::time(nullptr);
+    double JDnow = ((double)simnow - J2000_TIME_T)/86400 + J2000;
+    char lookfor[256];
+
+    memset(lookfor, 0, 256);
 
     std::filesystem::path p = "catalogs";
     bool catalogs_found = false;
@@ -383,10 +392,14 @@ int main (int argc, char** argv)
     // Main loop
     bool done = false;
     bool objinfwnd = true;
+    bool statuswnd = true;
     bool hide_mouse = true;
+    bool searched = false;
+    double frame_dur = 0, best_frame_dur = 1e9;
     viewchanged = true;
     while (!done)
     {
+        auto frame_began = std::chrono::high_resolution_clock::now();
         if (hide_mouse && !is_mouse_over_window) SDL_ShowCursor(SDL_DISABLE);
 
         // Poll and handle events (inputs, window resize, etc.)
@@ -741,8 +754,83 @@ int main (int argc, char** argv)
             }
         }
 
-        // Object under cursor info
         is_mouse_over_window = false;
+        float txtyscale = ImGui::GetTextLineHeightWithSpacing();
+
+        // Status window
+        if (statuswnd)
+        {
+            int stattop = 18, statleft = 15, statwidth = 211, statheight = txtyscale*2;
+            ImGui::Begin("Status", &statuswnd);
+
+            ImGui::InputText("##find", lookfor, 255);
+            ImGui::SameLine();
+            if (ImGui::Button("Find"))
+            {
+                for (i=0; cels[i]; i++)
+                {
+                    if (!strcmp(cels[i]->name.c_str(), lookfor))
+                    {
+                        azimuth = -cels[i]->RA_as_radians(here);
+                        altitude = cels[i]->Decl_as_radians(here);
+                        selected = i;
+                        searched = true;
+                        break;
+                    }
+                }
+            }
+            statheight += txtyscale*1.3;
+
+            // TODO: If redlight_mode, set all window and text colors accordingly.
+            std::string frame_rate = std::to_string(1.0 / frame_dur) + std::string(" frames/s");
+            ImGui::Text(frame_rate.c_str());
+            statheight += txtyscale;
+
+            double vm = velocity.magnitude() * target_frame_rate;
+            if (isnan(vm)) vm = 0;
+            velocmag = vm;
+            std::string velocstr;
+            if (velocmag < 0.01 * speed_of_light) velocstr = std::to_string(velocmag / 1000 * 3600) + std::string(" km/h");
+            else if (velocmag < speed_of_light) velocstr = std::to_string(velocmag / speed_of_light) + std::string(" c");
+            else
+            {
+                std::ostringstream oss;
+                oss << std::scientific << std::setprecision(2) << (velocmag / speed_of_light);
+                velocstr = oss.str() + std::string(" warp");
+            }
+            ImGui::Text(velocstr.c_str());
+            statheight += txtyscale;
+
+            struct tm *utc_time = std::gmtime(&simnow);
+            int mon = utc_time->tm_mon + 1, mday = utc_time->tm_mday;
+            std::string datedisp = std::to_string(utc_time->tm_year + 1900)
+                + std::string("-") + std::string((mon<10)?"0":"") + std::to_string(mon)
+                + std::string("-") + std::string((mday<10)?"0":"") + std::to_string(mday);
+            ImGui::Text(datedisp.c_str());
+            statheight += txtyscale;
+
+            int hr = utc_time->tm_hour, mn = utc_time->tm_min, sec = utc_time->tm_sec;
+            std::string timedisp = std::string((hr<10)?"0":"") + std::to_string(hr)
+                + std::string(":") + std::string((mn<10)?"0":"") + std::to_string(mn)
+                + std::string(":") + std::string((sec<10)?"0":"") + std::to_string(sec)
+                + std::string(" UTC");
+            ImGui::Text(timedisp.c_str());
+            statheight += txtyscale;
+
+            std::string JDdisp = std::string("JD") + std::to_string(JDnow);
+            ImGui::Text(JDdisp.c_str());
+            statheight += txtyscale;
+
+            ImGui::SetWindowPos(ImVec2(statleft, stattop));
+            ImGui::SetWindowSize(ImVec2(statwidth, statheight));
+            ImGui::End();
+
+            if (io.MousePos.x >= statleft && io.MousePos.y >= stattop
+                && io.MousePos.x < statleft+statwidth && io.MousePos.y < stattop+statheight)
+                is_mouse_over_window = true;
+        }
+
+        // Object under cursor info
         if (objinfwnd)
         {
             // TODO: If redlight_mode, set all window and text colors accordingly.
@@ -752,12 +840,11 @@ int main (int argc, char** argv)
             /* if (ImGui::Button("Close Me"))
                 objinfwnd = false; */
             int txtlines = std::count(objinfo.begin(), objinfo.end(), '\n') + 2;
-            float txtyscale = ImGui::GetTextLineHeightWithSpacing();
             int objinftop = 18, objinfleft = (int)io.DisplaySize.x - 225, objinfwidth = 211, objinfheight = (int)txtlines*txtyscale;
             if (objinfheight > objinfwnd_hei) objinfwnd_hei = objinfheight;
             else objinfheight = objinfwnd_hei;
-            ImGui::SetWindowSize(ImVec2(objinfwidth, objinfheight));
             ImGui::SetWindowPos(ImVec2(objinfleft, objinftop));
+            ImGui::SetWindowSize(ImVec2(objinfwidth, objinfheight));
             ImGui::End();
 
             if (io.MousePos.x >= objinfleft && io.MousePos.y >= objinftop
@@ -768,12 +855,10 @@ int main (int argc, char** argv)
         // Positioning updates
         here.local_position += velocity;
         azimuth += spin;
-        viewchanged = spin || velocity.magnitude();
+        viewchanged = searched || spin || velocity.magnitude();
 
         // Pan with crosshairs
         bool is_mouse_down = ImGui::IsMouseDown(0) || ImGui::IsMouseDown(1) || ImGui::IsMouseDown(2);
-        if (is_mouse_down && (io.MousePos.x != lmx || io.MousePos.y != lmy)) dragging = true;
-        else if (is_click) dragging = false;
         if (is_mouse_down && !is_mouse_over_window && dragging)
         {
             if (ImGui::IsMouseDown(2))
@@ -819,6 +904,8 @@ int main (int argc, char** argv)
                 ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, rgba_apply_redlight(IM_COL32(255, 96, 0, 96)), 1);
             }
         }
+        if (is_mouse_down && (io.MousePos.x != lmx || io.MousePos.y != lmy)) dragging = true;
+        else if (is_click) dragging = false;
 
         // Scroll wheel to zoom
         if (io.MouseWheel > 0)
@@ -863,9 +950,9 @@ int main (int argc, char** argv)
                 case 'R': redlight_mode = !redlight_mode; break;
 
                 case 'w':
-                velocity.x =  sin(azimuth) * cos(altitude) * light_year / 10;
-                velocity.z =  cos(azimuth) * cos(altitude) * light_year / 10;
-                velocity.y =  sin(altitude) * light_year / 10;
+                velocity.x =  sin(azimuth) * cos(altitude) * speed_of_light / target_frame_rate;
+                velocity.z =  cos(azimuth) * cos(altitude) * speed_of_light / target_frame_rate;
+                velocity.y =  sin(altitude) * speed_of_light / target_frame_rate;
                 spin = 0;
                 viewchanged = true;
                 break;
@@ -918,7 +1005,7 @@ int main (int argc, char** argv)
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         SDL_GL_SwapWindow(window);
 
-        if (io.MousePos.x != lmx || io.MousePos.y != lmy || velocity.magnitude())
+        if ((io.MousePos.x != lmx || io.MousePos.y != lmy || velocity.magnitude()) && frame_dur > (1.0/target_frame_rate))
         {
             timeout_ms *= 0.333;
             if (timeout_ms < 5) timeout_ms = 5;
@@ -931,10 +1018,24 @@ int main (int argc, char** argv)
 
         std::this_thread::sleep_for(std::chrono::milliseconds(timeout_ms));
 
+        #ifdef DEBUG
+        hide_mouse = false;
+        #else
         hide_mouse = abs(lmx - io.MousePos.x) <= 4 || abs(lmy - io.MousePos.y) <= 4;
+        #endif
+
         lmx = io.MousePos.x;
         lmy = io.MousePos.y;
         dragged = dragging;
+        searched = false;
+
+        auto frame_finished = std::chrono::high_resolution_clock::now();
+        auto frame_elapsed = std::chrono::duration_cast<std::chrono::microseconds>(frame_finished - frame_began);
+        frame_dur = frame_elapsed.count() * 1e-6;
+        if (frame_dur < best_frame_dur) best_frame_dur = frame_dur;
+
+        JDnow += frame_dur/86400;
+        simnow = (JDnow - J2000)*86400 + J2000_TIME_T;
     }
 
     for (i=0; cels[i]; i++) delete cels[i];

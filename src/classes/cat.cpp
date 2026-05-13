@@ -269,7 +269,7 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
         read_field_onebased(buffer, 147, 152, field);
         s->HD = atoi(field);
 
-        s->update_location(2451544.5);
+        s->update_location(J2000);
 
         cels[offset+num_read] = s;
         num_read++;
@@ -394,7 +394,7 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
 
         s->declination = (deg + mnt/60 + sec/3600) * fiftyseventh * sgndecl;
         if (!s->right_ascension && !s->declination) continue;
-        s->epoch = 2451544.5;
+        s->epoch = J2000;
 
         //  103-107  F5.2   mag     Vmag     ?Visual magnitude (1)
         read_field_onebased(buffer, 103, 107, field);
@@ -456,7 +456,7 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
         s->mass = ?????
         #endif
 
-        s->update_location(2451544.5);
+        s->update_location(J2000);
 
         if (!HDfound)
         {
@@ -568,7 +568,7 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         read_field_onebased(buffer, 436, 447, field);
         if (trim(field).size()) s->spectral_type = field;
 
-        s->update_location(2451544.5);
+        s->update_location(J2000);
 
         num_read++;
     }

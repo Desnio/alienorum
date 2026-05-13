@@ -28,7 +28,7 @@ class Orbit
     double semimajor_axis = 0;
     double eccentricity = 0;
     double mean_anomaly = 0;                    // RADIANS!
-    double epoch = 2451544.5;                   // JD
+    double epoch = J2000;                   // JD
 
     CelestialLocation compute_3d_location(double epoch);
 };
@@ -45,7 +45,7 @@ class CelestialObject
     double inclination = 0;                     // RADIANS!
     double distance = 0;                        // meters
     bool distance_known = false;
-    double epoch = 2451544.5;                   // JD
+    double epoch = J2000;                   // JD
     double absolute_magnitude = 0;
     double UB_magnitude = 0;
     double BV_magnitude = 0;
@@ -68,6 +68,8 @@ class CelestialObject
     std::string Decl_as_degms();
     std::string RA_as_hms(CelestialLocation seen_from);
     std::string Decl_as_degms(CelestialLocation seen_from);
+    double RA_as_radians(CelestialLocation seen_from);
+    double Decl_as_radians(CelestialLocation seen_from);
     std::string scaled_distance(CelestialLocation fromwhere);
 };
 
