@@ -1,11 +1,12 @@
 #include <math.h>
 #include <algorithm>
+#include <iostream>
 #include "point.h"
 #include "color.h"
 
 using namespace std;
-double global_brightness = 10;
-double global_inverse_gamma = 1.0 / 1.7;
+double global_brightness = default_brightness;
+double global_inverse_gamma = 1.0 / default_gamma;
 bool redlight_mode = false;
 
 Color Color::color_from_magnitude_indices(double Vmag, double BV)
@@ -29,12 +30,45 @@ Color Color::color_from_magnitude_indices(double Vmag, double BV)
 RGB Color::rgb_from_color(Color c, double bloom_radius)
 {
     RGB result;
-    if (bloom_radius < 1) bloom_radius = 1;
-    double bloom = 1.0 / pow(bloom_radius, 3);
+    /*if (bloom_radius < 1) bloom_radius = 1;
+    double bloom = 1.0 / pow(bloom_radius, 3);*/
 
-    int red   = min(255, (int)(255.0 * pow(c.red   * bloom, global_inverse_gamma)));
+    // Treat c.red, c.green, c.blue as linear photon flux amounts.
+    // Bloom radius zero will have output = value up to a maximum of 255.
+    // Successive bloom radii will carry the overflow divided by the circumference
+    // of a circle with radius = bloom radius.
+    int red, green, blue;
+    if (!bloom_radius)
+    {
+        red   = min(255, (int)(255.0 * pow(c.red,   global_inverse_gamma)));
+        green = min(255, (int)(255.0 * pow(c.green, global_inverse_gamma)));
+        blue  = min(255, (int)(255.0 * pow(c.blue,  global_inverse_gamma)));
+    }
+    else
+    {
+        int i;
+        double lum = 0.29*c.red + 0.57*c.green + 0.14 * c.blue, rc = c.red, gc = c.green, bc = c.blue;
+        for (i=0; i<bloom_radius; i++)
+        {
+            lum = fmax(0, lum - fmin(1.0, lum));
+            if (!lum) return result;
+        }
+
+        gc = lum;
+        rc = c.red/c.green*lum;
+        bc = c.blue/c.green*lum;
+
+        double circ = 2.0 * M_PI * bloom_radius;
+        double invcirc = 1.0 / circ;
+
+        red   = min(255, (int)(255.0 * pow(rc * invcirc, global_inverse_gamma)));
+        green = min(255, (int)(255.0 * pow(gc * invcirc, global_inverse_gamma)));
+        blue  = min(255, (int)(255.0 * pow(bc * invcirc, global_inverse_gamma)));
+    }
+
+    /*int red   = min(255, (int)(255.0 * pow(c.red   * bloom, global_inverse_gamma)));
     int green = min(255, (int)(255.0 * pow(c.green * bloom, global_inverse_gamma)));
-    int blue  = min(255, (int)(255.0 * pow(c.blue  * bloom, global_inverse_gamma)));
+    int blue  = min(255, (int)(255.0 * pow(c.blue  * bloom, global_inverse_gamma)));*/
 
     if (redlight_mode)
     {

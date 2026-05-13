@@ -23,6 +23,8 @@
 #define arcsecond (arcminute / 60)
 
 #define its_behind_you 0xbe419d10
+#define default_brightness 8.1
+#define default_gamma 1.5
 
 class Point;
 class CelestialLocation;
@@ -90,6 +92,7 @@ struct Rotation
 };
 
 extern double magnbase;
+extern __uint32_t xonsm[13];
 
 double frand(double lmin, double lmax);
 Point compute_normal(Point& pt1, Point& pt2, Point& pt3);

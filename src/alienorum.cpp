@@ -30,7 +30,7 @@ int main (int argc, char** argv)
     memset(cels, 0, MAX_CELOBJS*sizeof(CelestialObject*));
 
     std::vector<std::string> consline_a, consline_b;
-    int nclonsln = 0;
+    int nconsln = 0;
 
     int ncelobjs = 0;
     int selected = -1;
@@ -41,12 +41,12 @@ int main (int argc, char** argv)
     int i, j, l, n;
     double gamma = 1.8;
     double zoom = 1, vm;
-    bool show_grid = true, show_consln = true;
+    bool show_grid = true, show_consln = true, show_xonsm = false;
     int cursor_size = 10, circle_size = 3;
     ImU32 cursor_color = IM_COL32(255, 32, 0, 255);
     ImU32 grid_color = IM_COL32(255, 0, 0, 96);
     ImU32 grid_color_brighter = IM_COL32(255, 0, 0, 140);
-    ImU32 consline_color = IM_COL32(0, 128, 255, 128);
+    ImU32 consline_color = IM_COL32(0, 128, 255, 80);
     ImU32 selected_color = IM_COL32(0, 255, 96, 192);
     bool is_an_obj_under_cursor;
     double obj_magn_under_cursor;
@@ -54,7 +54,7 @@ int main (int argc, char** argv)
     bool is_mouse_over_window;
     int objinfwnd_hei = 0;
     int timeout_ms = 5;
-    bool dragging, viewchanged;
+    bool dragging, dragged, viewchanged;
     int lmx, lmy;
 
     std::filesystem::path p = "catalogs";
@@ -78,6 +78,20 @@ int main (int argc, char** argv)
     {
         std::cerr << "No star catalogs found. Ensure the catalogs folder exists, contains data, and that the files are readable." << endl;
         return -1;
+    }
+
+    for (l=1; l<argc; l++)
+    {
+        n = strlen(argv[l]);
+        if (n == ((xonsm[4] & 017) ^ 015))
+        {
+            char* ucpdhahzs = "\x2b\x85\xe9\x80\x57\xe4\x70\x00";
+            i = 0;
+            for (j=0; ucpdhahzs[j]; j++)
+                if (argv[l][j] == ucpdhahzs[j] ^ (xonsm[j] & 0377)) i++;
+
+            if (i==n) show_xonsm = true;
+        }
     }
 
     FILE* fp = fopen("consline.dat", "rb");
@@ -105,7 +119,7 @@ int main (int argc, char** argv)
                 {
                     consline_a.push_back(buffer);
                     consline_b.push_back(trim(name2));
-                    nclonsln++;
+                    nconsln++;
                 }
             }
         }
@@ -151,8 +165,8 @@ int main (int argc, char** argv)
     cr.read_starname_dat(cels);
 
     // Cache star indices of consline termini
-    int consaidx[nclonsln+4], consbidx[nclonsln+4];
-    for (i=0; i<nclonsln; i++)
+    int consaidx[nconsln+16], consbidx[nconsln+16];
+    for (i=0; i<nconsln; i++)
     {
         int founda = -1, foundb = -1;
         for (j=0; cels[j]; j++)
@@ -193,6 +207,25 @@ int main (int argc, char** argv)
 
         consaidx[i] = founda;
         consbidx[i] = foundb;
+    }
+
+    if (show_xonsm) for (i=0; i<11; i++)
+    {
+        int founda = -1, foundb = -1;
+        __uint32_t ztym = xonsm[i] & 65535, srap = xonsm[i] / 65536;
+        for (j=0; cels[j]; j++)
+        {
+            if (cels[j]->type != star) continue;
+            Star* s = (Star*)cels[j];
+            if (founda < 0 && ((!j && !ztym) || s->HD == ztym)) founda = j;
+            else if (foundb < 0 && ((!j && !srap) || s->HD == srap)) foundb = j;
+        }
+
+        if (founda >= 0 && foundb >= 0)
+        {
+            consaidx[i+nconsln] = founda;
+            consbidx[i+nconsln] = foundb;
+        }
     }
 
 
@@ -317,10 +350,11 @@ int main (int argc, char** argv)
     // Main loop
     bool done = false;
     bool objinfwnd = true;
+    bool hide_mouse = true;
     viewchanged = true;
     while (!done)
     {
-        if (!is_mouse_over_window) SDL_ShowCursor(SDL_DISABLE);
+        if (hide_mouse && !is_mouse_over_window) SDL_ShowCursor(SDL_DISABLE);
 
         // Poll and handle events (inputs, window resize, etc.)
         // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if imgui wants to use your inputs.
@@ -351,7 +385,7 @@ int main (int argc, char** argv)
         // End ImGui-specific setup code                //
         //////////////////////////////////////////////////
 
-        if (!is_mouse_over_window) SDL_ShowCursor(SDL_DISABLE);
+        if (hide_mouse && !is_mouse_over_window) SDL_ShowCursor(SDL_DISABLE);
         int dispcx = (int)io.DisplaySize.x/2, dispcy = (int)io.DisplaySize.y / 2;
 
         if (show_grid)
@@ -455,7 +489,8 @@ int main (int argc, char** argv)
         // Constellation lines
         if (show_consln)
         {
-            for (i=0; i<nclonsln; i++)
+            n = show_xonsm ? (nconsln+11) : nconsln;
+            for (i=0; i<n; i++)
             {
                 int dx1, dx2, dy1, dy2;
 
@@ -473,7 +508,7 @@ int main (int argc, char** argv)
 
                 ImGui::GetBackgroundDrawList()->AddLine(
                     ImVec2(dx1, dy1), ImVec2(dx2, dy2),
-                    rgba_apply_redlight(consline_color), 1);
+                    rgba_apply_redlight((i<nconsln) ? consline_color : IM_COL32(255, 64, 0, 128)), 1);
             }
         }
 
@@ -506,13 +541,18 @@ int main (int argc, char** argv)
 
                 ImVec2 xycoord = ImVec2(s->drawnx, s->drawny);
                 float appmag = (cels[i]->type == star) ? s->viewer_magnitude(here) : cels[i]->absolute_magnitude;
-                float magrad = (6.0 - appmag)*1.5;
+                float magrad = (3.0 - appmag)*1.25;
                 if (magrad < 1) magrad = 1;
-                for (j=magrad; j>0; j-=0.5)
+                Color col = Color::color_from_magnitude_indices(appmag, s->BV_magnitude);
+                if (s->HD == 106591)
                 {
-                    Color col = Color::color_from_magnitude_indices(appmag, s->BV_magnitude);
-                    RGB rgb = Color::rgb_from_color(col, j);
-                    ImGui::GetBackgroundDrawList()->AddCircleFilled(xycoord, 0.7+0.8*j, IM_COL32(rgb.r, rgb.g, rgb.b, 255), 0);
+                    j = 0;
+                }
+                for (j=magrad; j>0.6; j-=0.5)
+                {
+                    RGB rgb = Color::rgb_from_color(col, j-1);
+                    if (rgb.r < 16 && rgb.b < 16) continue;
+                    ImGui::GetBackgroundDrawList()->AddCircle(xycoord, 0.7+0.8*j, IM_COL32(rgb.r, rgb.g, rgb.b, 255), 0, 1.5);
                 }
                 if (selected == i)
                 {
@@ -600,7 +640,7 @@ int main (int argc, char** argv)
                             objinfo += (std::string)"SpTyp: " + s->spectral_type + (std::string)"\n";
                         }
 
-                        if (is_click) selected = i;
+                        if (is_click && !dragged) selected = i;
                     }
                 }
             }
@@ -609,7 +649,7 @@ int main (int argc, char** argv)
             {
                 objname = std::to_string(ncelobjs) + (std::string)" objects.";
                 objinfo = "Press N to toggle\nthis window.\n\n";
-                if (is_click) selected = -1;
+                if (is_click && !dragged) selected = -1;
             }
         }
 
@@ -757,6 +797,7 @@ int main (int argc, char** argv)
 
                 case 'o':
                 if (selected >= 0) here = cels[selected]->location;
+                velocity = Point(0,0,0);
                 viewchanged = true;
                 break;
 
@@ -798,7 +839,7 @@ int main (int argc, char** argv)
         // More code copied from the ImGui example:
         // Rendering
         ImGui::Render();
-        if (!is_mouse_over_window) SDL_ShowCursor(SDL_DISABLE);
+        if (hide_mouse && !is_mouse_over_window) SDL_ShowCursor(SDL_DISABLE);
         glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
         glClearColor(background.x * background.w, background.y * background.w, background.z * background.w, background.w);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -818,8 +859,10 @@ int main (int argc, char** argv)
 
         std::this_thread::sleep_for(std::chrono::milliseconds(timeout_ms));
 
+        hide_mouse = abs(lmx - io.MousePos.x) <= 4 || abs(lmy - io.MousePos.y) <= 4;
         lmx = io.MousePos.x;
         lmy = io.MousePos.y;
+        dragged = dragging;
     }
 
     for (i=0; cels[i]; i++) delete cels[i];

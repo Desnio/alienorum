@@ -610,7 +610,7 @@ int CatalogReader::read_starname_dat(CelestialObject **cels)
         for (i=0; cels[i]; i++)
         {
             Star* s = (Star*)cels[i];
-            if (s->HD == HD || s->HIP == HIP || s->Gliese == Gliese)
+            if ((HD && s->HD == HD) || (HIP && s->HIP == HIP) || (Gliese.size() && s->Gliese == Gliese))
             {
                 s->name = field;
                 num_read++;
