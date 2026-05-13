@@ -88,6 +88,11 @@ void set_gamma(double new_gamma)
     global_inverse_gamma = 1.0 / new_gamma;
 }
 
+double get_gamma()
+{
+    return 1.0 / global_inverse_gamma;
+}
+
 __uint32_t rgba_apply_redlight(__uint32_t i)
 {
     if (!redlight_mode) return i;

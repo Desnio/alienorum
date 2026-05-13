@@ -25,6 +25,7 @@ class Color
 extern double global_brightness;
 extern bool redlight_mode;
 void set_gamma(double new_gamma);
+double get_gamma();
 __uint32_t rgba_apply_redlight(__uint32_t input);
 
 #endif

@@ -755,13 +755,16 @@ int main (int argc, char** argv)
         }
 
         is_mouse_over_window = false;
-        float txtyscale = ImGui::GetTextLineHeightWithSpacing();
+        float txtyscale = ImGui::GetTextLineHeightWithSpacing(), txtycompact = ImGui::GetTextLineHeight();
 
         // Status window
         if (statuswnd)
         {
+            // TODO: If redlight_mode, set all window and text colors accordingly.
             int stattop = 18, statleft = 15, statwidth = 211, statheight = txtyscale*2;
             ImGui::Begin("Status", &statuswnd);
+
+            /////////////////////////////////////////////////////
 
             ImGui::InputText("##find", lookfor, 255);
             ImGui::SameLine();
@@ -781,10 +784,48 @@ int main (int argc, char** argv)
             }
             statheight += txtyscale*1.3;
 
-            // TODO: If redlight_mode, set all window and text colors accordingly.
-            std::string frame_rate = std::to_string(1.0 / frame_dur) + std::string(" frames/s");
-            ImGui::Text(frame_rate.c_str());
+            std::string flagstr;
+
+            flagstr = (std::string)"Brghtns (B): " + std::to_string(global_brightness);
+            ImGui::Text(flagstr.c_str());
             statheight += txtyscale;
+
+            flagstr = (std::string)"Gamma (`): " + std::to_string(get_gamma());
+            ImGui::Text(flagstr.c_str());
+            statheight += txtyscale;
+
+            flagstr = (std::string)"Cons ln (C): "
+                + std::string(show_consln ? "ON" : "OFF");
+            ImGui::Text(flagstr.c_str());
+            statheight += txtyscale;
+
+            flagstr = (std::string)"RA/Decl (G): "
+                + std::string(show_grid ? "ON" : "OFF");
+            ImGui::Text(flagstr.c_str());
+            statheight += txtyscale;
+
+            flagstr = (std::string)"Labels (L): "
+                + std::string(show_labels ? "ON" : "OFF");
+            ImGui::Text(flagstr.c_str());
+            statheight += txtyscale;
+
+            flagstr = (std::string)"Redlgt (Sh+R): "
+                + std::string(redlight_mode ? "ON" : "OFF");
+            ImGui::Text(flagstr.c_str());
+            statheight += txtyscale;
+
+
+
+            flagstr = (std::string)"Obj info (N): "
+                + std::string(objinfwnd ? "ON" : "OFF");
+            ImGui::Text(flagstr.c_str());
+            statheight += txtyscale;
+
+            flagstr = (std::string)"Status (S): "
+                + std::string(statuswnd ? "ON" : "OFF");
+            ImGui::Text(flagstr.c_str());
+            statheight += txtyscale;
+
 
             double vm = velocity.magnitude() * target_frame_rate;
             if (isnan(vm)) vm = 0;
@@ -821,6 +862,12 @@ int main (int argc, char** argv)
             ImGui::Text(JDdisp.c_str());
             statheight += txtyscale;
 
+            std::string frame_rate = std::to_string(1.0 / frame_dur) + std::string(" frames/s");
+            ImGui::Text(frame_rate.c_str());
+            statheight += txtyscale;
+
+            /////////////////////////////////////////////////////
+
             ImGui::SetWindowPos(ImVec2(statleft, stattop));
             ImGui::SetWindowSize(ImVec2(statwidth, statheight));
             ImGui::End();
@@ -835,14 +882,15 @@ int main (int argc, char** argv)
         {
             // TODO: If redlight_mode, set all window and text colors accordingly.
             ImGui::Begin("Object", &objinfwnd);
+            int objinftop = 18, objinfleft = (int)io.DisplaySize.x - 225, objinfwidth = 211, objinfheight = txtyscale*2;
+
             ImGui::Text(objname.c_str());
+            objinfheight += txtyscale;
+
+            int txtlines = std::count(objinfo.begin(), objinfo.end(), '\n');
             ImGui::Text(objinfo.c_str());
-            /* if (ImGui::Button("Close Me"))
-                objinfwnd = false; */
-            int txtlines = std::count(objinfo.begin(), objinfo.end(), '\n') + 2;
-            int objinftop = 18, objinfleft = (int)io.DisplaySize.x - 225, objinfwidth = 211, objinfheight = (int)txtlines*txtyscale;
-            if (objinfheight > objinfwnd_hei) objinfwnd_hei = objinfheight;
-            else objinfheight = objinfwnd_hei;
+            objinfheight += txtlines*txtycompact;
+
             ImGui::SetWindowPos(ImVec2(objinfleft, objinftop));
             ImGui::SetWindowSize(ImVec2(objinfwidth, objinfheight));
             ImGui::End();
@@ -948,6 +996,7 @@ int main (int argc, char** argv)
                 break;
 
                 case 'R': redlight_mode = !redlight_mode; break;
+                case 's': statuswnd = !statuswnd; break;
 
                 case 'w':
                 velocity.x =  sin(azimuth) * cos(altitude) * speed_of_light / target_frame_rate;
