@@ -31,8 +31,12 @@ char lookfor[256];
 std::vector<int> drawnblocks[drawn_cache_split][drawn_cache_split];
 std::filesystem::path p = "catalogs";
 bool catalogs_found = false;
+int dispcx, dispcy;
+float txtyscale, txtycompact;
+bool is_click;
+double frame_dur = 0, best_frame_dur = 1e9;
 
-void draw_ra_dec_lines(int dispcx, int dispcy)
+void draw_ra_dec_lines()
 {
     int i, j;
     Cartesian2D prev, zdes;
@@ -321,11 +325,564 @@ void cache_cons_lines()
     }
 }
 
+void compute_object_draw_coordinates()
+{
+    int i;
+    if (viewchanged) for (i=0; cels[i] && i<MAX_CELOBJS; i++)
+    {
+        Star* s = (Star*)cels[i];
+        Point rel = cels[i]->location;
+        rel -= here;
+
+        try
+        {
+            Cartesian2D cart(rel, azimuth, altitude, zoom);
+            int dx = (int)(dispcx + cart.x * dispcx), dy = (int)(dispcy + cart.y * dispcx);
+            cels[i]->drawnx = dx;
+            cels[i]->drawny = dy;
+            if (viewchanged) vmag_cache[i] = s->viewer_magnitude(here);
+            if (dx < 0 or dx >= dispcx*2) continue;
+            if (dy < 0 or dy >= dispcy*2) continue;
+            int bx = dx*drawblxscalex, by = dy*drawblxscaley;
+            if (bx<0 || bx>=drawn_cache_split || by<0 || by>=drawn_cache_split) continue;
+            drawnblocks[bx][by].push_back(i);
+            bx_cache[i] = bx;
+            by_cache[i] = by;
+        }
+        catch (...)
+        {
+            // Object is behind the camera.
+            s->drawnx = s->drawny = -1e9;;
+        }
+    }
+}
+
+void draw_objects()
+{
+    int i, j, l, n;
+
+    for (i=0; cels[i] && i<MAX_CELOBJS; i++)
+    {
+        Star* s = (Star*)cels[i];
+        Point rel = cels[i]->location;
+        rel -= here;
+        {
+            if (s->drawnx < 0 or s->drawnx >= dispcx*2) continue;
+            if (s->drawny < 0 or s->drawny >= dispcy*2) continue;
+
+            // Any brighter object within reach, skip this one.
+            bool skip = false;
+            // TODO: Find a better way than the commented out block below.
+            // It does the job well, however it is a huge performance killer.
+            if (bx_cache[i] >= 0 && bx_cache[i] < drawn_cache_split && by_cache[i] >= 0 && by_cache[i] < drawn_cache_split)
+            {
+                n = drawnblocks[bx_cache[i]][by_cache[i]].size();
+                for (l=0; l<n; l++)
+                {
+                    j = drawnblocks[bx_cache[i]][by_cache[i]][l];
+                    if (j==i) continue;
+                    if (fabs(s->drawnx - cels[j]->drawnx) < 3
+                        &&
+                        fabs(s->drawny - cels[j]->drawny) < 3
+                        && vmag_cache[j] < vmag_cache[i]
+                        )
+                    {
+                        skip = true;
+                        break;
+                    }
+                }
+            }
+            if (skip) continue;
+
+            ImVec2 xycoord = ImVec2(cels[i]->drawnx, cels[i]->drawny);
+            float appmag = (cels[i]->type == star) ? vmag_cache[i] : cels[i]->absolute_magnitude;
+            float magrad = (5.0 - appmag)*1.5;
+            if (magrad < 1) magrad = 1;
+            Color col = Color::color_from_magnitude_indices(appmag, s->BV_magnitude);
+            if (s->HD == 106591)
+            {
+                j = 0;
+            }
+            for (j=magrad; j>0.6; j-=0.5)
+            {
+                RGB rgb = Color::rgb_from_color(col, j-1);
+                if (rgb.r < 16 && rgb.b < 16) continue;
+                ImGui::GetBackgroundDrawList()->AddCircle(xycoord, 0.7+0.8*j, IM_COL32(rgb.r, rgb.g, rgb.b, 255), 0, 1.5);
+            }
+            if (selected == i)
+            {
+                ImGui::GetBackgroundDrawList()->AddCircle(xycoord, magrad+2, rgba_apply_redlight(selected_color), 0, 2);
+            }
+            if (show_labels && (appmag <= 1.5 || i == selected))
+            {
+                ImVec2 sz = ImGui::CalcTextSize(cels[i]->name.c_str());
+                ImGui::GetBackgroundDrawList()->AddText(ImVec2(cels[i]->drawnx - sz.x/2, cels[i]->drawny+magrad+1),
+                    rgba_apply_redlight(objlbl_color),
+                    cels[i]->name.c_str());
+            }
+        }
+    }
+}
+
+void draw_cons_lines()
+{
+    int i, l, n;
+
+    conscen.clear();
+    n = consname.size();
+    for (l=0; l<n; l++)
+    {
+        conscen.push_back(Cartesian2D(0,0));
+        lnpercons[l] = 0;
+    }
+    n = show_xonsm ? (nconsln+11) : nconsln;
+    for (i=0; i<n; i++)
+    {
+        int dx1, dx2, dy1, dy2;
+
+        if (consaidx[i] < 0 || consbidx[i] < 0) continue;
+        if (i >= nconsln) considx[i] = consname.size()-1;
+        l = considx[i];
+
+        dx1 = cels[consaidx[i]]->drawnx;
+        dy1 = cels[consaidx[i]]->drawny;
+        if (dx1 < -1e3) continue;
+        if (dy1 < -1e3) continue;
+
+        dx2 = cels[consbidx[i]]->drawnx;
+        dy2 = cels[consbidx[i]]->drawny;
+        if (dx2 < -1e3) continue;
+        if (dy2 < -1e3) continue;
+
+        ImGui::GetBackgroundDrawList()->AddLine(
+            ImVec2(dx1, dy1), ImVec2(dx2, dy2),
+            rgba_apply_redlight((i<nconsln) ? consline_color : IM_COL32(255, 64, 0, 128)), 1);
+
+        assert (l < conscen.size());
+        conscen[l] += Cartesian2D((dx1+dx2)/2, (dy1+dy2)/2);
+        lnpercons[l]++;
+    }
+
+    // Constellation labels
+    n=l;
+    if (show_labels) for (l=0; l<n; l++)
+    {
+        if (!lnpercons[l]) continue;
+        conscen[l] /= lnpercons[l];
+        if (conscen[l].x < 0 || conscen[l].y < 0) continue;
+        int dx = conscen[l].x, dy = conscen[l].y;
+        ImVec2 sz = ImGui::CalcTextSize(consname[l].c_str());
+        dx -= sz.x/2;
+        dy -= sz.y/2;
+        if (dx >= 0 && dx < dispcx*2 && dy >= 0 && dy < dispcy*2)
+        {
+            ImGui::GetBackgroundDrawList()->AddText(ImVec2(dx, dy),
+                rgba_apply_redlight((l<nconsln) ? conslbl_color : IM_COL32(255, 64, 0, 128)),
+                consname[l].c_str());
+        }
+    }
+}
+
+void draw_mouse_cursor(ImGuiIO& io)
+{
+    cursor_size = (int)io.DisplaySize.x/81;
+    circle_size = cursor_size / 2.5;
+
+    ImU32 c = rgba_apply_redlight(cursor_color);
+    ImGui::GetBackgroundDrawList()->AddLine(
+        ImVec2(io.MousePos.x, io.MousePos.y - cursor_size),
+        ImVec2(io.MousePos.x, io.MousePos.y - circle_size - 1),
+        c, 1);
+    ImGui::GetBackgroundDrawList()->AddLine(
+        ImVec2(io.MousePos.x, io.MousePos.y + cursor_size + 1),
+        ImVec2(io.MousePos.x, io.MousePos.y + circle_size + 2),
+        c, 1);
+    ImGui::GetBackgroundDrawList()->AddLine(
+        ImVec2(io.MousePos.x - cursor_size, io.MousePos.y),
+        ImVec2(io.MousePos.x - circle_size - 1, io.MousePos.y),
+        c, 1);
+    ImGui::GetBackgroundDrawList()->AddLine(
+        ImVec2(io.MousePos.x + cursor_size + 1, io.MousePos.y),
+        ImVec2(io.MousePos.x + circle_size + 2, io.MousePos.y),
+        c, 1);
+    ImGui::GetBackgroundDrawList()->AddCircle(
+        ImVec2(io.MousePos.x, io.MousePos.y),
+        circle_size, c, 8, 1);
+}
+
+void identify_object_under_cursor(ImGuiIO& io)
+{
+    int i;
+
+    is_an_obj_under_cursor = -1;
+    obj_magn_under_cursor = 1e9;
+    for (i=0; cels[i] && i<MAX_CELOBJS; i++)
+    {
+        if (abs(cels[i]->drawnx - io.MousePos.x) < circle_size
+            &&
+            abs(cels[i]->drawny - io.MousePos.y) < circle_size
+            )
+        {
+            // Prioritize by brightness.
+            double lmag = vmag_cache[i];
+            if (lmag < obj_magn_under_cursor)
+            {
+                is_an_obj_under_cursor = i;
+                obj_magn_under_cursor = lmag;
+
+                if (i == selected) break;
+                if (is_click && !dragged) selected = i;
+            }
+        }
+    }
+
+    if (is_an_obj_under_cursor >= 0)
+    {
+        i = is_an_obj_under_cursor;
+        double lmag = vmag_cache[i];
+
+        objname = cels[i]->name;
+        objinfo = "";
+        if (cels[i]->type == star)
+        {
+            if (((Star*)cels[i])->Bayer.size() && ((Star*)cels[i])->Flamsteed.size())
+            {
+                int Fl = atoi(((Star*)cels[i])->Flamsteed.c_str());
+                objinfo += std::to_string(Fl) + ((Star*)cels[i])->Bayer + (std::string)"\n";
+            }
+            else if (((Star*)cels[i])->Flamsteed.size()) objinfo += ((Star*)cels[i])->Flamsteed + (std::string)"\n";
+            else if (((Star*)cels[i])->Bayer.size()) objinfo += ((Star*)cels[i])->Bayer + (std::string)"\n";
+
+            if (((Star*)cels[i])->Gliese.size()) objinfo += ((Star*)cels[i])->Gliese + (std::string)"\n";
+            if (((Star*)cels[i])->HD) objinfo += (std::string)"HD" + std::to_string(((Star*)cels[i])->HD) + (std::string)"\n";
+            if (((Star*)cels[i])->HR) objinfo += (std::string)"HR" + std::to_string(((Star*)cels[i])->HR) + (std::string)"\n";
+            if (((Star*)cels[i])->HIP) objinfo += (std::string)"HIP" + std::to_string(((Star*)cels[i])->HIP) + (std::string)"\n";
+        }
+        objinfo += (std::string)"RA:    " + cels[i]->RA_as_hms(here) + (std::string)"\n"
+                + (std::string)"Decl:  " + cels[i]->Decl_as_degms(here) + (std::string)"\n"
+                + (std::string)"Mag:   " + std::to_string(lmag) + (std::string)"\n"
+                + (std::string)"Epoch: " + std::to_string((cels[i]->epoch-J2000)/365.2425+2000) + (std::string)"\n"
+                ;
+        if (cels[i]->distance_known)
+            objinfo += (std::string)"Dist:  " + cels[i]->scaled_distance(here) + (std::string)"\n";
+        if (cels[i]->type == star)
+        {
+            Star* s = (Star*)cels[i];
+            objinfo += (std::string)"SpTyp: " + s->spectral_type + (std::string)"\n";
+        }
+    }
+    else
+    {
+        objname = std::to_string(ncelobjs) + (std::string)" objects.";
+        objinfo = "Press N to toggle\nthis window.\n\n";
+        if (is_click && !dragged) selected = -1;
+    }
+}
+
+void pan_with_crosshairs(ImGuiIO& io)
+{
+    if (ImGui::IsMouseDown(2))
+    {
+        azimuth -= 0.01 * fiftyseventh * io.MouseDelta.x / zoom;
+        altitude += 0.01 * fiftyseventh * io.MouseDelta.y / zoom;
+        if (altitude >  M_PI/2) altitude =  M_PI/2;
+        if (altitude < -M_PI/2) altitude = -M_PI/2;
+        spin = 0;
+        viewchanged = true;
+
+        ImVec2 topcen(dispcx, 0), botcen(dispcx, (int)io.DisplaySize.y-1),
+            leftcen(0, dispcy), rightcen((int)io.DisplaySize.x-1, dispcy);
+        ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, rgba_apply_redlight(IM_COL32(0, 0, 255, 128)), 1);
+        ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, rgba_apply_redlight(IM_COL32(0, 0, 255, 128)), 1);
+    }
+    else if (ImGui::IsMouseDown(1))
+    {
+        azimuth -= 0.03 * fiftyseventh * io.MouseDelta.x / zoom;
+        altitude += 0.03 * fiftyseventh * io.MouseDelta.y / zoom;
+        if (altitude >  M_PI/2) altitude =  M_PI/2;
+        if (altitude < -M_PI/2) altitude = -M_PI/2;
+        spin = 0;
+        viewchanged = true;
+
+        ImVec2 topcen(dispcx, 0), botcen(dispcx, (int)io.DisplaySize.y-1),
+            leftcen(0, dispcy), rightcen((int)io.DisplaySize.x-1, dispcy);
+        ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, rgba_apply_redlight(IM_COL32(0, 255, 0, 64)), 1);
+        ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, rgba_apply_redlight(IM_COL32(0, 255, 0, 64)), 1);
+    }
+    else if (ImGui::IsMouseDown(0))
+    {
+        azimuth -= 0.1 * fiftyseventh * io.MouseDelta.x / zoom;
+        altitude += 0.1 * fiftyseventh * io.MouseDelta.y / zoom;
+        if (altitude >  M_PI/2) altitude =  M_PI/2;
+        if (altitude < -M_PI/2) altitude = -M_PI/2;
+        spin = 0;
+        viewchanged = true;
+
+        ImVec2 topcen(dispcx, 0), botcen(dispcx, (int)io.DisplaySize.y-1),
+            leftcen(0, dispcy), rightcen((int)io.DisplaySize.x-1, dispcy);
+        ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, rgba_apply_redlight(IM_COL32(255, 96, 0, 96)), 1);
+        ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, rgba_apply_redlight(IM_COL32(255, 96, 0, 96)), 1);
+    }
+}
+
+void process_keyboard_commands(ImGuiIO& io)
+{
+    int i;
+    for (i = 0; i < io.InputQueueCharacters.Size; i++)
+    {
+        ImWchar c = io.InputQueueCharacters[i];
+        switch (c)
+        {
+            case 'b': global_brightness *= 1.5; break;
+            case 'B': global_brightness *= 0.666; break;
+            case 'c': show_consln = !show_consln; break;
+            case 'g': show_grid = !show_grid; break;
+            case 'l': show_labels = !show_labels; break;
+            case 'n': objinfwnd = !objinfwnd; break;
+
+            case 'o':
+            if (selected >= 0)
+            {
+                here = cels[selected]->location;
+                whereami = selected;
+            }
+            velocity = Point(0,0,0);
+            viewchanged = true;
+            break;
+
+            case 'r':
+            velocity = Point(0,0,0);
+            spin = 0;
+            whereami = 0;
+            here.local_position = here.system_center = Point(0,0,0);
+            viewchanged = true;
+            break;
+
+            case 'R': redlight_mode = !redlight_mode; break;
+            case 's': statuswnd = !statuswnd; break;
+
+            case 'w':
+            velocity.x =  sin(azimuth) * cos(altitude) * speed_of_light / target_frame_rate;
+            velocity.z =  cos(azimuth) * cos(altitude) * speed_of_light / target_frame_rate;
+            velocity.y =  sin(altitude) * speed_of_light / target_frame_rate;
+            spin = 0;
+            viewchanged = true;
+            whereami = -1;
+            break;
+
+            case 'x':
+            velocity = Point(0,0,0);
+            viewchanged = true;
+            break;
+
+            case '+':
+            vm = velocity.magnitude();
+            if (vm) velocity.scale(vm * 1.5);
+            else
+            {
+                velocity.x =  sin(azimuth) * cos(altitude) * 1000;
+                velocity.z =  cos(azimuth) * cos(altitude) * 1000;
+                velocity.y =  sin(altitude) * 1000;
+                whereami = -1;
+            }
+            viewchanged = true;
+            break;
+
+            case '-':
+            vm = velocity.magnitude();
+            velocity.scale(vm * 0.666);
+            viewchanged = true;
+            break;
+
+            case '`':
+            global_gamma += 0.2;
+            set_gamma(global_gamma);
+            break;
+
+            case '~':
+            global_gamma -= 0.2;
+            set_gamma(global_gamma);
+            break;
+
+            default:
+            ;
+        }
+    }
+}
+
+void draw_status_window(ImGuiIO& io)
+{
+    // TODO: If redlight_mode, set all window and text colors accordingly.
+    int stattop = 18, statleft = 15, statwidth = 211, statheight = txtyscale*2;
+    int i;
+    ImGui::Begin("Status", &statuswnd);
+
+    /////////////////////////////////////////////////////
+
+    ImGui::InputText("##find", lookfor, 255);
+    ImGui::SameLine();
+    if (ImGui::Button("Find"))
+    {
+        selected = -1;
+        for (i=0; cels[i]; i++)
+        {
+            if (!strcmp(cels[i]->name.c_str(), lookfor))
+            {
+                azimuth = -cels[i]->RA_as_radians(here);
+                altitude = cels[i]->Decl_as_radians(here);
+                selected = i;
+                searched = true;
+                break;
+            }
+        }
+
+        if (selected < 0)
+        {
+            int best_Levenshtein = 1e6;
+            std::string lookstr = lookfor;
+            for (i=0; cels[i]; i++)
+            {
+                int lev = Damerau_Levenshtein(cels[i]->name.c_str(), lookstr);
+                if (lev < best_Levenshtein)
+                {
+                    best_Levenshtein = lev;
+                    azimuth = -cels[i]->RA_as_radians(here);
+                    altitude = cels[i]->Decl_as_radians(here);
+                    selected = i;
+                    searched = true;
+                }
+            }
+        }
+    }
+    statheight += txtyscale*1.3;
+
+    std::string flagstr;
+
+    flagstr = (std::string)"Brghtns (B): " + std::to_string(global_brightness);
+    ImGui::Text(flagstr.c_str());
+    statheight += txtyscale;
+
+    flagstr = (std::string)"Gamma (`): " + std::to_string(get_gamma());
+    ImGui::Text(flagstr.c_str());
+    statheight += txtyscale;
+
+    flagstr = (std::string)"Cons ln (C): "
+        + std::string(show_consln ? "ON" : "OFF");
+    ImGui::Text(flagstr.c_str());
+    statheight += txtyscale;
+
+    flagstr = (std::string)"RA/Decl (G): "
+        + std::string(show_grid ? "ON" : "OFF");
+    ImGui::Text(flagstr.c_str());
+    statheight += txtyscale;
+
+    flagstr = (std::string)"Labels (L): "
+        + std::string(show_labels ? "ON" : "OFF");
+    ImGui::Text(flagstr.c_str());
+    statheight += txtyscale;
+
+    flagstr = (std::string)"Redlgt (Sh+R): "
+        + std::string(redlight_mode ? "ON" : "OFF");
+    ImGui::Text(flagstr.c_str());
+    statheight += txtyscale;
+
+    flagstr = (std::string)"Obj info (N): "
+        + std::string(objinfwnd ? "ON" : "OFF");
+    ImGui::Text(flagstr.c_str());
+    statheight += txtyscale;
+
+    flagstr = (std::string)"Status (S): "
+        + std::string(statuswnd ? "ON" : "OFF");
+    ImGui::Text(flagstr.c_str());
+    statheight += txtyscale;
+
+    ImGui::Text("-----");
+    statheight += txtyscale;
+
+    std::string vfstr;
+    if (whereami >= 0)
+        vfstr = std::string("View from ") + cels[whereami]->name;
+    else vfstr = std::string("View from space");
+    ImGui::Text(vfstr.c_str());
+    statheight += txtyscale;
+
+    double vm = velocity.magnitude() * target_frame_rate;
+    if (isnan(vm)) vm = 0;
+    velocmag = vm;
+    std::string velocstr;
+    if (velocmag < 0.01 * speed_of_light) velocstr = std::string("Velocity: ") + std::to_string(velocmag / 1000 * 3600) + std::string(" km/h");
+    else if (velocmag < speed_of_light) velocstr = std::string("Velocity: ") + std::to_string(velocmag / speed_of_light) + std::string(" c");
+    else
+    {
+        std::ostringstream oss;
+        oss << std::scientific << std::setprecision(2) << (velocmag / speed_of_light);
+        velocstr = std::string("Velocity: ") + oss.str() + std::string(" warp");
+    }
+    ImGui::Text(velocstr.c_str());
+    statheight += txtyscale;
+
+    struct tm *utc_time = std::gmtime(&simnow);
+    int mon = utc_time->tm_mon + 1, mday = utc_time->tm_mday;
+    std::string datedisp = std::to_string(utc_time->tm_year + 1900)
+        + std::string("-") + std::string((mon<10)?"0":"") + std::to_string(mon)
+        + std::string("-") + std::string((mday<10)?"0":"") + std::to_string(mday);
+    ImGui::Text(datedisp.c_str());
+    statheight += txtyscale;
+
+    int hr = utc_time->tm_hour, mn = utc_time->tm_min, sec = utc_time->tm_sec;
+    std::string timedisp = std::string((hr<10)?"0":"") + std::to_string(hr)
+        + std::string(":") + std::string((mn<10)?"0":"") + std::to_string(mn)
+        + std::string(":") + std::string((sec<10)?"0":"") + std::to_string(sec)
+        + std::string(" UTC");
+    ImGui::Text(timedisp.c_str());
+    statheight += txtyscale;
+
+    std::string JDdisp = std::string("JD") + std::to_string(JDnow);
+    ImGui::Text(JDdisp.c_str());
+    statheight += txtyscale;
+
+    std::string frame_rate = std::to_string(1.0 / frame_dur) + std::string(" frames/s");
+    ImGui::Text(frame_rate.c_str());
+    statheight += txtyscale;
+
+    /////////////////////////////////////////////////////
+
+    ImGui::SetWindowPos(ImVec2(statleft, stattop));
+    ImGui::SetWindowSize(ImVec2(statwidth, statheight));
+    ImGui::End();
+
+    if (io.MousePos.x >= statleft && io.MousePos.y >= stattop
+        && io.MousePos.x < statleft+statwidth && io.MousePos.y < stattop+statheight)
+        is_mouse_over_window = true;
+}
+
+void draw_objinf_window(ImGuiIO& io)
+{
+    // TODO: If redlight_mode, set all window and text colors accordingly.
+    ImGui::Begin("Object", &objinfwnd);
+    int objinftop = 18, objinfleft = (int)io.DisplaySize.x - 225, objinfwidth = 211, objinfheight = txtyscale*2;
+
+    ImGui::Text(objname.c_str());
+    objinfheight += txtyscale;
+
+    int txtlines = std::count(objinfo.begin(), objinfo.end(), '\n');
+    ImGui::Text(objinfo.c_str());
+    objinfheight += txtlines*txtycompact;
+
+    ImGui::SetWindowPos(ImVec2(objinfleft, objinftop));
+    ImGui::SetWindowSize(ImVec2(objinfwidth, objinfheight));
+    ImGui::End();
+
+    if (io.MousePos.x >= objinfleft && io.MousePos.y >= objinftop
+        && io.MousePos.x < objinfleft+objinfwidth && io.MousePos.y < objinftop+objinfheight)
+        is_mouse_over_window = true;
+}
+
 int main (int argc, char** argv)
 {
     int i, j, l, n;
     cels = new CelestialObject*[MAX_CELOBJS];
-    double *vmag_cache = new double[MAX_CELOBJS];
+    vmag_cache = new double[MAX_CELOBJS];
     memset(cels, 0, MAX_CELOBJS*sizeof(CelestialObject*));
     bx_cache = new int[MAX_CELOBJS];
     by_cache = new int[MAX_CELOBJS];
@@ -487,11 +1044,6 @@ int main (int argc, char** argv)
 
     // Main loop
     bool done = false;
-    bool objinfwnd = true;
-    bool statuswnd = true;
-    bool hide_mouse = true;
-    bool searched = false;
-    double frame_dur = 0, best_frame_dur = 1e9;
     viewchanged = true;
     ImVec2 PrevDispSize;
     while (!done)
@@ -529,481 +1081,44 @@ int main (int argc, char** argv)
         //////////////////////////////////////////////////
 
         if (hide_mouse && !is_mouse_over_window) SDL_ShowCursor(SDL_DISABLE);
-        int dispcx = (int)io.DisplaySize.x/2, dispcy = (int)io.DisplaySize.y / 2;
+        dispcx = (int)io.DisplaySize.x/2;
+        dispcy = (int)io.DisplaySize.y / 2;
         drawblxscalex = 2.0 / (dispcx/drawn_cache_split);
         drawblxscaley = 2.0 / (dispcy/drawn_cache_split);
         for (i=0; i<drawn_cache_split; i++) for (j=0; j<drawn_cache_split; j++) drawnblocks[i][j].clear();
         if (whereami >= 0) here = cels[whereami]->location;
 
-        if (show_grid) draw_ra_dec_lines(dispcx, dispcy);
+        if (show_grid) draw_ra_dec_lines();
+        compute_object_draw_coordinates();
+        if (show_consln) draw_cons_lines();
+        draw_objects();
 
-        // Compute object draw coordinates.
-        if (viewchanged) for (i=0; cels[i] && i<MAX_CELOBJS; i++)
-        {
-            Star* s = (Star*)cels[i];
-            Point rel = cels[i]->location;
-            rel -= here;
-
-            try
-            {
-                Cartesian2D cart(rel, azimuth, altitude, zoom);
-                int dx = (int)(dispcx + cart.x * dispcx), dy = (int)(dispcy + cart.y * dispcx);
-                cels[i]->drawnx = dx;
-                cels[i]->drawny = dy;
-                if (viewchanged) vmag_cache[i] = s->viewer_magnitude(here);
-                if (dx < 0 or dx >= io.DisplaySize.x) continue;
-                if (dy < 0 or dy >= io.DisplaySize.y) continue;
-                int bx = dx*drawblxscalex, by = dy*drawblxscaley;
-                if (bx<0 || bx>=drawn_cache_split || by<0 || by>=drawn_cache_split) continue;
-                drawnblocks[bx][by].push_back(i);
-                bx_cache[i] = bx;
-                by_cache[i] = by;
-            }
-            catch (...)
-            {
-                // Object is behind the camera.
-                s->drawnx = s->drawny = -1e9;;
-            }
-        }
-
-        // Constellation lines
-        if (show_consln)
-        {
-            conscen.clear();
-            n = consname.size();
-            for (l=0; l<n; l++)
-            {
-                conscen.push_back(Cartesian2D(0,0));
-                lnpercons[l] = 0;
-            }
-            n = show_xonsm ? (nconsln+11) : nconsln;
-            for (i=0; i<n; i++)
-            {
-                int dx1, dx2, dy1, dy2;
-
-                if (consaidx[i] < 0 || consbidx[i] < 0) continue;
-                if (i >= nconsln) considx[i] = consname.size()-1;
-                l = considx[i];
-
-                dx1 = cels[consaidx[i]]->drawnx;
-                dy1 = cels[consaidx[i]]->drawny;
-                if (dx1 < -1e3) continue;
-                if (dy1 < -1e3) continue;
-
-                dx2 = cels[consbidx[i]]->drawnx;
-                dy2 = cels[consbidx[i]]->drawny;
-                if (dx2 < -1e3) continue;
-                if (dy2 < -1e3) continue;
-
-                ImGui::GetBackgroundDrawList()->AddLine(
-                    ImVec2(dx1, dy1), ImVec2(dx2, dy2),
-                    rgba_apply_redlight((i<nconsln) ? consline_color : IM_COL32(255, 64, 0, 128)), 1);
-
-                assert (l < conscen.size());
-                conscen[l] += Cartesian2D((dx1+dx2)/2, (dy1+dy2)/2);
-                lnpercons[l]++;
-            }
-
-            // Constellation labels
-            n=l;
-            if (show_labels) for (l=0; l<n; l++)
-            {
-                if (!lnpercons[l]) continue;
-                conscen[l] /= lnpercons[l];
-                if (conscen[l].x < 0 || conscen[l].y < 0) continue;
-                int dx = conscen[l].x, dy = conscen[l].y;
-                ImVec2 sz = ImGui::CalcTextSize(consname[l].c_str());
-                dx -= sz.x/2;
-                dy -= sz.y/2;
-                if (dx >= 0 && dx < io.DisplaySize.x && dy >= 0 && dy < io.DisplaySize.y)
-                {
-                    ImGui::GetBackgroundDrawList()->AddText(ImVec2(dx, dy),
-                        rgba_apply_redlight((l<nconsln) ? conslbl_color : IM_COL32(255, 64, 0, 128)),
-                        consname[l].c_str());
-                }
-            }
-        }
-
-        // Draw objects.
-        for (i=0; cels[i] && i<MAX_CELOBJS; i++)
-        {
-            Star* s = (Star*)cels[i];
-            Point rel = cels[i]->location;
-            rel -= here;
-            {
-                if (s->drawnx < 0 or s->drawnx >= io.DisplaySize.x) continue;
-                if (s->drawny < 0 or s->drawny >= io.DisplaySize.y) continue;
-
-                // Any brighter object within reach, skip this one.
-                bool skip = false;
-                // TODO: Find a better way than the commented out block below.
-                // It does the job well, however it is a huge performance killer.
-                if (bx_cache[i] >= 0 && bx_cache[i] < drawn_cache_split && by_cache[i] >= 0 && by_cache[i] < drawn_cache_split)
-                {
-                    n = drawnblocks[bx_cache[i]][by_cache[i]].size();
-                    for (l=0; l<n; l++)
-                    {
-                        j = drawnblocks[bx_cache[i]][by_cache[i]][l];
-                        if (j==i) continue;
-                        if (fabs(s->drawnx - cels[j]->drawnx) < 3
-                            &&
-                            fabs(s->drawny - cels[j]->drawny) < 3
-                            && vmag_cache[j] < vmag_cache[i]
-                            )
-                        {
-                            skip = true;
-                            break;
-                        }
-                    }
-                }
-                if (skip) continue;
-
-                ImVec2 xycoord = ImVec2(cels[i]->drawnx, cels[i]->drawny);
-                float appmag = (cels[i]->type == star) ? vmag_cache[i] : cels[i]->absolute_magnitude;
-                float magrad = (5.0 - appmag)*1.5;
-                if (magrad < 1) magrad = 1;
-                Color col = Color::color_from_magnitude_indices(appmag, s->BV_magnitude);
-                if (s->HD == 106591)
-                {
-                    j = 0;
-                }
-                for (j=magrad; j>0.6; j-=0.5)
-                {
-                    RGB rgb = Color::rgb_from_color(col, j-1);
-                    if (rgb.r < 16 && rgb.b < 16) continue;
-                    ImGui::GetBackgroundDrawList()->AddCircle(xycoord, 0.7+0.8*j, IM_COL32(rgb.r, rgb.g, rgb.b, 255), 0, 1.5);
-                }
-                if (selected == i)
-                {
-                    ImGui::GetBackgroundDrawList()->AddCircle(xycoord, magrad+2, rgba_apply_redlight(selected_color), 0, 2);
-                }
-                if (show_labels && (appmag <= 1.5 || i == selected))
-                {
-                    ImVec2 sz = ImGui::CalcTextSize(cels[i]->name.c_str());
-                    ImGui::GetBackgroundDrawList()->AddText(ImVec2(cels[i]->drawnx - sz.x/2, cels[i]->drawny+magrad+1),
-                        rgba_apply_redlight(objlbl_color),
-                        cels[i]->name.c_str());
-                }
-            }
-        }
-
-        // Custom mouse cursor.
-        bool is_click = io.MouseReleased[0];
+        is_click = io.MouseReleased[0];
         if (!is_mouse_over_window)
         {
-            if (!ImGui::IsMouseDown(0) && !ImGui::IsMouseDown(1) && !ImGui::IsMouseDown(2))
-            {
-                cursor_size = (int)io.DisplaySize.x/81;
-                circle_size = cursor_size / 2.5;
-
-                ImU32 c = rgba_apply_redlight(cursor_color);
-                ImGui::GetBackgroundDrawList()->AddLine(
-                    ImVec2(io.MousePos.x, io.MousePos.y - cursor_size),
-                    ImVec2(io.MousePos.x, io.MousePos.y - circle_size - 1),
-                    c, 1);
-                ImGui::GetBackgroundDrawList()->AddLine(
-                    ImVec2(io.MousePos.x, io.MousePos.y + cursor_size + 1),
-                    ImVec2(io.MousePos.x, io.MousePos.y + circle_size + 2),
-                    c, 1);
-                ImGui::GetBackgroundDrawList()->AddLine(
-                    ImVec2(io.MousePos.x - cursor_size, io.MousePos.y),
-                    ImVec2(io.MousePos.x - circle_size - 1, io.MousePos.y),
-                    c, 1);
-                ImGui::GetBackgroundDrawList()->AddLine(
-                    ImVec2(io.MousePos.x + cursor_size + 1, io.MousePos.y),
-                    ImVec2(io.MousePos.x + circle_size + 2, io.MousePos.y),
-                    c, 1);
-                ImGui::GetBackgroundDrawList()->AddCircle(
-                    ImVec2(io.MousePos.x, io.MousePos.y),
-                    circle_size, c, 8, 1);
-            }
-
-            // Object under cursor
-            is_an_obj_under_cursor = false;
-            obj_magn_under_cursor = 1e9;
-            for (i=0; cels[i] && i<MAX_CELOBJS; i++)
-            {
-                if (abs(cels[i]->drawnx - io.MousePos.x) < circle_size
-                    &&
-                    abs(cels[i]->drawny - io.MousePos.y) < circle_size
-                    )
-                {
-                    is_an_obj_under_cursor = true;
-
-                    // Prioritize by brightness.
-                    double lmag = vmag_cache[i];
-                    if (lmag < obj_magn_under_cursor)
-                    {
-                        obj_magn_under_cursor = lmag;
-
-                        objname = cels[i]->name;
-                        objinfo = "";
-                        if (cels[i]->type == star)
-                        {
-                            if (((Star*)cels[i])->Bayer.size() && ((Star*)cels[i])->Flamsteed.size())
-                            {
-                                int Fl = atoi(((Star*)cels[i])->Flamsteed.c_str());
-                                objinfo += std::to_string(Fl) + ((Star*)cels[i])->Bayer + (std::string)"\n";
-                            }
-                            else if (((Star*)cels[i])->Flamsteed.size()) objinfo += ((Star*)cels[i])->Flamsteed + (std::string)"\n";
-                            else if (((Star*)cels[i])->Bayer.size()) objinfo += ((Star*)cels[i])->Bayer + (std::string)"\n";
-
-                            if (((Star*)cels[i])->Gliese.size()) objinfo += ((Star*)cels[i])->Gliese + (std::string)"\n";
-                            if (((Star*)cels[i])->HD) objinfo += (std::string)"HD" + std::to_string(((Star*)cels[i])->HD) + (std::string)"\n";
-                            if (((Star*)cels[i])->HR) objinfo += (std::string)"HR" + std::to_string(((Star*)cels[i])->HR) + (std::string)"\n";
-                            if (((Star*)cels[i])->HIP) objinfo += (std::string)"HIP" + std::to_string(((Star*)cels[i])->HIP) + (std::string)"\n";
-                        }
-                        objinfo += (std::string)"RA:    " + cels[i]->RA_as_hms(here) + (std::string)"\n"
-                                + (std::string)"Decl:  " + cels[i]->Decl_as_degms(here) + (std::string)"\n"
-                                + (std::string)"Mag:   " + std::to_string(lmag) + (std::string)"\n"
-                                + (std::string)"Epoch: " + std::to_string((cels[i]->epoch-J2000)/365.2425+2000) + (std::string)"\n"
-                                ;
-                        if (cels[i]->distance_known)
-                            objinfo += (std::string)"Dist:  " + cels[i]->scaled_distance(here) + (std::string)"\n";
-                        if (cels[i]->type == star)
-                        {
-                            Star* s = (Star*)cels[i];
-                            objinfo += (std::string)"SpTyp: " + s->spectral_type + (std::string)"\n";
-                        }
-
-                        if (i == selected) break;
-                        if (is_click && !dragged) selected = i;
-                    }
-                }
-            }
-
-            if (!is_an_obj_under_cursor)
-            {
-                objname = std::to_string(ncelobjs) + (std::string)" objects.";
-                objinfo = "Press N to toggle\nthis window.\n\n";
-                if (is_click && !dragged) selected = -1;
-            }
+            if (!ImGui::IsMouseDown(0) && !ImGui::IsMouseDown(1) && !ImGui::IsMouseDown(2)) draw_mouse_cursor(io);
+            identify_object_under_cursor(io);
         }
 
         is_mouse_over_window = false;
-        float txtyscale = ImGui::GetTextLineHeightWithSpacing(), txtycompact = ImGui::GetTextLineHeight();
+
+        txtyscale = ImGui::GetTextLineHeightWithSpacing();
+        txtycompact = ImGui::GetTextLineHeight();
 
         // Status window
-        if (statuswnd)
-        {
-            // TODO: If redlight_mode, set all window and text colors accordingly.
-            int stattop = 18, statleft = 15, statwidth = 211, statheight = txtyscale*2;
-            ImGui::Begin("Status", &statuswnd);
-
-            /////////////////////////////////////////////////////
-
-            ImGui::InputText("##find", lookfor, 255);
-            ImGui::SameLine();
-            if (ImGui::Button("Find"))
-            {
-                selected = -1;
-                for (i=0; cels[i]; i++)
-                {
-                    if (!strcmp(cels[i]->name.c_str(), lookfor))
-                    {
-                        azimuth = -cels[i]->RA_as_radians(here);
-                        altitude = cels[i]->Decl_as_radians(here);
-                        selected = i;
-                        searched = true;
-                        break;
-                    }
-                }
-
-                if (selected < 0)
-                {
-                    int best_Levenshtein = 1e6;
-                    std::string lookstr = lookfor;
-                    for (i=0; cels[i]; i++)
-                    {
-                        int lev = Damerau_Levenshtein(cels[i]->name.c_str(), lookstr);
-                        if (lev < best_Levenshtein)
-                        {
-                            best_Levenshtein = lev;
-                            azimuth = -cels[i]->RA_as_radians(here);
-                            altitude = cels[i]->Decl_as_radians(here);
-                            selected = i;
-                            searched = true;
-                        }
-                    }
-                }
-            }
-            statheight += txtyscale*1.3;
-
-            std::string flagstr;
-
-            flagstr = (std::string)"Brghtns (B): " + std::to_string(global_brightness);
-            ImGui::Text(flagstr.c_str());
-            statheight += txtyscale;
-
-            flagstr = (std::string)"Gamma (`): " + std::to_string(get_gamma());
-            ImGui::Text(flagstr.c_str());
-            statheight += txtyscale;
-
-            flagstr = (std::string)"Cons ln (C): "
-                + std::string(show_consln ? "ON" : "OFF");
-            ImGui::Text(flagstr.c_str());
-            statheight += txtyscale;
-
-            flagstr = (std::string)"RA/Decl (G): "
-                + std::string(show_grid ? "ON" : "OFF");
-            ImGui::Text(flagstr.c_str());
-            statheight += txtyscale;
-
-            flagstr = (std::string)"Labels (L): "
-                + std::string(show_labels ? "ON" : "OFF");
-            ImGui::Text(flagstr.c_str());
-            statheight += txtyscale;
-
-            flagstr = (std::string)"Redlgt (Sh+R): "
-                + std::string(redlight_mode ? "ON" : "OFF");
-            ImGui::Text(flagstr.c_str());
-            statheight += txtyscale;
-
-            flagstr = (std::string)"Obj info (N): "
-                + std::string(objinfwnd ? "ON" : "OFF");
-            ImGui::Text(flagstr.c_str());
-            statheight += txtyscale;
-
-            flagstr = (std::string)"Status (S): "
-                + std::string(statuswnd ? "ON" : "OFF");
-            ImGui::Text(flagstr.c_str());
-            statheight += txtyscale;
-
-            ImGui::Text("-----");
-            statheight += txtyscale;
-
-            std::string vfstr;
-            if (whereami >= 0)
-                vfstr = std::string("View from ") + cels[whereami]->name;
-            else vfstr = std::string("View from space");
-            ImGui::Text(vfstr.c_str());
-            statheight += txtyscale;
-
-            double vm = velocity.magnitude() * target_frame_rate;
-            if (isnan(vm)) vm = 0;
-            velocmag = vm;
-            std::string velocstr;
-            if (velocmag < 0.01 * speed_of_light) velocstr = std::string("Velocity: ") + std::to_string(velocmag / 1000 * 3600) + std::string(" km/h");
-            else if (velocmag < speed_of_light) velocstr = std::string("Velocity: ") + std::to_string(velocmag / speed_of_light) + std::string(" c");
-            else
-            {
-                std::ostringstream oss;
-                oss << std::scientific << std::setprecision(2) << (velocmag / speed_of_light);
-                velocstr = std::string("Velocity: ") + oss.str() + std::string(" warp");
-            }
-            ImGui::Text(velocstr.c_str());
-            statheight += txtyscale;
-
-            struct tm *utc_time = std::gmtime(&simnow);
-            int mon = utc_time->tm_mon + 1, mday = utc_time->tm_mday;
-            std::string datedisp = std::to_string(utc_time->tm_year + 1900)
-                + std::string("-") + std::string((mon<10)?"0":"") + std::to_string(mon)
-                + std::string("-") + std::string((mday<10)?"0":"") + std::to_string(mday);
-            ImGui::Text(datedisp.c_str());
-            statheight += txtyscale;
-
-            int hr = utc_time->tm_hour, mn = utc_time->tm_min, sec = utc_time->tm_sec;
-            std::string timedisp = std::string((hr<10)?"0":"") + std::to_string(hr)
-                + std::string(":") + std::string((mn<10)?"0":"") + std::to_string(mn)
-                + std::string(":") + std::string((sec<10)?"0":"") + std::to_string(sec)
-                + std::string(" UTC");
-            ImGui::Text(timedisp.c_str());
-            statheight += txtyscale;
-
-            std::string JDdisp = std::string("JD") + std::to_string(JDnow);
-            ImGui::Text(JDdisp.c_str());
-            statheight += txtyscale;
-
-            std::string frame_rate = std::to_string(1.0 / frame_dur) + std::string(" frames/s");
-            ImGui::Text(frame_rate.c_str());
-            statheight += txtyscale;
-
-            /////////////////////////////////////////////////////
-
-            ImGui::SetWindowPos(ImVec2(statleft, stattop));
-            ImGui::SetWindowSize(ImVec2(statwidth, statheight));
-            ImGui::End();
-
-            if (io.MousePos.x >= statleft && io.MousePos.y >= stattop
-                && io.MousePos.x < statleft+statwidth && io.MousePos.y < stattop+statheight)
-                is_mouse_over_window = true;
-        }
+        if (statuswnd) draw_status_window(io);
 
         // Object under cursor info
-        if (objinfwnd)
-        {
-            // TODO: If redlight_mode, set all window and text colors accordingly.
-            ImGui::Begin("Object", &objinfwnd);
-            int objinftop = 18, objinfleft = (int)io.DisplaySize.x - 225, objinfwidth = 211, objinfheight = txtyscale*2;
-
-            ImGui::Text(objname.c_str());
-            objinfheight += txtyscale;
-
-            int txtlines = std::count(objinfo.begin(), objinfo.end(), '\n');
-            ImGui::Text(objinfo.c_str());
-            objinfheight += txtlines*txtycompact;
-
-            ImGui::SetWindowPos(ImVec2(objinfleft, objinftop));
-            ImGui::SetWindowSize(ImVec2(objinfwidth, objinfheight));
-            ImGui::End();
-
-            if (io.MousePos.x >= objinfleft && io.MousePos.y >= objinftop
-                && io.MousePos.x < objinfleft+objinfwidth && io.MousePos.y < objinftop+objinfheight)
-                is_mouse_over_window = true;
-        }
+        if (objinfwnd) draw_objinf_window(io);
 
         // Positioning updates
         here.local_position += velocity;
         azimuth += spin;
         viewchanged = searched || spin || velocity.magnitude() || (PrevDispSize.x != io.DisplaySize.x) || (PrevDispSize.y != io.DisplaySize.y);
 
-        // Pan with crosshairs
+        // Clicking and dragging
         bool is_mouse_down = ImGui::IsMouseDown(0) || ImGui::IsMouseDown(1) || ImGui::IsMouseDown(2);
-        if (is_mouse_down && !is_mouse_over_window && dragging)
-        {
-            if (ImGui::IsMouseDown(2))
-            {
-                azimuth -= 0.01 * fiftyseventh * io.MouseDelta.x / zoom;
-                altitude += 0.01 * fiftyseventh * io.MouseDelta.y / zoom;
-                if (altitude >  M_PI/2) altitude =  M_PI/2;
-                if (altitude < -M_PI/2) altitude = -M_PI/2;
-                spin = 0;
-                viewchanged = true;
-
-                ImVec2 topcen(dispcx, 0), botcen(dispcx, (int)io.DisplaySize.y-1),
-                    leftcen(0, dispcy), rightcen((int)io.DisplaySize.x-1, dispcy);
-                ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, rgba_apply_redlight(IM_COL32(0, 0, 255, 128)), 1);
-                ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, rgba_apply_redlight(IM_COL32(0, 0, 255, 128)), 1);
-            }
-            else if (ImGui::IsMouseDown(1))
-            {
-                azimuth -= 0.03 * fiftyseventh * io.MouseDelta.x / zoom;
-                altitude += 0.03 * fiftyseventh * io.MouseDelta.y / zoom;
-                if (altitude >  M_PI/2) altitude =  M_PI/2;
-                if (altitude < -M_PI/2) altitude = -M_PI/2;
-                spin = 0;
-                viewchanged = true;
-
-                ImVec2 topcen(dispcx, 0), botcen(dispcx, (int)io.DisplaySize.y-1),
-                    leftcen(0, dispcy), rightcen((int)io.DisplaySize.x-1, dispcy);
-                ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, rgba_apply_redlight(IM_COL32(0, 255, 0, 64)), 1);
-                ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, rgba_apply_redlight(IM_COL32(0, 255, 0, 64)), 1);
-            }
-            else if (ImGui::IsMouseDown(0))
-            {
-                azimuth -= 0.1 * fiftyseventh * io.MouseDelta.x / zoom;
-                altitude += 0.1 * fiftyseventh * io.MouseDelta.y / zoom;
-                if (altitude >  M_PI/2) altitude =  M_PI/2;
-                if (altitude < -M_PI/2) altitude = -M_PI/2;
-                spin = 0;
-                viewchanged = true;
-
-                ImVec2 topcen(dispcx, 0), botcen(dispcx, (int)io.DisplaySize.y-1),
-                    leftcen(0, dispcy), rightcen((int)io.DisplaySize.x-1, dispcy);
-                ImGui::GetBackgroundDrawList()->AddLine(topcen, botcen, rgba_apply_redlight(IM_COL32(255, 96, 0, 96)), 1);
-                ImGui::GetBackgroundDrawList()->AddLine(leftcen, rightcen, rgba_apply_redlight(IM_COL32(255, 96, 0, 96)), 1);
-            }
-        }
+        if (is_mouse_down && !is_mouse_over_window && dragging) pan_with_crosshairs(io);
         if (is_mouse_down && (io.MousePos.x != lmx || io.MousePos.y != lmy)) dragging = true;
         else if (is_click) dragging = false;
 
@@ -1022,86 +1137,7 @@ int main (int argc, char** argv)
         }
 
         // Keyboard commands
-        for (int i = 0; i < io.InputQueueCharacters.Size; i++)
-        {
-            ImWchar c = io.InputQueueCharacters[i];
-            switch (c)
-            {
-                case 'b': global_brightness *= 1.5; break;
-                case 'B': global_brightness *= 0.666; break;
-                case 'c': show_consln = !show_consln; break;
-                case 'g': show_grid = !show_grid; break;
-                case 'l': show_labels = !show_labels; break;
-                case 'n': objinfwnd = !objinfwnd; break;
-
-                case 'o':
-                if (selected >= 0)
-                {
-                    here = cels[selected]->location;
-                    whereami = selected;
-                }
-                velocity = Point(0,0,0);
-                viewchanged = true;
-                break;
-
-                case 'r':
-                velocity = Point(0,0,0);
-                spin = 0;
-                whereami = 0;
-                here.local_position = here.system_center = Point(0,0,0);
-                viewchanged = true;
-                break;
-
-                case 'R': redlight_mode = !redlight_mode; break;
-                case 's': statuswnd = !statuswnd; break;
-
-                case 'w':
-                velocity.x =  sin(azimuth) * cos(altitude) * speed_of_light / target_frame_rate;
-                velocity.z =  cos(azimuth) * cos(altitude) * speed_of_light / target_frame_rate;
-                velocity.y =  sin(altitude) * speed_of_light / target_frame_rate;
-                spin = 0;
-                viewchanged = true;
-                whereami = -1;
-                break;
-
-                case 'x':
-                velocity = Point(0,0,0);
-                viewchanged = true;
-                break;
-
-                case '+':
-                vm = velocity.magnitude();
-                if (vm) velocity.scale(vm * 1.5);
-                else
-                {
-                    velocity.x =  sin(azimuth) * cos(altitude) * 1000;
-                    velocity.z =  cos(azimuth) * cos(altitude) * 1000;
-                    velocity.y =  sin(altitude) * 1000;
-                    whereami = -1;
-                }
-                viewchanged = true;
-                break;
-
-                case '-':
-                vm = velocity.magnitude();
-                velocity.scale(vm * 0.666);
-                viewchanged = true;
-                break;
-
-                case '`':
-                global_gamma += 0.2;
-                set_gamma(global_gamma);
-                break;
-
-                case '~':
-                global_gamma -= 0.2;
-                set_gamma(global_gamma);
-                break;
-
-                default:
-                ;
-            }
-        }
+        process_keyboard_commands(io);
 
         // More code copied from the ImGui example:
         // Rendering
