@@ -742,7 +742,19 @@ void draw_status_window(ImGuiIO& io)
             std::string lookstr = lookfor;
             for (i=0; cels[i]; i++)
             {
+                if (!strcmp(cels[i]->name.c_str(), "Alpha Reticuli"))
+                {
+                    searched = true;
+                }
+
                 int lev = Damerau_Levenshtein(cels[i]->name.c_str(), lookstr);
+                if (cels[i]->type == star)
+                {
+                    int lev1 = Damerau_Levenshtein( ((Star*)cels[i])->Bayer.c_str(), lookstr);
+                    if (lev1 < lev) lev = lev1;
+                    lev1 = Damerau_Levenshtein( ((Star*)cels[i])->Flamsteed.c_str(), lookstr);
+                    if (lev1 < lev) lev = lev1;
+                }
                 if (lev < best_Levenshtein)
                 {
                     best_Levenshtein = lev;
@@ -750,6 +762,7 @@ void draw_status_window(ImGuiIO& io)
                     altitude = cels[i]->Decl_as_radians(here);
                     selected = i;
                     searched = true;
+                    if (!lev) break;
                 }
             }
         }

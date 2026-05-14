@@ -134,7 +134,7 @@ int Damerau_Levenshtein(const std::string& s1, const std::string& s2)
             char c2 = s2[j - 1];
             if (c1 >= 'A' && c1 <= 'Z') c1 += 0x20;
             if (c2 >= 'A' && c2 <= 'Z') c2 += 0x20;
-            int cost = (s1[i - 1] == s2[j - 1]) ? 0 : 1;
+            int cost = (c1 == c2) ? 0 : 1;
 
             dp[i][j] = std::min(
             {
