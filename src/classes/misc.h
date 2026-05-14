@@ -26,7 +26,7 @@
 
 #define its_behind_you 0xbe419d10
 #define default_brightness 13.0
-#define default_gamma 1.3
+#define default_gamma 1.0
 #define target_frame_rate 30
 const std::time_t J2000_TIME_T = 946684800;
 

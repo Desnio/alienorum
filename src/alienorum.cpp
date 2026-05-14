@@ -675,7 +675,7 @@ int main (int argc, char** argv)
 
                 ImVec2 xycoord = ImVec2(cels[i]->drawnx, cels[i]->drawny);
                 float appmag = (cels[i]->type == star) ? vmag_cache[i] : cels[i]->absolute_magnitude;
-                float magrad = (3.0 - appmag)*1.25;
+                float magrad = (5.0 - appmag)*1.5;
                 if (magrad < 1) magrad = 1;
                 Color col = Color::color_from_magnitude_indices(appmag, s->BV_magnitude);
                 if (s->HD == 106591)
@@ -781,6 +781,7 @@ int main (int argc, char** argv)
                             objinfo += (std::string)"SpTyp: " + s->spectral_type + (std::string)"\n";
                         }
 
+                        if (i == selected) break;
                         if (is_click && !dragged) selected = i;
                     }
                 }

@@ -50,7 +50,8 @@ RGB Color::rgb_from_color(Color c, double bloom_radius)
         double lum = 0.29*c.red + 0.57*c.green + 0.14 * c.blue, rc = c.red, gc = c.green, bc = c.blue;
         for (i=0; i<bloom_radius; i++)
         {
-            lum = fmax(0, lum - fmin(1.0, lum));
+            double circ = fmax(1, 2.0 * M_PI * i);
+            lum = fmax(0, lum - fmin(circ, lum));
             if (!lum) return result;
         }
 
