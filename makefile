@@ -18,7 +18,8 @@ IMGUI_DIR = src/imgui
 CLASSES_DIR = src/classes
 IMGUI_SRC = $(IMGUI_DIR)/imgui.cpp $(IMGUI_DIR)/imgui_demo.cpp $(IMGUI_DIR)/imgui_draw.cpp $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui_widgets.cpp \
 		    $(IMGUI_DIR)/backends/imgui_impl_sdl2.cpp $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
-CLASSES_SRC = $(CLASSES_DIR)/point.cpp $(CLASSES_DIR)/cat.cpp $(CLASSES_DIR)/star.cpp $(CLASSES_DIR)/celestial.cpp $(CLASSES_DIR)/color.cpp
+CLASSES_SRC = $(CLASSES_DIR)/point.cpp $(CLASSES_DIR)/cat.cpp $(CLASSES_DIR)/star.cpp $(CLASSES_DIR)/celestial.cpp $(CLASSES_DIR)/color.cpp \
+			$(CLASSES_DIR)/misc.cpp
 BIN = bin
 OBJ = obj
 UNAME_S := $(shell uname -s)
@@ -98,11 +99,9 @@ $(OBJ)/imgui_impl_sdl2.o:$(IMGUI_DIR)/backends/imgui_impl_sdl2.cpp
 	$(CPP) $(IMGUI_DIR)/backends/imgui_impl_sdl2.cpp $(CPPFLAGS) -c -o $(OBJ)/imgui_impl_sdl2.o
 
 
-$(OBJ)/celestial.o: $(CLASSES_DIR)/celestial.cpp $(CLASSES_DIR)/celestial.h makefile
-	$(CPP) $(CLASSES_DIR)/celestial.cpp $(CPPFLAGS) -c -o $(OBJ)/celestial.o
 
-$(OBJ)/cat.o: $(CLASSES_DIR)/cat.cpp $(CLASSES_DIR)/cat.h makefile
-	$(CPP) $(CLASSES_DIR)/cat.cpp $(CPPFLAGS) -c -o $(OBJ)/cat.o
+$(OBJ)/misc.o: $(CLASSES_DIR)/misc.cpp $(CLASSES_DIR)/misc.h makefile
+	$(CPP) $(CLASSES_DIR)/misc.cpp $(CPPFLAGS) -c -o $(OBJ)/misc.o
 
 $(OBJ)/color.o: $(CLASSES_DIR)/color.cpp $(CLASSES_DIR)/color.h makefile
 	$(CPP) $(CLASSES_DIR)/color.cpp $(CPPFLAGS) -c -o $(OBJ)/color.o
@@ -110,8 +109,14 @@ $(OBJ)/color.o: $(CLASSES_DIR)/color.cpp $(CLASSES_DIR)/color.h makefile
 $(OBJ)/point.o: $(CLASSES_DIR)/point.cpp $(CLASSES_DIR)/point.h makefile
 	$(CPP) $(CLASSES_DIR)/point.cpp $(CPPFLAGS) -c -o $(OBJ)/point.o
 
+$(OBJ)/celestial.o: $(CLASSES_DIR)/celestial.cpp $(CLASSES_DIR)/celestial.h makefile
+	$(CPP) $(CLASSES_DIR)/celestial.cpp $(CPPFLAGS) -c -o $(OBJ)/celestial.o
+
 $(OBJ)/star.o: $(CLASSES_DIR)/star.cpp $(CLASSES_DIR)/star.h makefile
 	$(CPP) $(CLASSES_DIR)/star.cpp $(CPPFLAGS) -c -o $(OBJ)/star.o
+
+$(OBJ)/cat.o: $(CLASSES_DIR)/cat.cpp $(CLASSES_DIR)/cat.h makefile
+	$(CPP) $(CLASSES_DIR)/cat.cpp $(CPPFLAGS) -c -o $(OBJ)/cat.o
 
 $(BIN)/alienorum: src/alienorum.cpp $(OBJS)
 	$(CPP) src/alienorum.cpp $(OBJ)/*.o -o $(BIN)/alienorum $(CPPFLAGS) $(LIBS)

@@ -6,36 +6,7 @@
 #include <algorithm>
 #include "point.h"
 
-const std::string WHITESPACE = " \n\r\t\f\v";
-double magnbase = pow(100, 1.0/5);
 Point center(0,0,0), xaxis(1e37, 0, 0), yaxis(0, 1e37, 0), zaxis(0, 0, 1e37);
-__uint32_t xonsm[13] = {0x0e432843, 0x0e4328ec, 0x25443485, 0x29cc28ec, 0x29cc513a, 0x43363485, 0x511e0000, 0x511e3485, 0x511e513a, 0x511e5147, 0x511eab3a, 0x2b85e980, 0x57e47000};
-
-double compute_time_dilation(double velocity)
-{
-    return sqrt(1.0 - (velocity*velocity)/(speed_of_light*speed_of_light));
-}
-
-// Trim from start (left)
-std::string ltrim(const std::string &s)
-{
-    size_t start = s.find_first_not_of(WHITESPACE);
-    return (start == std::string::npos) ? "" : s.substr(start);
-}
-
-// Trim from end (right)
-std::string rtrim(const std::string &s)
-{
-    size_t end = s.find_last_not_of(WHITESPACE);
-    return (end == std::string::npos) ? "" : s.substr(0, end + 1);
-}
-
-// Trim from both ends
-std::string trim(const std::string &s)
-{
-    return rtrim(ltrim(s));
-}
-
 
 Point::Point(double newx, double newy, double newz)
 {
@@ -126,14 +97,6 @@ Cartesian2D &Cartesian2D::operator/=(double divisor)
     x *= multiplier;
     y *= multiplier;
     return *this;
-}
-
-double frand(double lmin, double lmax)
-{
-    int r = rand();
-    double f = (double)r / RAND_MAX;
-    f *= (lmax-lmin);
-    return f+lmin;
 }
 
 double find_angle(double dx, double dy)

@@ -18,6 +18,9 @@ class Star : public CelestialObject
     std::string Bayer;
     std::string Flamsteed;
     std::string Gliese;
+    int BayerGrkno = -1;
+    int FlamsteedNo = -1;
+    std::string constellation;
 
     __uint32_t HR = 0;                      // Harvard Revised catalog number
     __uint32_t HD = 0;                      // Henry Draper catalog number
@@ -26,6 +29,7 @@ class Star : public CelestialObject
 
     double estimate_temperature();          // kelvin
     void update_location(double epoch);     // Apply proper motion and re-derive 3D coordinates from the result.
+    void rename_from_Bayer_Flamsteed();
 };
 
 #endif

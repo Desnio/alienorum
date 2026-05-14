@@ -1,4 +1,4 @@
-~And, Andromeda
+~And, Andromeda, Andromedae
 Alp And, Del And
 Del And, Bet And
 Bet And, Gam And
@@ -8,15 +8,15 @@ Pi  And, Mu  And
 Mu  And, Phi And
 Mu  And, Kap And
 Kap And, Omi And
-~Ant, Antlia
+~Ant, Antlia, Antliae
 Iot Ant, Alp Ant
 Alp Ant, The Ant
 The Ant, Eta Ant
-~Aps, Apus
+~Aps, Apus, Apodis
 Alp Aps, Del1Aps
 Del1Aps, Gam Aps
 Gam Aps, Bet Aps
-~Aqr, Aquarius
+~Aqr, Aquarius, Aquarii
 Eps Aqr, Bet Aqr
 Bet Aqr, Alp Aqr
 Alp Aqr, Gam Aqr
@@ -39,7 +39,7 @@ Del Aqr, 88  Aqr
 Ome1Aqr, Psi1Aqr
 Psi1Aqr, Phi Aqr
 Phi Aqr, Lam Aqr
-~Aql, Aquila
+~Aql, Aquila, Aquilae
 Alp Aql, Bet Aql
 Bet Aql, The Aql
 The Aql, Eta Aql
@@ -51,7 +51,7 @@ Del Aql, Gam Aql
 Gam Aql, Alp Aql
 Gam Aql, Zet Aql
 Zet Aql, Eps Aql
-~Ara, Ara
+~Ara, Ara, Arae
 The Ara, Alp Ara
 Alp Ara, Eps1Ara
 Eps1Ara, Zet Ara
@@ -60,13 +60,13 @@ Zet Ara, Gam Ara
 Gam Ara, Del Ara
 Gam Ara, Bet Ara
 Bet Ara, Alp Ara
-~Ari, Aries
+~Ari, Aries, Arietis
 Del Ari, Eps Ari
 Eps Ari, 41  Ari
 41  Ari, Alp Ari
 Alp Ari, Bet Ari
 Bet Ari, Gam Ari
-~Aur, Auriga
+~Aur, Auriga, Aurigae
 Alp Aur, Eps Aur
 Eps Aur, Eta Aur
 Eta Aur, Zet Aur
@@ -75,7 +75,7 @@ Iot Aur, Bet Tau
 Bet Tau, The Aur
 The Aur, Bet Aur
 Bet Aur, Alp Aur
-~Boo, Bootes
+~Boo, Bootes, Bootis
 Alp Boo, Rho Boo
 Rho Boo, Gam Boo
 Gam Boo, Lam Boo
@@ -89,15 +89,15 @@ Alp Boo, Zet Boo
 Alp Boo, Eta Boo
 Eta Boo, Tau Boo
 Tau Boo, Ups Boo
-~Cae, Caelum
+~Cae, Caelum, Caeli
 Alp Cae, Bet Cae
 Bet Cae, Gam1Cae
-~Cam, Camelopardalis
+~Cam, Camelopardalis, Camelopardalis
 7   Cam, Bet Cam
 Bet Cam, Alp Cam
 Alp Cam, Gam Cam
 Gam Cam, HD21291
-~Cnc, Cancer
+~Cnc, Cancer, Cancri
 Iot2Cnc, Gam Cnc
 Iot Cnc, Gam Cnc
 Gam Cnc, Del Cnc
@@ -113,10 +113,10 @@ Kap Cnc, Alp Cnc
 Gam Cnc, Chi Cnc
 Chi Cnc, Psi Cnc
 Chi Cnc, Mu 2Cnc
-~CVn, Canes Venatici
+~CVn, Canes Venatici, Canum Venaticorum
 Alp CVn, Bet CVn
 Alp2CVn, Bet CVn
-~CMa, Canis Major
+~CMa, Canis Major, Canes Majoris
 Bet CMa, Alp CMa
 Alp CMa, Iot CMa
 Iot CMa, Gam CMa
@@ -131,9 +131,9 @@ Del CMa, 28  CMa
 Del CMa, Ome CMa
 Ome CMa, Eta CMa
 Ome CMa, Tau CMa
-~CMi, Canis Minor
+~CMi, Canis Minor, Canes Minoris
 Alp CMi, Bet CMi
-~Cap, Capricornus
+~Cap, Capricornus, Capricorni
 Alp2Cap, Bet Cap
 Bet Cap, Psi Cap
 Gam Cap, 36  Cap
@@ -149,7 +149,7 @@ Ome Cap, 24  Cap
 Nu  Cap, The Cap
 Iot Cap, Gam Cap
 Gam Cap, Del Cap
-~Car, Carina
+~Car, Carina, Carinae
 Alp Car, Bet Car
 Bet Car, Ups Car
 Bet Car, Ome Car
@@ -159,12 +159,12 @@ HD91465, HD89388
 HD89388, Iot Car
 Iot Car, Eps Car
 Eps Car, Chi Car
-~Cas, Cassiopeia
+~Cas, Cassiopeia, Cassiopeiae
 Bet Cas, Alp Cas
 Alp Cas, Gam Cas
 Gam Cas, Del Cas
 Del Cas, Eps Cas
-~Cen, Centaurus
+~Cen, Centaurus, Centauri
 Alp1Cen, Eps Cen
 Bet Cen, Eps Cen
 Eps Cen, Zet Cen
@@ -191,13 +191,13 @@ HD111968, Nu  Cen
 HD111968, HD110073
 HD110073, HD109536
 HD105382, Rho Cen
-~Cep, Cepheus
+~Cep, Cepheus, Cephei
 Alp Cep, Bet Cep
 Bet Cep, Gam Cep
 Gam Cep, Iot Cep
 Iot Cep, Zet Cep
 Zet Cep, Alp Cep
-~Cet, Cetus
+~Cet, Cetus, Ceti
 Alp Cet, Lam Cet
 Lam Cet, Mu  Cet
 Mu  Cet, Xi 2Cet
@@ -213,7 +213,7 @@ Eta Cet, The Cet
 The Cet, Omi Cet
 Eta Cet, Iot Cet
 Bet Cet, Tau Cet
-~Cha, Chamaeleon
+~Cha, Chamaeleon, Chamaeleontis
 Alp Cha, Gam Cha
 Gam Cha, Bet Cha
 Bet Cha, Del Cha
@@ -221,41 +221,41 @@ Bet Cha, Del2Cha
 Del Cha, The Cha
 Del2Cha, The Cha
 The Cha, Alp Cha
-~Cir, Circinus
+~Cir, Circinus, Circini
 Gam Cir, Alp Cir
 Alp Cir, Bet Cir
-~Col, Columba
+~Col, Columba, Columbae
 Del Col, Kap Col
 Kap Col, Gam Col
 Gam Col, Bet Col
 Bet Col, Alp Col
 Bet Col, Eta Col
 Alp Col, Eps Col
-~Com, Coma Berenices
+~Com, Coma Berenices, Comae Berenices
 Alp Com A, Bet Com
 Alp Com, Bet Com
 Bet Com, Gam Com
-~CrA, Corona Australis
+~CrA, Corona Australis, Coronae Australis
 Eps CrA, Gam CrA
 Gam CrA, Alp CrA
 Alp CrA, Bet CrA
 Bet CrA, Del CrA
 Del CrA, Zet CrA
-~CrB, Corona Borealis
+~CrB, Corona Borealis, Coronae Borealis
 The CrB, Bet CrB
 Bet CrB, Alp CrB
 Alp CrB, Gam CrB
 Gam CrB, Del CrB
 Del CrB, Eps CrB
 Eps CrB, Iot CrB
-~Crv, Corvus
+~Crv, Corvus, Corvi
 Alp Crv, Eps Crv
 Eps Crv, Gam Crv
 Gam Crv, Del Crv
 Bet Crv, Eps Crv
 Gam Crv, Zet Crv
 Zet Crv, Eps Crv
-~Crt, Crater
+~Crt, Crater, Crateris
 Alp Crt, Bet Crt
 Bet Crt, Gam Crt
 Gam Crt, Zet Crt
@@ -263,10 +263,10 @@ Gam Crt, Del Crt
 Del Crt, Eps Crt
 Eps Crt, The Crt
 Del Crt, Alp Crt
-~Cru, Crux
+~Cru, Crux, Crucis
 Alp1Cru, Gam Cru
 Bet Cru, Del Cru
-~Cyg, Cygnus
+~Cyg, Cygnus, Cygni
 Alp Cyg, Gam Cyg
 Gam Cyg, Eta Cyg
 Eta Cyg, Bet Cyg
@@ -278,7 +278,7 @@ Del Cyg, Iot2Cyg
 Iot2Cyg, Kap Cyg
 Gam Cyg, Eps Cyg
 Eps Cyg, Zet Cyg
-~Del, Delphinus
+~Del, Delphinus, Delphini
 Eps Del, Bet Del
 Bet Del, Alp Del
 Alp Del, Gam Del
@@ -286,13 +286,13 @@ Gam Del, Del Del
 Alp Del, Gam2Del
 Gam2Del, Del Del
 Del Del, Bet Del
-~Dor, Dorado
+~Dor, Dorado, Doradus
 Gam Dor, Alp Dor
 Alp Dor, Zet Dor
 Zet Dor, Bet Dor
 Bet Dor, Del Dor
 Bet Dor, HD40409
-~Dra, Draco
+~Dra, Draco, Draconis
 Gam Dra, Bet Dra
 Bet Dra, Nu 2Dra
 Nu 2Dra, Xi  Dra
@@ -309,12 +309,12 @@ Iot Dra, Alp Dra
 Alp Dra, Kap Dra
 Kap Dra, Lam Dra
 Lam Dra, HD81817
-~Equ, Equuleus
+~Equ, Equuleus, Equulei
 KitAlp, Gam Equ
 Gam Equ, Del Equ
 Del Equ, Bet Equ
 Bet Equ, KitAlp
-~Eri, Eridanus
+~Eri, Eridanus, Eridani
 Lam Eri, Bet Eri
 Bet Eri, 61  Eri
 Bet Eri, Ome Eri
@@ -353,10 +353,10 @@ HD16754, Kap Eri
 Kap Eri, Phi Eri
 Phi Eri, Chi Eri
 Chi Eri, Alp Eri
-~For, Fornax
+~For, Fornax, Fornacis
 Alp For, Bet For
 Bet For, Nu  For
-~Gru, Grus
+~Gru, Grus, Gruis
 Zet Gru, Eps Gru
 Eps Gru, Bet Gru
 Bet Gru, Del2Gru
@@ -365,7 +365,7 @@ Mu 1Gru, Gam Gru
 The Gru, Iot Gru
 Iot Gru, Bet Gru
 Bet Gru, Alp Gru
-~Gem, Gemini
+~Gem, Gemini, Geminorum
 Bet Gem, Del Gem
 Iot Gem, Del Gem
 Del Gem, Lam Gem
@@ -379,7 +379,7 @@ Tau Gem, Rho Gem
 Tau Gem, Iot Gem
 Tau Gem, The Gem
 Rho Gem, Alp Gem
-~Her, Hercules
+~Her, Hercules, Herculis
 Pi  Her, Eps Her
 Eps Her, Zet Her
 Zet Her, Eta Her
@@ -404,11 +404,11 @@ Zet Her, Bet Her
 Bet Her, Gam Her
 Bet Her, Alp Her
 Bet Her, Alp2Her
-~Hor, Horologium
+~Hor, Horologium, Horologii
 Alp Hor, Zet Hor
 Zet Hor, Mu  Hor
 Mu  Hor, Bet Hor
-~Hya, Hydra
+~Hya, Hydra, Hydrae
 Zet Hya, Eps Hya
 Eps Hya, Del Hya
 Del Hya, Sig Hya
@@ -425,7 +425,7 @@ Nu  Hya, Xi  Hya
 Xi  Hya, Bet Hya
 Bet Hya, Gam Hya
 Gam Hya, Pi  Hya
-~Hyi, Hydrus
+~Hyi, Hydrus, Hydri
 Gam Hyi, Bet Hyi
 Bet Hyi, Eps Hyi
 Eps Hyi, Del Hyi
@@ -433,11 +433,11 @@ Del Hyi, Eta Hyi
 Eta Hyi, Alp Hyi
 Del Hyi, Eta2Hyi
 Eta2Hyi, Alp Hyi
-~Ind, Indus
+~Ind, Indus, Indi
 Alp Ind, The Ind
 The Ind, Bet Ind
 The Ind, Del Ind
-~Lac, Lacerta
+~Lac, Lacerta, Lacertae
 Alp Lac, Bet Lac
 Bet Lac, 4   Lac
 4   Lac, 5   Lac
@@ -448,7 +448,7 @@ Bet Lac, 4   Lac
 6   Lac, HD211073
 HD211073, 1   Lac
 1   Lac, 10  Lac
-~Leo, Leo
+~Leo, Leo, Leonis
 Gam2Leo, Eta Leo
 Eta Leo, Alp Leo
 Alp Leo, The Leo
@@ -459,10 +459,10 @@ Gam2Leo, Zet Leo
 Zet Leo, Mu  Leo
 Mu  Leo, Eps Leo
 Alp Leo, Omi Leo
-~LMi, Leo Minor
+~LMi, Leo Minor, Leonis Minorir
 46  LMi, Bet LMi
 Bet LMi, 21  LMi
-~Lep, Lepus
+~Lep, Lepus, Leporis
 Eta Lep, Del Lep
 Zet Lep, Del Lep
 Alp Lep, Mu  Lep
@@ -473,7 +473,7 @@ Bet Lep, Gam Lep
 Gam Lep, Del Lep
 Del Lep, Alp Lep
 Mu  Lep, Eps Lep
-~Lib, Libra
+~Lib, Libra, Librae
 Alp2Lib, Bet Lib
 Alp2Lib, Sig Lib
 Bet Lib, Sig Lib
@@ -481,7 +481,7 @@ Bet Lib, Gam Lib
 Gam Lib, The Lib
 Sig Lib, Ups Lib
 Ups Lib, Tau Lib
-~Lup, Lupus
+~Lup, Lupus, Lupi
 Alp Lup, Iot Lup
 Alp Lup, Bet Lup
 Bet Lup, Del Lup
@@ -496,14 +496,14 @@ Del Lup, Phi1Lup
 Phi1Lup, Chi Lup
 Gam Lup, Eta Lup
 Gam Lup, The Lup 
-~Lyn, Lynx
+~Lyn, Lynx, Lyncis
 2   Lyn, 15  Lyn
 15  Lyn, 21  Lyn
 21  Lyn, 31  Lyn
 31  Lyn, HD76943
 HD76943, 38  Lyn
 38  Lyn, Alp Lyn
-~Lyr, Lyra
+~Lyr, Lyra, Lyrae
 13  Lyr, Alp Lyr
 Alp Lyr, Kap Lyr
 Alp Lyr, Zet1Lyr
@@ -513,15 +513,15 @@ The Lyr, Eta Lyr
 Zet1Lyr, Bet Lyr
 Bet Lyr, Gam Lyr
 Gam Lyr, Del2Lyr
-~Men, Mensa
+~Men, Mensa, Mensae
 Alp Men, Gam Men
 Gam Men, Eta Men
 Eta Men, Bet Men
-~Mic, Microscopium
+~Mic, Microscopium, Microscopii
 Alp Mic, Gam Mic
 Gam Mic, Eps Mic
 Eps Mic, The1Mic
-~Mon, Monoceros
+~Mon, Monoceros, Monocerotis
 27  Mon, Alp Mon
 27  Mon, Del Mon
 Del Mon, Bet Mon
@@ -531,20 +531,20 @@ Del Mon, Gam Mon
 Eps Mon, 13  Mon
 Zet Mon, 28  Mon
 28  Mon, 27  Mon
-~Mus, Musca
+~Mus, Musca, Muscae
 Lam Mus, Eps Mus
 Eps Mus, Alp Mus
 Alp Mus, Del Mus
 Bet Mus, Alp Mus
 Alp Mus, Gam Mus
-~Nor, Norma
+~Nor, Norma, Normae
 Eps Nor, Gam1Nor
 Gam1Nor, Eta Nor
-~Oct, Octans
+~Oct, Octans, Octantis
 Bet Oct, Del Oct
 Del Oct, Nu  Oct
 Nu  Oct, Bet Oct
-~Oph, Ophiuchus
+~Oph, Ophiuchus, Ophiuchi
 Xi  Oph, The Oph
 Xi  Oph, Eta Oph
 Eta Oph, Zet Oph
@@ -555,7 +555,7 @@ Lam Oph, Kap Oph
 Kap Oph, Alp Oph
 Alp Oph, Bet Oph
 Bet Oph, Eta Oph
-~Ori, Orion
+~Ori, Orion, Orionis
 Alp Ori, Zet Ori
 Alp Ori, Lam Ori
 Lam Ori, Gam Ori
@@ -578,7 +578,7 @@ Pi 2Ori, Pi 1Ori
 Pi 3Ori, Pi 4Ori
 Pi 4Ori, Pi 5Ori
 Pi 5Ori, Pi 6Ori
-~Pav, Pavo
+~Pav, Pavo, Pavonis
 Alp Pav, Bet Pav
 Bet Pav, Eps Pav
 Bet Pav, Kap Pav
@@ -591,7 +591,7 @@ Nu  Pav, Mu 2Pav
 Lam Pav, Del Pav
 Del Pav, Bet Pav
 Bet Pav, Gam Pav
-~Peg, Pegasus
+~Peg, Pegasus, Pegasi
 Alp And, Gam Peg
 Alp And, Bet Peg
 Gam Peg, Alp Peg
@@ -606,7 +606,7 @@ Lam Peg, 9   Peg
 Bet Peg, Eta Peg
 Eta Peg, Iot Peg
 Iot Peg, Kap Peg
-~Per, Perseus
+~Per, Perseus, Persei
 Phi Per, Eta1Per
 Eta1Per, Gam Per
 Gam Per, Alp Per
@@ -625,7 +625,7 @@ Del Per, 48  Per
 48  Per, 58  Per
 48  Per, Mu  Per
 Mu  Per, Lam Per
-~Phe, Phoenix
+~Phe, Phoenix, Phoenicis
 Alp Phe, Bet Phe
 Bet Phe, Gam Phe
 Gam Phe, Del Phe
@@ -636,10 +636,10 @@ Eps Phe, Iot Phe
 Iot Phe, HD222095
 HD222095, Gliese 4.2
 HD222095, HD142
-~Pic, Pictor
+~Pic, Pictor, Pictoris
 Alp Pic, Gam Pic
 Gam Pic, Bet Pic
-~Psc, Pisces
+~Psc, Pisces, Piscium
 Gam Psc, 7   Psc
 7   Psc, The Psc
 The Psc, Iot Psc
@@ -661,7 +661,7 @@ Phi Psc, Tau Psc
 Tau Psc, 91  Psc
 91  Psc, Ups Psc
 Ups Psc, Phi Psc
-~PsA, Piscis Austrinus
+~PsA, Piscis Austrinus, Piscis Austrini
 Alp PsA, Del PsA
 Del PsA, Gam PsA
 Gam PsA, Bet PsA
@@ -670,7 +670,7 @@ Iot PsA, The PsA
 The PsA, Lam PsA
 Lam PsA, Eps PsA
 Eps PsA, Alp PsA
-~Pup, Puppis
+~Pup, Puppis, Puppis
 11  Pup, Xi  Pup
 Xi  Pup, HD61429
 HD61429, Pi  Pup
@@ -681,21 +681,21 @@ HD56022, Sig Pup
 Sig Pup, Zet Pup
 Zet Pup, Rho Pup
 Rho Pup, 11  Pup
-~Pyx, Pyxis
+~Pyx, Pyxis, Pyxidis
 Bet Pyx, Alp Pyx
 Alp Pyx, Gam Pyx
-~Ret, Reticulum
+~Ret, Reticulum, Reticuli
 Alp Ret, Bet Ret
 Bet Ret, Del Ret
 Del Ret, Eps Ret
 Eps Ret, Alp Ret
 Bet Ret, Kap Ret
 Kap Ret, Zet2Ret
-~Sge, Sagitta
+~Sge, Sagitta, Sagittae
 Alp Sge, Del Sge
 Bet Sge, Del Sge
 Gam Sge, Del Sge
-~Sgr, Sagittarius
+~Sgr, Sagittarius, Sagittarii
 Pi  Sgr, Omi Sgr
 Omi Sgr, Xi  Sgr
 Omi Sgr, Xi 2Sgr
@@ -718,7 +718,7 @@ Del Sgr, Eps Sgr
 Eps Sgr, Zet Sgr
 Eps Sgr, Eta Sgr
 Eps Sgr, Zet Sgr
-~Sco, Scorpius
+~Sco, Scorpius, Scorpii
 Xi  Sco, Nu  Sco
 Nu  Sco, Bet1Sco
 Bet1Sco, Del Sco
@@ -743,15 +743,16 @@ Ups Sco, Lam Sco
 HD161892, Lam Sco
 Kap Sco, Lam Sco
 HD161892, Iot1Sco
-~Scl, Sculptor
+~Scl, Sculptor, Sculptoris
 Alp Scl, Del Scl
 Del Scl, Gam Scl
 Gam Scl, Bet Scl
-~Sct, Scutum
+~Sct, Scutum, Scuti
 Alp Sct, Bet Sct
 Alp Sct, Gam Sct
 Alp Sct, Zet Sct
-~Ser, Serpens Caput
+~Ser, Serpens, Serpentis
+~Ser, Serpens Caput, Serpentis
 Bet Ser, Gam Ser
 Gam Ser, Kap Ser
 Kap Ser, Bet Ser
@@ -760,15 +761,15 @@ Del Ser, Alp Ser
 Alp Ser, Eps Ser
 Eps Ser, Mu  Ser
 Mu  Ser, Nu  Ser
-~Ser, Serpens Cauda
+~Ser, Serpens Cauda, Serpentis
 Nu  Ser, Xi  Ser
 Xi  Ser, Omi Ser
 Omi Ser, Eta Ser
 Eta Ser, The Ser
-~Sex, Sextans
+~Sex, Sextans, Sextantis
 Bet Sex, Alp Sex
 Alp Sex, Gam Sex
-~Tau, Taurus
+~Tau, Taurus, Tauri
 Zet Tau, Alp Tau
 Alp Tau, The1Tau
 The1Tau, Gam Tau
@@ -782,30 +783,30 @@ Mu  Tau, Nu  Tau
 Lam Tau, 5   Tau
 5   Tau, Xi  Tau
 Xi  Tau, Omi Tau
-~, Pleiades
+~, Pleiades, Pleiadon
 Eta Tau, Eta Tau
 20  Tau, 20  Tau
 27  Tau, 27  Tau
 19  Tau, 19  Tau
-~Tel, Telescopium
+~Tel, Telescopium, Telescopii
 Eps Tel, Alp Tel
 Alp Tel, Zet Tel
-~Tri, Triangulum
+~Tri, Triangulum, Trianguli
 Alp Tri, Bet Tri
 Bet Tri, Gam Tri
 Gam Tri, Alp Tri
-~TrA, Triangulum Australe
+~TrA, Triangulum Australe, Trianguli Australis
 Alp TrA, Bet TrA
 Bet TrA, Gam TrA
 Gam TrA, Alp TrA
-~Tuc, Tucana
+~Tuc, Tucana, Tucanae
 Del Tuc, Alp Tuc
 Alp Tuc, Gam Tuc
 Gam Tuc, Bet1Tuc
 Bet1Tuc, Zet Tuc
 Zet Tuc, Eps Tuc
 Eps Tuc, Gam Tuc
-~UMa, Ursa Major
+~UMa, Ursa Major, Ursae Majoris
 Eta UMa, Zet UMa
 Zet UMa, Eps UMa
 Eps UMa, Del UMa
@@ -825,7 +826,7 @@ Ups UMa, The UMa
 The UMa, Kap UMa
 The UMa, Iot UMa
 Mu  UMa, Lam UMa
-~UMi, Ursa Minor
+~UMi, Ursa Minor, Ursae Minoris
 Alp UMi, Del UMi
 Del UMi, Eps UMi
 Eps UMi, Zet UMi
@@ -833,7 +834,7 @@ Zet UMi, Bet UMi
 Bet UMi, Gam UMi
 Gam UMi, Eta UMi
 Eta UMi, Zet UMi
-~Vel, Vela
+~Vel, Vela, Velorum
 Gam Vel, Del Vel
 Gam2Vel, Del Vel
 Del Vel, Kap Vel
@@ -847,7 +848,7 @@ Lam Vel, HD74772
 HD74772, HD73634
 HD73634, Gam Vel
 HD73634, Gam2Vel
-~Vir, Virgo
+~Vir, Virgo, Virginis
 Omi Vir, Pi  Vir
 Pi  Vir, Nu  Vir
 Nu  Vir, Bet Vir
@@ -864,13 +865,13 @@ Zet Vir, Alp Vir
 Zet Vir, Del Vir
 Del Vir, Gam Vir
 Del Vir, Eps Vir
-~Vol, Volans
+~Vol, Volans, Volantis
 Alp Vol, Bet Vol
 Bet Vol, Eps Vol
 Eps Vol, Zet Vol
 Zet Vol, Gam2Vol
 Gam2Vol, Del Vol
 Del Vol, Eps Vol
-~Vul, Vulpecula
+~Vul, Vulpecula, Vulpeculae
 13  Vul, Alp Vul
 Alp Vul, 1   Vul

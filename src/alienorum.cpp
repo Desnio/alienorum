@@ -17,6 +17,7 @@
 #ifdef _WIN32
 #include <windows.h>        // SetProcessDPIAware()
 #endif
+#include "classes/misc.h"
 #include "classes/color.h"
 #include "classes/galaxy.h"
 #include "classes/star.h"
@@ -38,7 +39,7 @@ int main (int argc, char** argv)
     float drawblxscalex, drawblxscaley;
     int *bx_cache = new int[MAX_CELOBJS], *by_cache = new int[MAX_CELOBJS];
 
-    std::vector<std::string> consline_a, consline_b, consname;
+    std::vector<std::string> consline_a, consline_b;
     std::vector<int> considx, lnpercons;
     std::vector<Cartesian2D> conscen;
     int nconsln = 0;
@@ -68,7 +69,7 @@ int main (int argc, char** argv)
     int objinfwnd_hei = 0;
     int timeout_ms = 5;
     bool dragging, dragged, viewchanged;
-    int lmx, lmy;
+    int lmx, lmy, whereami=0;
     double velocmag;
     time_t simnow = std::time(nullptr);
     double JDnow = ((double)simnow - J2000_TIME_T)/86400 + J2000;
@@ -124,22 +125,41 @@ int main (int argc, char** argv)
         l = -1;
         while (fgets(buffer, 253, fp))
         {
+            char* newline = strchr(buffer, '\n');
+            if (newline) *newline = 0;
+            newline = strchr(buffer, '\r');
+            if (newline) *newline = 0;
             if (*buffer == '~')
             {
                 char* name2 = strchr(buffer, ',');
                 if (!name2) continue;
+                *name2 = 0;
                 name2++;
                 while (*name2 == ' ')
                 {
                     *name2 = 0;
                     name2++;
                 }
+                char* name3 = strchr(name2, ',');
+                if (name3)
+                {
+                    *name3 = 0;
+                    name3++;
+                    while (*name3 == ' ')
+                    {
+                        *name3 = 0;
+                        name3++;
+                    }
+                }
                 if (strlen(name2))
                 {
                     consname.push_back(name2);
+                    consabbrev.push_back(&buffer[1]);
                     lnpercons.push_back(0);
                     l++;
                 }
+                if (name3 && strlen(name3)) consgen.push_back(name3);
+                else consgen.push_back("");
             }
             else if (l>=0)
             {
@@ -194,14 +214,14 @@ int main (int argc, char** argv)
         cout << "Read " << nBSC << " objects." << endl << flush;
         ncelobjs += nBSC;
     }
+    #ifndef DEBUG
     if (have_HIP)
     {
         cout << "Reading Hipparcos catalog..." << endl << flush;
         int nHIP = cr.read_Hipparcos_catalog(cels, MAX_CELOBJS);
         cout << "Updated " << nHIP << " objects." << endl << flush;
     }
-
-    cr.read_starname_dat(cels);
+    #endif
 
     // Cache star indices of consline termini
     int consaidx[nconsln+16], consbidx[nconsln+16];
@@ -271,6 +291,16 @@ int main (int argc, char** argv)
         }
     }
 
+    for (i=0; cels[i]; i++)
+    {
+        if (cels[i]->type == star)
+        {
+            Star* s = (Star*)cels[i];
+            s->rename_from_Bayer_Flamsteed();           // has no effect if not a Bayer-Flamsteed star.
+        }
+    }
+
+    cr.read_starname_dat(cels);
 
     //////////////////////////////////////////////////
     // Begin ImGui-specific setup code              //
@@ -405,6 +435,7 @@ int main (int argc, char** argv)
     bool searched = false;
     double frame_dur = 0, best_frame_dur = 1e9;
     viewchanged = true;
+    ImVec2 PrevDispSize;
     while (!done)
     {
         auto frame_began = std::chrono::high_resolution_clock::now();
@@ -444,6 +475,7 @@ int main (int argc, char** argv)
         drawblxscalex = 2.0 / (dispcx/drawn_cache_split);
         drawblxscaley = 2.0 / (dispcy/drawn_cache_split);
         for (i=0; i<drawn_cache_split; i++) for (j=0; j<drawn_cache_split; j++) drawnblocks[i][j].clear();
+        if (whereami >= 0) here = cels[whereami]->location;
 
         if (show_grid)
         {
@@ -660,7 +692,7 @@ int main (int argc, char** argv)
                 {
                     ImGui::GetBackgroundDrawList()->AddCircle(xycoord, magrad+2, rgba_apply_redlight(selected_color), 0, 2);
                 }
-                if (show_labels && appmag <= 1.5)
+                if (show_labels && (appmag <= 1.5 || i == selected))
                 {
                     ImVec2 sz = ImGui::CalcTextSize(cels[i]->name.c_str());
                     ImGui::GetBackgroundDrawList()->AddText(ImVec2(cels[i]->drawnx - sz.x/2, cels[i]->drawny+magrad+1),
@@ -778,6 +810,7 @@ int main (int argc, char** argv)
             ImGui::SameLine();
             if (ImGui::Button("Find"))
             {
+                selected = -1;
                 for (i=0; cels[i]; i++)
                 {
                     if (!strcmp(cels[i]->name.c_str(), lookfor))
@@ -787,6 +820,24 @@ int main (int argc, char** argv)
                         selected = i;
                         searched = true;
                         break;
+                    }
+                }
+
+                if (selected < 0)
+                {
+                    int best_Levenshtein = 1e6;
+                    std::string lookstr = lookfor;
+                    for (i=0; cels[i]; i++)
+                    {
+                        int lev = Damerau_Levenshtein(cels[i]->name.c_str(), lookstr);
+                        if (lev < best_Levenshtein)
+                        {
+                            best_Levenshtein = lev;
+                            azimuth = -cels[i]->RA_as_radians(here);
+                            altitude = cels[i]->Decl_as_radians(here);
+                            selected = i;
+                            searched = true;
+                        }
                     }
                 }
             }
@@ -822,8 +873,6 @@ int main (int argc, char** argv)
             ImGui::Text(flagstr.c_str());
             statheight += txtyscale;
 
-
-
             flagstr = (std::string)"Obj info (N): "
                 + std::string(objinfwnd ? "ON" : "OFF");
             ImGui::Text(flagstr.c_str());
@@ -834,18 +883,27 @@ int main (int argc, char** argv)
             ImGui::Text(flagstr.c_str());
             statheight += txtyscale;
 
+            ImGui::Text("-----");
+            statheight += txtyscale;
+
+            std::string vfstr;
+            if (whereami >= 0)
+                vfstr = std::string("View from ") + cels[whereami]->name;
+            else vfstr = std::string("View from space");
+            ImGui::Text(vfstr.c_str());
+            statheight += txtyscale;
 
             double vm = velocity.magnitude() * target_frame_rate;
             if (isnan(vm)) vm = 0;
             velocmag = vm;
             std::string velocstr;
-            if (velocmag < 0.01 * speed_of_light) velocstr = std::to_string(velocmag / 1000 * 3600) + std::string(" km/h");
-            else if (velocmag < speed_of_light) velocstr = std::to_string(velocmag / speed_of_light) + std::string(" c");
+            if (velocmag < 0.01 * speed_of_light) velocstr = std::string("Velocity: ") + std::to_string(velocmag / 1000 * 3600) + std::string(" km/h");
+            else if (velocmag < speed_of_light) velocstr = std::string("Velocity: ") + std::to_string(velocmag / speed_of_light) + std::string(" c");
             else
             {
                 std::ostringstream oss;
                 oss << std::scientific << std::setprecision(2) << (velocmag / speed_of_light);
-                velocstr = oss.str() + std::string(" warp");
+                velocstr = std::string("Velocity: ") + oss.str() + std::string(" warp");
             }
             ImGui::Text(velocstr.c_str());
             statheight += txtyscale;
@@ -911,7 +969,7 @@ int main (int argc, char** argv)
         // Positioning updates
         here.local_position += velocity;
         azimuth += spin;
-        viewchanged = searched || spin || velocity.magnitude();
+        viewchanged = searched || spin || velocity.magnitude() || (PrevDispSize.x != io.DisplaySize.x) || (PrevDispSize.y != io.DisplaySize.y);
 
         // Pan with crosshairs
         bool is_mouse_down = ImGui::IsMouseDown(0) || ImGui::IsMouseDown(1) || ImGui::IsMouseDown(2);
@@ -991,7 +1049,11 @@ int main (int argc, char** argv)
                 case 'n': objinfwnd = !objinfwnd; break;
 
                 case 'o':
-                if (selected >= 0) here = cels[selected]->location;
+                if (selected >= 0)
+                {
+                    here = cels[selected]->location;
+                    whereami = selected;
+                }
                 velocity = Point(0,0,0);
                 viewchanged = true;
                 break;
@@ -999,6 +1061,7 @@ int main (int argc, char** argv)
                 case 'r':
                 velocity = Point(0,0,0);
                 spin = 0;
+                whereami = 0;
                 here.local_position = here.system_center = Point(0,0,0);
                 viewchanged = true;
                 break;
@@ -1012,6 +1075,7 @@ int main (int argc, char** argv)
                 velocity.y =  sin(altitude) * speed_of_light / target_frame_rate;
                 spin = 0;
                 viewchanged = true;
+                whereami = -1;
                 break;
 
                 case 'x':
@@ -1027,6 +1091,7 @@ int main (int argc, char** argv)
                     velocity.x =  sin(azimuth) * cos(altitude) * 1000;
                     velocity.z =  cos(azimuth) * cos(altitude) * 1000;
                     velocity.y =  sin(altitude) * 1000;
+                    whereami = -1;
                 }
                 viewchanged = true;
                 break;
@@ -1085,6 +1150,7 @@ int main (int argc, char** argv)
         lmy = io.MousePos.y;
         dragged = dragging;
         searched = false;
+        PrevDispSize = io.DisplaySize;
 
         auto frame_finished = std::chrono::high_resolution_clock::now();
         auto frame_elapsed = std::chrono::duration_cast<std::chrono::microseconds>(frame_finished - frame_began);

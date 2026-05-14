@@ -121,7 +121,7 @@ std::string CelestialObject::scaled_distance(CelestialLocation fromwhere)
         dispr = r / light_year;
         units = " ly";
     }
-    else if (r >= AU)
+    else if (r >= AU/10)
     {
         dispr = r / AU;
         units = " AU";
@@ -132,5 +132,7 @@ std::string CelestialObject::scaled_distance(CelestialLocation fromwhere)
         units = " km";
     }
 
-    return std::to_string(dispr) + units;
+    std::ostringstream oss;
+    oss << std::setprecision(5) << dispr << units;
+    return oss.str();
 }

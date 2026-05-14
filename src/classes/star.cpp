@@ -1,3 +1,5 @@
+#include <iostream>
+#include <string.h>
 #include "star.h"
 
 void Star::update_location(double new_epoch)
@@ -19,3 +21,41 @@ void Star::update_location(double new_epoch)
     location.system_center = newloc;
 }
 
+void Star::rename_from_Bayer_Flamsteed()
+{
+    if (!constellation.size()) return;
+    if (BayerGrkno < 0 && !FlamsteedNo) return;
+
+    if (!consabbrev.size() || !consgen.size())
+    {
+        std::cerr << "Must read constellation definitions before setting Bayer-Flamsteed names." << std::endl;
+        throw 0xbadc0de;
+    }
+
+    // Find gentive of constellation.
+    int i, j=-1, n = consabbrev.size();
+    for (i=0; i<n; i++)
+    {
+        if (!strcmp(consabbrev[i].c_str(), constellation.c_str()))
+        {
+            j = i;
+            break;
+        }
+    }
+
+    if (j<0)
+    {
+        // Not a valid constellation.
+        constellation = "";
+        return;
+    }
+
+    if (BayerGrkno >= 0)
+    {
+        name = Greek_letter[BayerGrkno] + std::string(" ") + consgen[j];
+    }
+    else if (FlamsteedNo)
+    {
+        name = std::to_string(FlamsteedNo) + std::string(" ") + consgen[j];
+    }
+}
