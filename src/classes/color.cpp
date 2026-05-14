@@ -9,7 +9,7 @@ double global_brightness = default_brightness;
 double global_inverse_gamma = 1.0 / default_gamma;
 bool redlight_mode = false;
 
-float drawblxscalex, drawblxscaley;
+double drawblxscalex, drawblxscaley;
 int *bx_cache = new int[MAX_CELOBJS], *by_cache = new int[MAX_CELOBJS];
 
 
@@ -42,7 +42,7 @@ RGB Color::rgb_from_color(Color c, double bloom_radius)
     // Successive bloom radii will carry the overflow divided by the circumference
     // of a circle with radius = bloom radius.
     int red, green, blue;
-    if (!bloom_radius)
+    if (bloom_radius < 1)
     {
         red   = min(255, (int)(255.0 * pow(c.red,   global_inverse_gamma)));
         green = min(255, (int)(255.0 * pow(c.green, global_inverse_gamma)));

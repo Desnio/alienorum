@@ -32,7 +32,7 @@ std::vector<int> drawnblocks[drawn_cache_split][drawn_cache_split];
 std::filesystem::path p = "catalogs";
 bool catalogs_found = false;
 int dispcx, dispcy;
-float txtyscale, txtycompact;
+double txtyscale, txtycompact;
 bool is_click;
 double frame_dur = 0, best_frame_dur = 1e9;
 
@@ -327,10 +327,10 @@ void cache_cons_lines()
 
 void compute_object_draw_coordinates()
 {
-    int i;
+    int i, bx, by;
+    double theta;
     if (viewchanged) for (i=0; cels[i] && i<MAX_CELOBJS; i++)
     {
-        Star* s = (Star*)cels[i];
         Point rel = cels[i]->location;
         rel -= here;
 
@@ -340,10 +340,17 @@ void compute_object_draw_coordinates()
             int dx = (int)(dispcx + cart.x * dispcx), dy = (int)(dispcy + cart.y * dispcx);
             cels[i]->drawnx = dx;
             cels[i]->drawny = dy;
-            if (viewchanged) vmag_cache[i] = s->viewer_magnitude(here);
+
+            double appmag = cels[i]->viewer_magnitude(here);
+            vmag_cache[i] = appmag;
+            double magrad = fmax(1, 5.0 - appmag)*1.5;
+            if (magrad < 1) magrad = 1;
+            magrad_cache[i] = magrad;
+
             if (dx < 0 or dx >= dispcx*2) continue;
             if (dy < 0 or dy >= dispcy*2) continue;
-            int bx = dx*drawblxscalex, by = dy*drawblxscaley;
+            bx = dx*drawblxscalex;
+            by = dy*drawblxscaley;
             if (bx<0 || bx>=drawn_cache_split || by<0 || by>=drawn_cache_split) continue;
             drawnblocks[bx][by].push_back(i);
             bx_cache[i] = bx;
@@ -352,74 +359,86 @@ void compute_object_draw_coordinates()
         catch (...)
         {
             // Object is behind the camera.
-            s->drawnx = s->drawny = -1e9;;
+            cels[i]->drawnx = cels[i]->drawny = -1e9;;
         }
     }
 }
 
 void draw_objects()
 {
-    int i, j, l, n;
+    int i, j, l, n, pass;
+    double jay;
+    ImVec2 xycoord;
+    double appmag, magrad;
 
-    for (i=0; cels[i] && i<MAX_CELOBJS; i++)
+    // Dits and doscs
+    for (pass=0; pass<=1; pass++) for (i=0; cels[i] && i<MAX_CELOBJS; i++)
     {
-        Star* s = (Star*)cels[i];
+        if (!pass && magrad_cache[i] > 3) continue;
+        else if (pass && magrad_cache[i] <= 3) continue;
+
         Point rel = cels[i]->location;
         rel -= here;
-        {
-            if (s->drawnx < 0 or s->drawnx >= dispcx*2) continue;
-            if (s->drawny < 0 or s->drawny >= dispcy*2) continue;
 
-            // Any brighter object within reach, skip this one.
-            bool skip = false;
-            // TODO: Find a better way than the commented out block below.
-            // It does the job well, however it is a huge performance killer.
-            if (bx_cache[i] >= 0 && bx_cache[i] < drawn_cache_split && by_cache[i] >= 0 && by_cache[i] < drawn_cache_split)
+        if (cels[i]->drawnx < 0 or cels[i]->drawnx >= dispcx*2) continue;
+        if (cels[i]->drawny < 0 or cels[i]->drawny >= dispcy*2) continue;
+
+        // Any brighter object within reach, skip this one.
+        bool skip = false;
+        if (bx_cache[i] >= 0 && bx_cache[i] < drawn_cache_split && by_cache[i] >= 0 && by_cache[i] < drawn_cache_split)
+        {
+            n = drawnblocks[bx_cache[i]][by_cache[i]].size();
+            for (l=0; l<n; l++)
             {
-                n = drawnblocks[bx_cache[i]][by_cache[i]].size();
-                for (l=0; l<n; l++)
+                j = drawnblocks[bx_cache[i]][by_cache[i]][l];
+                if (j==i) continue;
+                if (fabs(cels[i]->drawnx - cels[j]->drawnx) < magrad_cache[i]+magrad_cache[j]
+                    &&
+                    fabs(cels[i]->drawny - cels[j]->drawny) < magrad_cache[i]+magrad_cache[j]
+                    && vmag_cache[j] < vmag_cache[i]
+                    )
                 {
-                    j = drawnblocks[bx_cache[i]][by_cache[i]][l];
-                    if (j==i) continue;
-                    if (fabs(s->drawnx - cels[j]->drawnx) < 3
-                        &&
-                        fabs(s->drawny - cels[j]->drawny) < 3
-                        && vmag_cache[j] < vmag_cache[i]
-                        )
-                    {
-                        skip = true;
-                        break;
-                    }
+                    skip = true;
+                    break;
                 }
             }
-            if (skip) continue;
+        }
+        if (skip) continue;
 
-            ImVec2 xycoord = ImVec2(cels[i]->drawnx, cels[i]->drawny);
-            float appmag = (cels[i]->type == star) ? vmag_cache[i] : cels[i]->absolute_magnitude;
-            float magrad = (5.0 - appmag)*1.5;
-            if (magrad < 1) magrad = 1;
-            Color col = Color::color_from_magnitude_indices(appmag, s->BV_magnitude);
-            if (s->HD == 106591)
-            {
-                j = 0;
-            }
-            for (j=magrad; j>0.6; j-=0.5)
-            {
-                RGB rgb = Color::rgb_from_color(col, j-1);
-                if (rgb.r < 16 && rgb.b < 16) continue;
-                ImGui::GetBackgroundDrawList()->AddCircle(xycoord, 0.7+0.8*j, IM_COL32(rgb.r, rgb.g, rgb.b, 255), 0, 1.5);
-            }
-            if (selected == i)
-            {
-                ImGui::GetBackgroundDrawList()->AddCircle(xycoord, magrad+2, rgba_apply_redlight(selected_color), 0, 2);
-            }
-            if (show_labels && (appmag <= 1.5 || i == selected))
-            {
-                ImVec2 sz = ImGui::CalcTextSize(cels[i]->name.c_str());
-                ImGui::GetBackgroundDrawList()->AddText(ImVec2(cels[i]->drawnx - sz.x/2, cels[i]->drawny+magrad+1),
-                    rgba_apply_redlight(objlbl_color),
-                    cels[i]->name.c_str());
-            }
+        xycoord = ImVec2(cels[i]->drawnx, cels[i]->drawny);
+        appmag = (cels[i]->type == star) ? vmag_cache[i] : cels[i]->absolute_magnitude;
+        magrad = magrad_cache[i];
+        Color col = Color::color_from_magnitude_indices(appmag, cels[i]->BV_magnitude);
+
+        for (jay=magrad; jay>=0.5; jay-=0.5)
+        {
+            RGB rgb = Color::rgb_from_color(col, jay-1);
+            if (rgb.r < 16 && rgb.b < 16) continue;
+            if (jay > 2) ImGui::GetBackgroundDrawList()->AddCircle(xycoord, jay, IM_COL32(rgb.r, rgb.g, rgb.b, 255), 0, 1.5);
+            else ImGui::GetBackgroundDrawList()->AddCircleFilled(xycoord, jay, IM_COL32(rgb.r, rgb.g, rgb.b, 255), 8);
+        }
+    }
+
+    // Labels
+    if (show_labels) for (i=0; cels[i] && i<MAX_CELOBJS; i++)
+    {
+        xycoord = ImVec2(cels[i]->drawnx, cels[i]->drawny);
+        appmag = (cels[i]->type == star) ? vmag_cache[i] : cels[i]->absolute_magnitude;
+        magrad = magrad_cache[i];
+        if (selected == i)
+        {
+            ImGui::GetBackgroundDrawList()->AddCircle(xycoord, magrad+2, rgba_apply_redlight(selected_color), 0, 2);
+        }
+        if ((!cbolbls_selected_idx && appmag <= 1.5) 
+            || (cbolbls_selected_idx == 1 && cels[i]->absolute_magnitude <= 1.5)
+            || (cbolbls_selected_idx == 2 && here.distance_to(cels[i]->location) <= 25*light_year)
+            || (cbolbls_selected_idx == 3 && cels[i]->type == star && ((Star*)cels[i])->is_sunlike())
+            || i == selected)
+        {
+            ImVec2 sz = ImGui::CalcTextSize(cels[i]->name.c_str());
+            ImGui::GetBackgroundDrawList()->AddText(ImVec2(cels[i]->drawnx - sz.x/2, cels[i]->drawny+magrad+1),
+                rgba_apply_redlight(objlbl_color),
+                cels[i]->name.c_str());
         }
     }
 }
@@ -710,61 +729,68 @@ void process_keyboard_commands(ImGuiIO& io)
     }
 }
 
+void lookfor_cb()
+{
+    int i;
+    selected = -1;
+    for (i=0; cels[i]; i++)
+    {
+        if (!strcmp(cels[i]->name.c_str(), lookfor))
+        {
+            azimuth = -cels[i]->RA_as_radians(here);
+            altitude = cels[i]->Decl_as_radians(here);
+            selected = i;
+            searched = true;
+            break;
+        }
+    }
+
+    if (selected < 0)
+    {
+        int best_Levenshtein = 1e6;
+        std::string lookstr = lookfor;
+        for (i=0; cels[i]; i++)
+        {
+            int lev = Damerau_Levenshtein(cels[i]->name.c_str(), lookstr);
+            if (cels[i]->type == star)
+            {
+                int lev1 = Damerau_Levenshtein( ((Star*)cels[i])->Bayer.c_str(), lookstr);
+                if (lev1 < lev) lev = lev1;
+                lev1 = Damerau_Levenshtein( ((Star*)cels[i])->Flamsteed.c_str(), lookstr);
+                if (lev1 < lev) lev = lev1;
+            }
+            if (lev < best_Levenshtein)
+            {
+                best_Levenshtein = lev;
+                azimuth = -cels[i]->RA_as_radians(here);
+                altitude = cels[i]->Decl_as_radians(here);
+                selected = i;
+                searched = true;
+                if (!lev) break;
+            }
+        }
+    }
+}
+
 void draw_status_window(ImGuiIO& io)
 {
     // TODO: If redlight_mode, set all window and text colors accordingly.
-    int stattop = 18, statleft = 15, statwidth = 211, statheight = txtyscale*2;
+    int stattop = 18, statleft = 15, statwidth = 225, statheight = txtyscale*2.3;
     int i;
     ImGui::Begin("Status", &statuswnd);
 
     /////////////////////////////////////////////////////
 
-    ImGui::InputText("##find", lookfor, 255);
+    if (ImGui::InputText("##find", lookfor, 255, ImGuiInputTextFlags_EnterReturnsTrue)) lookfor_cb();
     ImGui::SameLine();
-    if (ImGui::Button("Find"))
-    {
-        selected = -1;
-        for (i=0; cels[i]; i++)
-        {
-            if (!strcmp(cels[i]->name.c_str(), lookfor))
-            {
-                azimuth = -cels[i]->RA_as_radians(here);
-                altitude = cels[i]->Decl_as_radians(here);
-                selected = i;
-                searched = true;
-                break;
-            }
-        }
-
-        if (selected < 0)
-        {
-            int best_Levenshtein = 1e6;
-            std::string lookstr = lookfor;
-            for (i=0; cels[i]; i++)
-            {
-                int lev = Damerau_Levenshtein(cels[i]->name.c_str(), lookstr);
-                if (cels[i]->type == star)
-                {
-                    int lev1 = Damerau_Levenshtein( ((Star*)cels[i])->Bayer.c_str(), lookstr);
-                    if (lev1 < lev) lev = lev1;
-                    lev1 = Damerau_Levenshtein( ((Star*)cels[i])->Flamsteed.c_str(), lookstr);
-                    if (lev1 < lev) lev = lev1;
-                }
-                if (lev < best_Levenshtein)
-                {
-                    best_Levenshtein = lev;
-                    azimuth = -cels[i]->RA_as_radians(here);
-                    altitude = cels[i]->Decl_as_radians(here);
-                    selected = i;
-                    searched = true;
-                    if (!lev) break;
-                }
-            }
-        }
-    }
+    if (ImGui::Button("Find")) lookfor_cb();
     statheight += txtyscale*1.3;
 
     std::string flagstr;
+
+    flagstr = (std::string)"Zoom (scroll): " + std::to_string(zoom);
+    ImGui::Text(flagstr.c_str());
+    statheight += txtyscale;
 
     flagstr = (std::string)"Brghtns (B): " + std::to_string(global_brightness);
     ImGui::Text(flagstr.c_str());
@@ -774,13 +800,13 @@ void draw_status_window(ImGuiIO& io)
     ImGui::Text(flagstr.c_str());
     statheight += txtyscale;
 
-    flagstr = (std::string)"Cons ln (C): "
-        + std::string(show_consln ? "ON" : "OFF");
+    flagstr = (std::string)"RA/Decl (G): "
+        + std::string(show_grid ? "ON" : "OFF");
     ImGui::Text(flagstr.c_str());
     statheight += txtyscale;
 
-    flagstr = (std::string)"RA/Decl (G): "
-        + std::string(show_grid ? "ON" : "OFF");
+    flagstr = (std::string)"Cons ln (C): "
+        + std::string(show_consln ? "ON" : "OFF");
     ImGui::Text(flagstr.c_str());
     statheight += txtyscale;
 
@@ -788,6 +814,27 @@ void draw_status_window(ImGuiIO& io)
         + std::string(show_labels ? "ON" : "OFF");
     ImGui::Text(flagstr.c_str());
     statheight += txtyscale;
+
+    // Pass in the preview value visible before opening the combo (it could technically be different contents or not pulled from items[])
+    ImGuiComboFlags cbolbls_flags = 0;
+    const char* combo_preview_value = lbltypes[cbolbls_selected_idx];
+    ImGui::Text("Labels:");
+    ImGui::SameLine();
+    if (ImGui::BeginCombo("##cbolabels", combo_preview_value, cbolbls_flags))
+    {
+        for (int n = 0; n < nlbltyp; n++)
+        {
+            const bool is_selected = (cbolbls_selected_idx == n);
+            if (ImGui::Selectable(lbltypes[n], is_selected))
+                cbolbls_selected_idx = n;
+
+            // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+            if (is_selected)
+                ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+    }
+    statheight += txtyscale*1.3;
 
     flagstr = (std::string)"Redlgt (Sh+R): "
         + std::string(redlight_mode ? "ON" : "OFF");
@@ -891,6 +938,7 @@ int main (int argc, char** argv)
     int i, j, l, n;
     cels = new CelestialObject*[MAX_CELOBJS];
     vmag_cache = new double[MAX_CELOBJS];
+    magrad_cache = new double[MAX_CELOBJS];
     memset(cels, 0, MAX_CELOBJS*sizeof(CelestialObject*));
     bx_cache = new int[MAX_CELOBJS];
     by_cache = new int[MAX_CELOBJS];
@@ -982,7 +1030,7 @@ int main (int argc, char** argv)
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-    float main_scale = ImGui_ImplSDL2_GetContentScaleForDisplay(0);
+    double main_scale = ImGui_ImplSDL2_GetContentScaleForDisplay(0);
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     SDL_Window* window = SDL_CreateWindow("Alienorum", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, (int)(1280 * main_scale), (int)(800 * main_scale), window_flags);
     if (window == nullptr)
@@ -1158,7 +1206,7 @@ int main (int argc, char** argv)
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         SDL_GL_SwapWindow(window);
 
-        if ((io.MousePos.x != lmx || io.MousePos.y != lmy || velocity.magnitude()) && frame_dur > (1.0/target_frame_rate))
+        if ((io.MousePos.x != lmx || io.MousePos.y != lmy || viewchanged || velocity.magnitude()) && frame_dur > (1.0/target_frame_rate))
         {
             timeout_ms *= 0.333;
             if (timeout_ms < 5) timeout_ms = 5;
@@ -1195,6 +1243,7 @@ int main (int argc, char** argv)
     for (i=0; cels[i]; i++) delete cels[i];
     delete[] cels;
     delete[] vmag_cache;
+    delete[] magrad_cache;
     delete[] bx_cache;
     delete[] by_cache;
     delete[] consaidx;

@@ -30,6 +30,7 @@ class Star : public CelestialObject
     double estimate_temperature();          // kelvin
     void update_location(double epoch);     // Apply proper motion and re-derive 3D coordinates from the result.
     void rename_from_Bayer_Flamsteed();
+    bool is_sunlike();
 };
 
 void rename_all_from_Bayer_Flamsteed();

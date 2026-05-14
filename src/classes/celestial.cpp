@@ -5,7 +5,7 @@
 #include "celestial.h"
 
 CelestialObject **cels;
-double *vmag_cache;
+double *vmag_cache, *magrad_cache;
 CelestialLocation here;
 
 double CelestialObject::viewer_magnitude(CelestialLocation seen_from)
@@ -30,7 +30,7 @@ std::string CelestialObject::RA_as_hms()
     int hours = floor(RA);
     RA = (RA-hours) * 60;
     int minutes = floor(RA);
-    float seconds = (RA-minutes) * 60;
+    double seconds = (RA-minutes) * 60;
 
     std::ostringstream oss;
     oss << std::fixed << std::setprecision(1) << seconds;
@@ -51,7 +51,7 @@ std::string CelestialObject::Decl_as_degms()
     int degrees = floor(decl);
     decl = (decl-degrees) * 60;
     int minutes = floor(decl);
-    float seconds = (decl-minutes) * 60;
+    double seconds = (decl-minutes) * 60;
     return std::string( sign < 0 ? "-" : "+" )
         + std::string(degrees<10 ? "0" : "")
         + std::to_string(degrees) + std::string(":")
@@ -67,7 +67,7 @@ std::string CelestialObject::RA_as_hms(CelestialLocation seen_from)
     int hours = floor(relRA);
     relRA = (relRA-hours) * 60;
     int minutes = floor(relRA);
-    float seconds = (relRA-minutes) * 60;
+    double seconds = (relRA-minutes) * 60;
 
     std::ostringstream oss;
     oss << std::fixed << std::setprecision(1) << seconds;
@@ -90,7 +90,7 @@ std::string CelestialObject::Decl_as_degms(CelestialLocation seen_from)
     int degrees = floor(decl);
     decl = (decl-degrees) * 60;
     int minutes = floor(decl);
-    float seconds = (decl-minutes) * 60;
+    double seconds = (decl-minutes) * 60;
     return std::string( sign < 0 ? "-" : "+" )
         + std::string(degrees<10 ? "0" : "")
         + std::to_string(degrees) + std::string(":")

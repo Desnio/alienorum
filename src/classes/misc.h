@@ -31,6 +31,7 @@
 #define default_gamma 1.0
 #define target_frame_rate 30
 const std::time_t J2000_TIME_T = 946684800;
+#define nlbltyp 4
 
 extern double magnbase;
 extern std::string Greek_letter[24];
@@ -49,6 +50,9 @@ int Damerau_Levenshtein(const std::string &s1, const std::string &s2);
 
 // Takes velocity in m/s and computes the ratio of Δt(moving)/Δt(stationary). The result will always be <= 1.
 double compute_time_dilation(double velocity);
+
+extern const char* lbltypes[nlbltyp];
+extern int cbolbls_selected_idx;
 
 // APP STATUS AND SETTINGS
 extern int ncelobjs, selected, cursor_size, circle_size, xaorngsim, objinfwnd_hei, timeout_ms, lmx, lmy, whereami, is_an_obj_under_cursor;

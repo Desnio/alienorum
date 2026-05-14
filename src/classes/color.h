@@ -26,7 +26,7 @@ class Color
 
 extern double global_brightness;
 extern bool redlight_mode;
-extern float drawblxscalex, drawblxscaley;
+extern double drawblxscalex, drawblxscaley;
 extern int *bx_cache, *by_cache;
 
 void set_gamma(double new_gamma);

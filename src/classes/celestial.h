@@ -74,7 +74,7 @@ class CelestialObject
 };
 
 extern CelestialObject **cels;
-extern double *vmag_cache;
+extern double *vmag_cache, *magrad_cache;
 extern CelestialLocation here;
 
 #endif

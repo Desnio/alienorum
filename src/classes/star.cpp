@@ -63,6 +63,36 @@ void Star::rename_from_Bayer_Flamsteed()
     }
 }
 
+bool Star::is_sunlike()
+{
+    const char* sptyp = spectral_type.c_str();
+    int i;
+
+    // Must contain any of the letters OBAFGKM
+    for (i=0; sptyp[i] && (sptyp[i] < 'A' || sptyp[i] > 'Z'); i++);
+    if (!sptyp[i]) return false;
+    char mklett = sptyp[i];
+
+    // Followed by a number
+    i++;
+    if (sptyp[i] < '0' || sptyp[i] > '9') return false;
+    float mklettsub = atof(&sptyp[i]);
+
+    // Number might contain a decimal point and more digits.
+    i++;
+    while (sptyp[i] && (sptyp[i] == '.' || (sptyp[i] >= '0' && sptyp[i] <= '9'))) i++;
+    if (!sptyp[i]) return false;
+
+    // There might be a space between.
+    while (sptyp[i] == ' ') i++;
+    if (!sptyp[i]) return false;
+
+    // If the next letter is V, and it's not followed by I, then we're in the main sequence.
+    bool mainseq = (sptyp[i] == 'V' && sptyp[i+1] != 'I');
+
+    return mainseq && ((mklett == 'F' && mklettsub >= 8) || (mklett == 'G') || (mklett == 'K' && mklettsub <= 2));
+}
+
 void rename_all_from_Bayer_Flamsteed()
 {
     int i;
