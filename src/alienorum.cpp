@@ -924,6 +924,7 @@ int main (int argc, char** argv)
 
     CatalogReader cr;
     cr.read_starname_dat(cels);
+    Gliese_doubles_fix();
 
     //////////////////////////////////////////////////
     // Begin ImGui-specific setup code              //

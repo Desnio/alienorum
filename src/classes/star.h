@@ -33,5 +33,6 @@ class Star : public CelestialObject
 };
 
 void rename_all_from_Bayer_Flamsteed();
+void Gliese_doubles_fix();
 
 #endif

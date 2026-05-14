@@ -66,9 +66,18 @@ RGB Color::rgb_from_color(Color c, double bloom_radius)
         double circ = 2.0 * M_PI * bloom_radius;
         double invcirc = 1.0 / circ;
 
-        red   = min(255, (int)(255.0 * pow(rc * invcirc, global_inverse_gamma)));
-        green = min(255, (int)(255.0 * pow(gc * invcirc, global_inverse_gamma)));
-        blue  = min(255, (int)(255.0 * pow(bc * invcirc, global_inverse_gamma)));
+        // red   = min(255, (int)(255.0 * pow(rc * invcirc, global_inverse_gamma)));
+        // green = min(255, (int)(255.0 * pow(gc * invcirc, global_inverse_gamma)));
+        // blue  = min(255, (int)(255.0 * pow(bc * invcirc, global_inverse_gamma)));
+        red   = 255 * fmin(1.0, pow(rc * invcirc, global_inverse_gamma));
+        green = 255 * fmin(1.0, pow(gc * invcirc, global_inverse_gamma));
+        blue  = 255 * fmin(1.0, pow(bc * invcirc, global_inverse_gamma));
+
+        if (red<0 || red>255)
+        {
+            red = 255;
+        }
+
     }
 
     /*int red   = min(255, (int)(255.0 * pow(c.red   * bloom, global_inverse_gamma)));
@@ -77,7 +86,7 @@ RGB Color::rgb_from_color(Color c, double bloom_radius)
 
     if (redlight_mode)
     {
-        red += 0.5 * green + 0.3 * blue;
+        red = min(255, (int)(red + 0.5 * green + 0.3 * blue));
         green /= 3;
         blue /= 3;
     }

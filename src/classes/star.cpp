@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string.h>
+#include <algorithm>
 #include "star.h"
 
 void Star::update_location(double new_epoch)
@@ -71,6 +72,55 @@ void rename_all_from_Bayer_Flamsteed()
         {
             Star* s = (Star*)cels[i];
             s->rename_from_Bayer_Flamsteed();           // has no effect if not a Bayer-Flamsteed star.
+        }
+    }
+}
+
+void Gliese_doubles_fix()
+{
+    int i, j, m, n;
+    char name1[29], name2[29];
+
+    // Fix for members B of multiple systems getting left behind when stellar positions are updated from B1950 to later epochs.
+    for (i=0; cels[i]; i++)
+    {
+        if (cels[i]->type == star)
+        {
+            Star* s1 = (Star*)cels[i];
+            if (!s1->Gliese.size()) continue;
+
+            strcpy(name1, s1->Gliese.c_str());
+            n = strlen(name1);
+            if (name1[n-1] == 'A' && name1[n-2] == ' ')
+                name1[n-2] = 0;
+            else continue;
+
+            n = strlen(name1);
+
+            for (j=std::max(0, i-100); cels[j] && j<i+100; j++)
+            {
+                if (j==i) continue;
+                Star* s2 = (Star*)cels[j];
+                m = s2->Gliese.size();
+                if (!m) continue;
+                if (m < n) continue;
+                if (s2->Gliese.c_str()[n] != ' ') continue;
+
+                strcpy(name2, s2->Gliese.c_str());
+                name2[n] = 0;
+                if (!strcmp(name1, name2))
+                {
+                    s2->name = s1->name + std::string(" ") + &name2[n+1];
+                    s2->right_ascension = s1->right_ascension;
+                    s2->declination = s1->declination;
+                    s2->distance = s1->distance;
+                    s2->proper_motion_RA = s1->proper_motion_RA;
+                    s2->proper_motion_decl = s1->proper_motion_decl;
+                    s2->radial_velocity = s1->radial_velocity;
+
+                    s2->update_location(J2000);
+                }
+            }
         }
     }
 }
