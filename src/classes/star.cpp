@@ -52,7 +52,9 @@ void Star::rename_from_Bayer_Flamsteed()
 
     if (BayerGrkno >= 0)
     {
-        name = Greek_letter[BayerGrkno] + std::string(" ") + consgen[j];
+        int number = atoi(Bayer.substr(3, 1).c_str());
+        if (number) name = Greek_letter[BayerGrkno] + std::string(" ") + std::to_string(number) + std::string(" ") + consgen[j];
+        else name = Greek_letter[BayerGrkno] + std::string(" ") + consgen[j];
     }
     else if (FlamsteedNo)
     {

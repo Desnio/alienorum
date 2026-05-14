@@ -742,11 +742,6 @@ void draw_status_window(ImGuiIO& io)
             std::string lookstr = lookfor;
             for (i=0; cels[i]; i++)
             {
-                if (!strcmp(cels[i]->name.c_str(), "Alpha Reticuli"))
-                {
-                    searched = true;
-                }
-
                 int lev = Damerau_Levenshtein(cels[i]->name.c_str(), lookstr);
                 if (cels[i]->type == star)
                 {
