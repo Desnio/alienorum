@@ -10,6 +10,12 @@
 #include "planet.h"
 
 extern std::vector<std::string> known_catalog_names;
+extern std::vector<std::string> consline_a, consline_b;
+extern std::vector<int> considx, lnpercons;
+extern std::vector<Cartesian2D> conscen;
+extern int nconsln;
+extern int *consaidx, *consbidx;
+extern bool have_Gliese, have_BSC, have_HIP;
 
 class CatalogReader
 {

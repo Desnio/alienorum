@@ -2,6 +2,8 @@
 #ifndef _Color
 #define _Color
 
+#define drawn_cache_split 25
+
 struct RGB
 {
     unsigned char r = 0;
@@ -24,6 +26,9 @@ class Color
 
 extern double global_brightness;
 extern bool redlight_mode;
+extern float drawblxscalex, drawblxscaley;
+extern int *bx_cache, *by_cache;
+
 void set_gamma(double new_gamma);
 double get_gamma();
 __uint32_t rgba_apply_redlight(__uint32_t input);

@@ -9,6 +9,10 @@ double global_brightness = default_brightness;
 double global_inverse_gamma = 1.0 / default_gamma;
 bool redlight_mode = false;
 
+float drawblxscalex, drawblxscaley;
+int *bx_cache = new int[MAX_CELOBJS], *by_cache = new int[MAX_CELOBJS];
+
+
 Color Color::color_from_magnitude_indices(double Vmag, double BV)
 {
     Color c;

@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <ctime>
+#include "../imgui/imgui.h"
 
 #define light_year 9460730472580800
 #define parsec 3.08567758128E+16
@@ -24,6 +25,7 @@
 #define arcminute (fiftyseventh / 60)
 #define arcsecond (arcminute / 60)
 
+#define MAX_CELOBJS 262144
 #define its_behind_you 0xbe419d10
 #define default_brightness 13.0
 #define default_gamma 1.0
@@ -47,5 +49,13 @@ int Damerau_Levenshtein(const std::string &s1, const std::string &s2);
 
 // Takes velocity in m/s and computes the ratio of Δt(moving)/Δt(stationary). The result will always be <= 1.
 double compute_time_dilation(double velocity);
+
+// APP STATUS AND SETTINGS
+extern int ncelobjs, selected, cursor_size, circle_size, xaorngsim, objinfwnd_hei, timeout_ms, lmx, lmy, whereami;
+extern double azimuth, altitude, spin, global_gamma, zoom, vm, obj_magn_under_cursor, velocmag, JDnow;
+extern bool show_grid, show_consln, show_xonsm, show_labels, is_an_obj_under_cursor, is_mouse_over_window, dragging, dragged, viewchanged;
+extern ImU32 cursor_color, grid_color, grid_color_brighter, consline_color, conslbl_color, selected_color, objlbl_color;
+extern std::string objname, objinfo;
+extern time_t simnow;
 
 #endif

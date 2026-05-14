@@ -32,4 +32,6 @@ class Star : public CelestialObject
     void rename_from_Bayer_Flamsteed();
 };
 
+void rename_all_from_Bayer_Flamsteed();
+
 #endif

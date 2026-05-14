@@ -4,7 +4,6 @@
 #include <sstream>
 #include <string>
 #include <filesystem>
-#include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_sdl2.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
 #include <algorithm> 
@@ -27,58 +26,90 @@
 // Learn more about ImGui here: https://github.com/ocornut/imgui/blob/master/docs/FAQ.md
 
 using namespace std;
-#define MAX_CELOBJS 262144
-#define drawn_cache_split 25
 
-int main (int argc, char** argv)
+char lookfor[256];
+std::vector<int> drawnblocks[drawn_cache_split][drawn_cache_split];
+std::filesystem::path p = "catalogs";
+bool catalogs_found = false;
+
+void draw_ra_dec_lines(int dispcx, int dispcy)
 {
-    CelestialObject **cels = new CelestialObject*[MAX_CELOBJS];
-    double *vmag_cache = new double[MAX_CELOBJS];
-    memset(cels, 0, MAX_CELOBJS*sizeof(CelestialObject*));
-    std::vector<int> drawnblocks[drawn_cache_split][drawn_cache_split];
-    float drawblxscalex, drawblxscaley;
-    int *bx_cache = new int[MAX_CELOBJS], *by_cache = new int[MAX_CELOBJS];
+    int i, j;
+    Cartesian2D prev, zdes;
+    ImU32 gc = rgba_apply_redlight(grid_color);
+    ImU32 gcb = rgba_apply_redlight(grid_color_brighter);
+    bool prev_valid = false;
+    // RA and Dec lines.
+    for (i=0; i<24; i++)
+    {
+        prev_valid = false;
+        for (j=-80; j<=80; j+=10)
+        {
+            Point ihavetomove = Point::from_ra_dec(fiftyseventh * i * 15, fiftyseventh * j, 5);
+            try
+            {
+                zdes = Cartesian2D(ihavetomove, azimuth, altitude, zoom);
+            }
+            catch (...)
+            {
+                prev_valid = false;
+                continue;
+            }
 
-    std::vector<std::string> consline_a, consline_b;
-    std::vector<int> considx, lnpercons;
-    std::vector<Cartesian2D> conscen;
-    int nconsln = 0;
+            if (j > -80)
+            {
+                int dx1 = dispcx + zdes.x * dispcx,
+                    dy1 = dispcy + zdes.y * dispcx,
+                    dx2 = dispcx + prev.x * dispcx,
+                    dy2 = dispcy + prev.y * dispcx;
 
-    int ncelobjs = 0;
-    int selected = -1;
-    CelestialLocation here;
-    Point velocity;
-    double azimuth = 0, altitude = 0;
-    double spin = 0;
-    int i, j, l, n;
-    double gamma = 1.8;
-    double zoom = 1, vm;
-    bool show_grid = true, show_consln = true, show_xonsm = false, show_labels = true;
-    int cursor_size = 10, circle_size = 3, xaorngsim = 0;
-    ImU32 cursor_color = IM_COL32(255, 32, 0, 255);
-    ImU32 grid_color = IM_COL32(255, 0, 0, 96);
-    ImU32 grid_color_brighter = IM_COL32(255, 0, 0, 140);
-    ImU32 consline_color = IM_COL32(0, 128, 255, 128);
-    ImU32 conslbl_color = IM_COL32(255, 192, 0, 128);
-    ImU32 selected_color = IM_COL32(0, 255, 96, 192);
-    ImU32 objlbl_color = IM_COL32(64, 255, 0, 176);
-    bool is_an_obj_under_cursor;
-    double obj_magn_under_cursor;
-    std::string objname, objinfo;
-    bool is_mouse_over_window;
-    int objinfwnd_hei = 0;
-    int timeout_ms = 5;
-    bool dragging, dragged, viewchanged;
-    int lmx, lmy, whereami=0;
-    double velocmag;
-    time_t simnow = std::time(nullptr);
-    double JDnow = ((double)simnow - J2000_TIME_T)/86400 + J2000;
-    char lookfor[256];
+                    if (prev_valid)
+                    ImGui::GetBackgroundDrawList()->AddLine(
+                        ImVec2(dx1, dy1), ImVec2(dx2, dy2),
+                        gc, 1);
+            }
 
-    memset(lookfor, 0, 256);
+            prev = zdes;
+            prev_valid = true;
+        }
+    }
+    for (j=-80; j <= 80; j+=10)
+    {
+        prev_valid = false;
+        for (i=0; i<=24; i++)
+        {
+            Point ihavetomove = Point::from_ra_dec(fiftyseventh * i * 15, fiftyseventh * j, 5);
+            try
+            {
+                zdes = Cartesian2D(ihavetomove, azimuth, altitude, zoom);
+            }
+            catch (...)
+            {
+                prev_valid = false;
+                continue;
+            }
 
-    std::filesystem::path p = "catalogs";
-    bool catalogs_found = false;
+            if (i)
+            {
+                int dx1 = dispcx + zdes.x * dispcx,
+                    dy1 = dispcy + zdes.y * dispcx,
+                    dx2 = dispcx + prev.x * dispcx,
+                    dy2 = dispcy + prev.y * dispcx;
+
+                    if (prev_valid)
+                    ImGui::GetBackgroundDrawList()->AddLine(
+                        ImVec2(dx1, dy1), ImVec2(dx2, dy2),
+                        j?gc:gcb, 1);
+            }
+
+            prev = zdes;
+            prev_valid = true;
+        }
+    }
+}
+
+bool look_for_catalogs()
+{
     try
     {
         while (!std::filesystem::exists(p))
@@ -92,32 +123,62 @@ int main (int argc, char** argv)
     catch (const std::filesystem::filesystem_error& e)
     {
         std::cerr << "Error: " << e.what() << endl;
-        return -1;
+        catalogs_found = false;
+        return catalogs_found;
     }
     if (!catalogs_found)
     {
         std::cerr << "No star catalogs found. Ensure the catalogs folder exists, contains data, and that the files are readable." << endl;
-        return -1;
+        return catalogs_found;
     }
 
-    for (l=1; l<argc; l++)
+    return catalogs_found;
+}
+
+void load_catalogs()
+{
+    int i, n;
+    // TODO: Read data from more star catalogs.
+    CatalogReader cr;
+    cr.download_catalogs();
+    std::vector<std::string> cats = cr.find_catalogs("catalogs");
+
+    n = cats.size();
+    for (i=0; i<n; i++)
     {
-        n = strlen(argv[l]);
-        if (n == ((xonsm[4] & 017) ^ 015))
-        {
-            char* ucpdhahzs = "\x2b\x85\xe9\x80\x57\xe4\x70\x00";
-            i = 0;
-            for (j=0; ucpdhahzs[j]; j++)
-                if (argv[l][j] == ucpdhahzs[j] ^ (xonsm[j] & 0377)) i++;
-
-            if (i==n)
-            {
-                show_xonsm = true;
-                xaorngsim = l;
-            }
-        }
+        cout << "Found " << cats[i] << endl;
+        if (!strcmp(cats[i].c_str(), "catalogs/Gliese")) have_Gliese = true;
+        if (!strcmp(cats[i].c_str(), "catalogs/BSC")) have_BSC = true;
+        if (!strcmp(cats[i].c_str(), "catalogs/Hipparcos")) have_HIP = true;
     }
 
+    if (have_Gliese)
+    {
+        cout << "Reading Gliese catalog..." << endl << flush;
+        int nGliese = cr.read_Gliese_catalog(cels, MAX_CELOBJS);
+        cout << "Read " << nGliese << " objects." << endl << flush;
+        ncelobjs += nGliese;
+    }
+    if (have_BSC)
+    {
+        cout << "Reading Bright Star Catalog..." << endl << flush;
+        int nBSC = cr.read_BrightStars_catalog(cels, MAX_CELOBJS);
+        cout << "Read " << nBSC << " objects." << endl << flush;
+        ncelobjs += nBSC;
+    }
+    #ifndef DEBUG
+    if (have_HIP)
+    {
+        cout << "Reading Hipparcos catalog..." << endl << flush;
+        int nHIP = cr.read_Hipparcos_catalog(cels, MAX_CELOBJS);
+        cout << "Updated " << nHIP << " objects." << endl << flush;
+    }
+    #endif
+}
+
+void read_cons_lines()
+{
+    int l;
     FILE* fp = fopen("consline.dat", "rb");
     if (fp)
     {
@@ -184,47 +245,15 @@ int main (int argc, char** argv)
         }
         fclose(fp);
     }
+}
 
-    // TODO: Read data from more star catalogs.
-    CatalogReader cr;
-    cr.download_catalogs();
-    std::vector<std::string> cats = cr.find_catalogs("catalogs");
-
-    bool have_Gliese = false, have_BSC = false, have_HIP = false;
-    n = cats.size();
-    for (i=0; i<n; i++)
-    {
-        cout << "Found " << cats[i] << endl;
-        if (!strcmp(cats[i].c_str(), "catalogs/Gliese")) have_Gliese = true;
-        if (!strcmp(cats[i].c_str(), "catalogs/BSC")) have_BSC = true;
-        if (!strcmp(cats[i].c_str(), "catalogs/Hipparcos")) have_HIP = true;
-    }
-
-    if (have_Gliese)
-    {
-        cout << "Reading Gliese catalog..." << endl << flush;
-        int nGliese = cr.read_Gliese_catalog(cels, MAX_CELOBJS);
-        cout << "Read " << nGliese << " objects." << endl << flush;
-        ncelobjs += nGliese;
-    }
-    if (have_BSC)
-    {
-        cout << "Reading Bright Star Catalog..." << endl << flush;
-        int nBSC = cr.read_BrightStars_catalog(cels, MAX_CELOBJS);
-        cout << "Read " << nBSC << " objects." << endl << flush;
-        ncelobjs += nBSC;
-    }
-    #ifndef DEBUG
-    if (have_HIP)
-    {
-        cout << "Reading Hipparcos catalog..." << endl << flush;
-        int nHIP = cr.read_Hipparcos_catalog(cels, MAX_CELOBJS);
-        cout << "Updated " << nHIP << " objects." << endl << flush;
-    }
-    #endif
+void cache_cons_lines()
+{
+    int i, j;
 
     // Cache star indices of consline termini
-    int consaidx[nconsln+16], consbidx[nconsln+16];
+    consaidx = new int[nconsln+16];
+    consbidx = new int[nconsln+16];
     for (i=0; i<nconsln; i++)
     {
         int founda = -1, foundb = -1;
@@ -282,7 +311,7 @@ int main (int argc, char** argv)
                 else if (foundb < 0 && ((!j && !srap) || s->HD == srap)) foundb = j;
             }
 
-            consname.push_back(argv[xaorngsim]);
+            consname.push_back("");
             if (founda >= 0 && foundb >= 0)
             {
                 consaidx[i+nconsln] = founda;
@@ -290,16 +319,45 @@ int main (int argc, char** argv)
             }
         }
     }
+}
 
-    for (i=0; cels[i]; i++)
+int main (int argc, char** argv)
+{
+    int i, j, l, n;
+    cels = new CelestialObject*[MAX_CELOBJS];
+    double *vmag_cache = new double[MAX_CELOBJS];
+    memset(cels, 0, MAX_CELOBJS*sizeof(CelestialObject*));
+    bx_cache = new int[MAX_CELOBJS];
+    by_cache = new int[MAX_CELOBJS];
+
+    memset(lookfor, 0, 256);
+
+    if (!look_for_catalogs()) return -1;
+
+    for (l=1; l<argc; l++)
     {
-        if (cels[i]->type == star)
+        n = strlen(argv[l]);
+        if (n == ((xonsm[4] & 017) ^ 015))
         {
-            Star* s = (Star*)cels[i];
-            s->rename_from_Bayer_Flamsteed();           // has no effect if not a Bayer-Flamsteed star.
+            char* ucpdhahzs = "\x2b\x85\xe9\x80\x57\xe4\x70\x00";
+            i = 0;
+            for (j=0; ucpdhahzs[j]; j++)
+                if (argv[l][j] == ucpdhahzs[j] ^ (xonsm[j] & 0377)) i++;
+
+            if (i==n)
+            {
+                show_xonsm = true;
+                xaorngsim = l;
+            }
         }
     }
 
+    read_cons_lines();
+    load_catalogs();
+    cache_cons_lines();
+    rename_all_from_Bayer_Flamsteed();
+
+    CatalogReader cr;
     cr.read_starname_dat(cels);
 
     //////////////////////////////////////////////////
@@ -425,7 +483,7 @@ int main (int argc, char** argv)
 
     // Our state
     ImVec4 background = ImVec4(0.0f, 0.0f, 0.0f, 1.00f);
-    set_gamma(gamma);
+    set_gamma(global_gamma);
 
     // Main loop
     bool done = false;
@@ -477,80 +535,7 @@ int main (int argc, char** argv)
         for (i=0; i<drawn_cache_split; i++) for (j=0; j<drawn_cache_split; j++) drawnblocks[i][j].clear();
         if (whereami >= 0) here = cels[whereami]->location;
 
-        if (show_grid)
-        {
-            Cartesian2D prev, zdes;
-            ImU32 gc = rgba_apply_redlight(grid_color);
-            ImU32 gcb = rgba_apply_redlight(grid_color_brighter);
-            bool prev_valid = false;
-            // RA and Dec lines.
-            for (i=0; i<24; i++)
-            {
-                prev_valid = false;
-                for (j=-80; j<=80; j+=10)
-                {
-                    Point ihavetomove = Point::from_ra_dec(fiftyseventh * i * 15, fiftyseventh * j, 5);
-                    try
-                    {
-                        zdes = Cartesian2D(ihavetomove, azimuth, altitude, zoom);
-                    }
-                    catch (...)
-                    {
-                        prev_valid = false;
-                        continue;
-                    }
-
-                    if (j > -80)
-                    {
-                        int dx1 = dispcx + zdes.x * dispcx,
-                            dy1 = dispcy + zdes.y * dispcx,
-                            dx2 = dispcx + prev.x * dispcx,
-                            dy2 = dispcy + prev.y * dispcx;
-
-                            if (prev_valid)
-                            ImGui::GetBackgroundDrawList()->AddLine(
-                                ImVec2(dx1, dy1), ImVec2(dx2, dy2),
-                                gc, 1);
-                    }
-
-                    prev = zdes;
-                    prev_valid = true;
-                }
-            }
-            for (j=-80; j <= 80; j+=10)
-            {
-                prev_valid = false;
-                for (i=0; i<=24; i++)
-                {
-                    Point ihavetomove = Point::from_ra_dec(fiftyseventh * i * 15, fiftyseventh * j, 5);
-                    try
-                    {
-                        zdes = Cartesian2D(ihavetomove, azimuth, altitude, zoom);
-                    }
-                    catch (...)
-                    {
-                        prev_valid = false;
-                        continue;
-                    }
-
-                    if (i)
-                    {
-                        int dx1 = dispcx + zdes.x * dispcx,
-                            dy1 = dispcy + zdes.y * dispcx,
-                            dx2 = dispcx + prev.x * dispcx,
-                            dy2 = dispcy + prev.y * dispcx;
-
-                            if (prev_valid)
-                            ImGui::GetBackgroundDrawList()->AddLine(
-                                ImVec2(dx1, dy1), ImVec2(dx2, dy2),
-                                j?gc:gcb, 1);
-                    }
-
-                    prev = zdes;
-                    prev_valid = true;
-                }
-            }
-        }
+        if (show_grid) draw_ra_dec_lines(dispcx, dispcy);
 
         // Compute object draw coordinates.
         if (viewchanged) for (i=0; cels[i] && i<MAX_CELOBJS; i++)
@@ -1104,13 +1089,13 @@ int main (int argc, char** argv)
                 break;
 
                 case '`':
-                gamma += 0.2;
-                set_gamma(gamma);
+                global_gamma += 0.2;
+                set_gamma(global_gamma);
                 break;
 
                 case '~':
-                gamma -= 0.2;
-                set_gamma(gamma);
+                global_gamma -= 0.2;
+                set_gamma(global_gamma);
                 break;
 
                 default:
@@ -1144,7 +1129,7 @@ int main (int argc, char** argv)
         #ifdef DEBUG
         hide_mouse = false;
         #else
-        hide_mouse = abs(lmx - io.MousePos.x) <= 4 || abs(lmy - io.MousePos.y) <= 4;
+        hide_mouse = frame_dur < 0.1 || abs(lmx - io.MousePos.x) <= 4 || abs(lmy - io.MousePos.y) <= 4;
         #endif
 
         lmx = io.MousePos.x;
@@ -1167,5 +1152,7 @@ int main (int argc, char** argv)
     delete[] vmag_cache;
     delete[] bx_cache;
     delete[] by_cache;
+    delete[] consaidx;
+    delete[] consbidx;
     return 0;
 }

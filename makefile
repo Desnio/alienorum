@@ -1,12 +1,14 @@
 #
 # Makefile for Linux, Windows, Mac OS. Make sure to install SDL2 (http://www.libsdl.org)
 # Linux:
-# 	apt-get install -y libsdl2-dev libsdl2-image-dev
+# 	apt-get install -y libsdl2-dev libsdl2-image-dev libfreetype-dev
 # Mac OS:
-#   brew install sdl2
+#   brew install sdl2 sdl2-image freetype
 # MSYS2:
 #   pacman -S mingw-w64-i686-SDL2
 #
+
+# On Windows make sure to install FreeType with 'vcpkg install freetype --triplet=x64-windows' + 'vcpkg integrate install'.
 
 CPP = g++
 CPPFLAGS = -std=c++17 -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends -g -Wall -Wformat
@@ -31,7 +33,7 @@ OBJS += $(addsuffix .o, $(addprefix $(OBJ)/, $(basename $(notdir $(CLASSES_SRC))
 # Platform-specific stuff for ImGui:
 ifeq ($(UNAME_S), Linux) #LINUX
 	ECHO_MESSAGE = "Building for Linux..."
-	LIBS += $(LINUX_GL_LIBS) -ldl `sdl2-config --libs` -lSDL2_image
+	LIBS += $(LINUX_GL_LIBS) -ldl `sdl2-config --libs` -lSDL2_image -lfreetype
 
 	CPPFLAGS += `sdl2-config --cflags`
 	CFLAGS = $(CPPFLAGS)
@@ -42,7 +44,7 @@ ifeq ($(UNAME_S), Darwin) #APPLE
 	LIBS += -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo `sdl2-config --libs`
 	LIBS += -L/usr/local/lib -L/opt/local/lib
 
-	CPPFLAGS += `sdl2-config --cflags` -lSDL2_image
+	CPPFLAGS += `sdl2-config --cflags` -lSDL2_image -lfreetype
 	CPPFLAGS += -I/usr/local/include -I/opt/local/include
 	CFLAGS = $(CPPFLAGS)
 endif
@@ -51,7 +53,7 @@ ifeq ($(OS), Windows_NT)
     ECHO_MESSAGE = "Building for Windows in MinGW..."
     LIBS += -lgdi32 -lopengl32 -limm32 `pkg-config --static --libs sdl2`
 
-    CPPFLAGS += `pkg-config --cflags sdl2` -lSDL2_image
+    CPPFLAGS += `pkg-config --cflags sdl2` -lSDL2_image -lfreetype
     CFLAGS = $(CPPFLAGS)
 endif
 

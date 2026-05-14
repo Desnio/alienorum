@@ -6,6 +6,33 @@
 
 #include "misc.h"
 
+int ncelobjs = 0;
+int selected = -1;
+double azimuth = 0, altitude = 0;
+double spin = 0;
+double global_gamma = 1.8;
+double zoom = 1, vm;
+bool show_grid = true, show_consln = true, show_xonsm = false, show_labels = true;
+int cursor_size = 10, circle_size = 3, xaorngsim = 0;
+ImU32 cursor_color = IM_COL32(255, 32, 0, 255);
+ImU32 grid_color = IM_COL32(255, 0, 0, 96);
+ImU32 grid_color_brighter = IM_COL32(255, 0, 0, 140);
+ImU32 consline_color = IM_COL32(0, 128, 255, 128);
+ImU32 conslbl_color = IM_COL32(255, 192, 0, 128);
+ImU32 selected_color = IM_COL32(0, 255, 96, 192);
+ImU32 objlbl_color = IM_COL32(64, 255, 0, 176);
+bool is_an_obj_under_cursor;
+double obj_magn_under_cursor;
+std::string objname, objinfo;
+bool is_mouse_over_window;
+int objinfwnd_hei = 0;
+int timeout_ms = 5;
+bool dragging, dragged, viewchanged;
+int lmx, lmy, whereami=0;
+double velocmag;
+time_t simnow = std::time(nullptr);
+double JDnow = ((double)simnow - J2000_TIME_T)/86400 + J2000;
+
 const std::string WHITESPACE = " \n\r\t\f\v";
 __uint32_t xonsm[13] = {0x0e432843, 0x0e4328ec, 0x25443485, 0x29cc28ec, 0x29cc513a, 0x43363485, 0x511e0000, 0x511e3485, 0x511e513a, 0x511e5147, 0x511eab3a, 0x2b85e980, 0x57e47000};
 double magnbase = pow(100, 1.0/5);

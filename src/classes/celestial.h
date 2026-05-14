@@ -73,5 +73,8 @@ class CelestialObject
     std::string scaled_distance(CelestialLocation fromwhere);
 };
 
+extern CelestialObject **cels;
+extern double *vmag_cache;
+extern CelestialLocation here;
 
 #endif

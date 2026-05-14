@@ -27,6 +27,14 @@ std::vector<std::string> known_catalog_names =
     // TODO: Add hundreds more...
 };
 
+bool have_Gliese = false, have_BSC = false, have_HIP = false;
+
+std::vector<std::string> consline_a, consline_b;
+std::vector<int> considx, lnpercons;
+std::vector<Cartesian2D> conscen;
+int nconsln = 0;
+int *consaidx, *consbidx;
+
 std::vector<std::string> CatalogReader::find_catalogs(std::string path)
 {
     std::vector<std::string> results;

@@ -4,6 +4,10 @@
 #include <sstream>
 #include "celestial.h"
 
+CelestialObject **cels;
+double *vmag_cache;
+CelestialLocation here;
+
 double CelestialObject::viewer_magnitude(CelestialLocation seen_from)
 {
     double r = seen_from.distance_to(location) / parsec / 10;

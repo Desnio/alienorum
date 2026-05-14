@@ -59,3 +59,16 @@ void Star::rename_from_Bayer_Flamsteed()
         name = std::to_string(FlamsteedNo) + std::string(" ") + consgen[j];
     }
 }
+
+void rename_all_from_Bayer_Flamsteed()
+{
+    int i;
+    for (i=0; cels[i]; i++)
+    {
+        if (cels[i]->type == star)
+        {
+            Star* s = (Star*)cels[i];
+            s->rename_from_Bayer_Flamsteed();           // has no effect if not a Bayer-Flamsteed star.
+        }
+    }
+}
