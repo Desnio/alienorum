@@ -340,24 +340,27 @@ void compute_object_draw_coordinates()
         {
             case star:
             ((Star*)cels[i])->update_location(simnow);
-            if (whereami == i) here = cels[i]->location;
             break;
 
             case rocky:
             case gas_giant:
             case ice_giant:
             ((Planet*)cels[i])->update_location(simnow);
-            if (whereami == i) here = cels[i]->location;
             break;
 
             default:
             ;
         }
 
+        if (whereami == i) here = cels[i]->location;
+
         Point rel = cels[i]->location;
         rel -= here;
 
-        if (whereami >= 0)
+        rel = rotate3D(rel, Point(0,0,0), here.local_plane.v, here.local_plane.a);
+        rel = rotate3D(rel, Point(0,0,0), here.equatorial_plane.v, -here.equatorial_plane.a);
+
+        /*if (whereami >= 0)
         {
             double eqx = -cels[whereami]->equinox;
             Point equinox_axis( std::sin(eqx), 0, std::cos(eqx) );
@@ -366,7 +369,7 @@ void compute_object_draw_coordinates()
                 rel = rotate3D(rel, Point(0,0,0), cels[whereami]->location.local_plane.v, cels[whereami]->location.local_plane.a);
             }
             rel = rotate3D(rel, center, equinox_axis, -cels[whereami]->inclination);
-        }
+        }*/
 
         try
         {
@@ -723,6 +726,7 @@ void process_keyboard_commands(ImGuiIO& io)
 
             case 'r':
             velocity = Point(0,0,0);
+            zoom = 1;
             spin = 0;
             whereami = iamhome;
             here.local_position = here.system_center = Point(0,0,0);

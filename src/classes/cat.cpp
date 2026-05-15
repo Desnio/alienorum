@@ -281,7 +281,7 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
 
         if (!num_read)
         {
-            Rotation rot = align_points_3d(yaxis, solar_north, center);
+            Rotation rot = align_points_3d(ecliptic_north, solar_north, center);
             s->inclination = rot.a;
             s->equinox = find_angle_along_vector(rot.v, zaxis, center, yaxis);
             if (s->equinox < 0) s->equinox += (M_PI*2);
@@ -289,6 +289,7 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
             std::cout << s->name << " equinox: " << (s->equinox * fiftyseven) << std::endl;
 
             s->location.local_plane = ICRF_to_ecliptic;
+            s->location.equatorial_plane = rot;
         }
 
         cels[offset+num_read] = s;
@@ -756,6 +757,8 @@ int CatalogReader::read_local_planets(CelestialObject **cels, int max)
         p->color = Color::color_from_magnitude_indices(p->absolute_magnitude, p->BV_color);
 
         p->location = o->center->location;          // Copy the system center and local plane. The local position will auto-fill later.
+        p->location.equatorial_plane.a = p->inclination;
+        p->location.equatorial_plane.v = Point(std::sin(p->equinox), 0, std::cos(p->equinox));
 
         cels[offset++] = p;
         num_read++;
