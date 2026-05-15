@@ -355,6 +355,13 @@ void compute_object_draw_coordinates()
         Point rel = cels[i]->location;
         rel -= here;
 
+        if (whereami == 0)
+        {
+            double eqx = -cels[whereami]->equinox;
+            Point equinox_axis( std::sin(eqx), 0, std::cos(eqx) );
+            rel = rotate3D(rel, center, equinox_axis, -cels[whereami]->inclination);
+        }
+
         try
         {
             vmag_cache[i] = (cels[i]->type == rocky || cels[i]->type == ice_giant || cels[i]->type == gas_giant)

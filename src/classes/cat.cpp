@@ -279,6 +279,16 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
 
         s->update_location(J2000_TIME_T);
 
+        if (!num_read)
+        {
+            Rotation rot = align_points_3d(yaxis, solar_north, center);
+            s->inclination = rot.a;
+            s->equinox = find_angle_along_vector(rot.v, zaxis, center, yaxis);
+            if (s->equinox < 0) s->equinox += (M_PI*2);
+            std::cout << s->name << " inclination: " << (s->inclination * fiftyseven) << std::endl;
+            std::cout << s->name << " equinox: " << (s->equinox * fiftyseven) << std::endl;
+        }
+
         cels[offset+num_read] = s;
         num_read++;
         if ((offset+num_read) >= (max-1)) break;

@@ -78,13 +78,16 @@ struct Rotation
         a = 0;
     };
 };
-Point compute_normal(Point& pt1, Point& pt2, Point& pt3);
+
+Point compute_normal(Point pt1, Point pt2, Point pt3);
 double find_angle(double dx, double dy);
-double find_3D_angle(Point& pt1, Point& pt2, Point& source);
-double find_angle_along_vector(Point& pt1, Point& pt2, Point& source, Point& v);
-Rotation align_points_3d(Point& point, Point& align, Point& center);
+double find_3D_angle(Point pt1, Point pt2, Point source);
+double find_angle_along_vector(Point pt1, Point pt2, Point source, Point v);
+Rotation align_points_3d(Point point, Point align, Point center);
 Point rotate3D(Point point, Point source, Point axis, double theta);
 
+extern Point center, xaxis, yaxis, zaxis;
+extern Point solar_north, ecliptic_north, galactic_north;
 extern Point velocity;
 
 #endif

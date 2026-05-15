@@ -7,6 +7,11 @@
 #include "point.h"
 
 Point center(0,0,0), xaxis(1e37, 0, 0), yaxis(0, 1e37, 0), zaxis(0, 0, 1e37);
+
+Point solar_north    = Point::from_ra_dec(solar_north_RA_J2000,    solar_north_Decl_J2000,    light_year);
+Point ecliptic_north = Point::from_ra_dec(ecliptic_north_RA_J2000, ecliptic_north_Decl_J2000, light_year);
+Point galactic_north = Point::from_ra_dec(galactic_north_RA_J2000, galactic_north_Decl_J2000, light_year);
+
 Point velocity;
 
 Point::Point(double newx, double newy, double newz)
@@ -110,7 +115,7 @@ double find_angle(double dx, double dy)
     return angle;
 }
 
-double find_3D_angle(Point &A, Point &B, Point &source)
+double find_3D_angle(Point A, Point B, Point source)
 {
     Point lA = A - source;
     lA.scale(1);
@@ -158,7 +163,7 @@ Point Point::from_ra_dec(double right_ascension, double declination, double dist
     return Point(x, y, z);
 }
 
-double find_3d_angle(Point& A, Point& B, Point& source)
+double find_3d_angle(Point A, Point B, Point source)
 {
     Point lA = A - source;
     lA.scale(1);
@@ -182,7 +187,7 @@ double find_3d_angle(Point& A, Point& B, Point& source)
     return retval;
 }
 
-double find_angle_along_vector(Point& pt1, Point& pt2, Point& source, Point& v)
+double find_angle_along_vector(Point pt1, Point pt2, Point source, Point v)
 {
     Point lpt1 = pt1 - source;
     Point lpt2 = pt2 - source;
@@ -239,7 +244,7 @@ Point rotate3D(Point point, Point source, Point axis, double theta)
     return pt;
 }
 
-Rotation align_points_3d(Point& point, Point& align, Point& center)
+Rotation align_points_3d(Point point, Point align, Point center)
 {
     Point n = compute_normal(point, align, center);
     double nr = n.magnitude();
@@ -296,7 +301,7 @@ Rotation align_points_3d(Point& point, Point& align, Point& center)
     return rot;
 }
 
-Point compute_normal(Point& pt1, Point& pt2, Point& pt3)
+Point compute_normal(Point pt1, Point pt2, Point pt3)
 {
     Point U = pt2 - pt1;
     Point V = pt3 - pt1;
