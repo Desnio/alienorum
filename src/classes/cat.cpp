@@ -684,6 +684,7 @@ int CatalogReader::read_local_planets(CelestialObject **cels, int max)
         p->orbit = o;
         read_field_onebased(buffer, 26, 42, field);
         p->name = trim(field);
+        if (!strcmp(p->name.c_str(), "Earth")) whereami = iamhome = offset;
 
         read_field_onebased(buffer, 44, 58, field);
         o->semimajor_axis = atof(field);

@@ -28,7 +28,7 @@ bool is_mouse_over_window;
 int objinfwnd_hei = 0;
 int timeout_ms = 5;
 bool dragging, dragged, viewchanged;
-int lmx, lmy, whereami=0;
+int lmx, lmy, whereami=0, iamhome=0;
 double velocmag;
 time_t simnow = std::time(nullptr);
 double JDnow = ((double)simnow - J2000_TIME_T)/86400 + J2000;

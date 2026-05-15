@@ -708,7 +708,7 @@ void process_keyboard_commands(ImGuiIO& io)
             case 'r':
             velocity = Point(0,0,0);
             spin = 0;
-            whereami = 0;
+            whereami = iamhome;
             here.local_position = here.system_center = Point(0,0,0);
             viewchanged = true;
             simnow = std::time(nullptr);
