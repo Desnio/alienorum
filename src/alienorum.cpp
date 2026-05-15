@@ -443,7 +443,7 @@ void draw_objects()
             RGB rgb = Color::rgb_from_color(col, jay*jay);
             if (rgb.r < 4 && rgb.b < 4) continue;
             ImGui::GetBackgroundDrawList()->AddCircleFilled(xycoord, jay, IM_COL32(rgb.r, rgb.g, rgb.b, 255), 0);
-            if (rgb.r == 255 || rgb.b == 255) break;
+            if (rgb.r == 255 && rgb.b == 255) break;
         }
         if (selected == i)
         {
