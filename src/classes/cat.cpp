@@ -521,6 +521,7 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         s = nullptr;
         for (j=0; j<offset; j++)
         {
+            if (cels[j]->type != star) continue;
             if ((HD && ((Star*)cels[j])->HD == HD)
                 ||
                 (HIP && ((Star*)cels[j])->HIP == HIP)
