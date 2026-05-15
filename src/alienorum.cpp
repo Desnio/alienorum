@@ -454,6 +454,7 @@ void draw_objects()
     // Labels and selection
     if (show_labels) for (i=0; cels[i] && i<MAX_CELOBJS; i++)
     {
+        if (i == whereami) continue;
         xycoord = ImVec2(cels[i]->drawnx, cels[i]->drawny);
         appmag = vmag_cache[i];
         magrad = magrad_cache[i];
@@ -700,6 +701,8 @@ void process_keyboard_commands(ImGuiIO& io)
             {
                 here = cels[selected]->location;
                 whereami = selected;
+                global_brightness = default_brightness;
+                zoom = 1;
             }
             velocity = Point(0,0,0);
             viewchanged = true;
