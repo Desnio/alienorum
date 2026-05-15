@@ -3,10 +3,10 @@
 #include <algorithm>
 #include "star.h"
 
-void Star::update_location(double new_epoch)
+void Star::update_location(double tmnow)
 {
     // How many seconds since star's epoch
-    double elapsed = (new_epoch - epoch) * 86400;
+    double elapsed = tmnow - J2000_TIME_T + 86400 * (J2000 - epoch);
 
     // Estimate RA and Decl using proper motion
     double l_RA = right_ascension + proper_motion_RA * elapsed;
@@ -116,6 +116,7 @@ void Gliese_doubles_fix()
     {
         if (cels[i]->type == star)
         {
+            if (cels[i]->type != star) continue;
             Star* s1 = (Star*)cels[i];
             if (!s1->Gliese.size()) continue;
 
@@ -130,6 +131,7 @@ void Gliese_doubles_fix()
             for (j=std::max(0, i-100); cels[j] && j<i+100; j++)
             {
                 if (j==i) continue;
+                if (cels[j]->type != star) continue;
                 Star* s2 = (Star*)cels[j];
                 m = s2->Gliese.size();
                 if (!m) continue;
@@ -148,7 +150,7 @@ void Gliese_doubles_fix()
                     s2->proper_motion_decl = s1->proper_motion_decl;
                     s2->radial_velocity = s1->radial_velocity;
 
-                    s2->update_location(J2000);
+                    s2->update_location(J2000_TIME_T);
                 }
             }
         }

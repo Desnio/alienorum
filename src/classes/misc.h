@@ -10,6 +10,7 @@
 #define light_year 9460730472580800
 #define parsec 3.08567758128E+16
 #define AU 149597870700.0
+#define invAU (1.0 / AU)
 #define day 86400
 #define year (365 * 86400 + 5 * 3600 + 48 * 60 + 45)
 #define J2000 2451544.5
@@ -36,7 +37,7 @@
 const std::time_t J2000_TIME_T = 946684800;
 #define nlbltyp 4
 
-extern double magnbase;
+extern double magnbase, invlogmagnbase;
 extern std::string Greek_letter[24];
 extern __uint32_t xonsm[13];
 extern const std::string WHITESPACE;

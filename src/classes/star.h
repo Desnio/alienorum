@@ -28,7 +28,7 @@ class Star : public CelestialObject
     __uint32_t SAO = 0;                     // USNO/SAO catalog number
 
     double estimate_temperature();          // kelvin
-    void update_location(double epoch);     // Apply proper motion and re-derive 3D coordinates from the result.
+    void update_location(double tmnow);     // Apply proper motion and re-derive 3D coordinates from the result.
     void rename_from_Bayer_Flamsteed();
     bool is_sunlike();
 };

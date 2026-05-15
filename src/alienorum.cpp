@@ -163,6 +163,11 @@ void load_catalogs()
         cout << "Read " << nGliese << " objects." << endl << flush;
         ncelobjs += nGliese;
     }
+
+    cout << "Reading local planets..." << endl << flush;
+    int npl = cr.read_local_planets(cels, MAX_CELOBJS);                   // Read solar system planets now, before painting the sky with stars
+    cout << "Read " << npl << " objects." << endl << flush;
+
     if (have_BSC)
     {
         cout << "Reading Bright Star Catalog..." << endl << flush;
@@ -331,15 +336,33 @@ void compute_object_draw_coordinates()
     double theta;
     if (viewchanged) for (i=0; cels[i] && i<MAX_CELOBJS; i++)
     {
+        switch (cels[i]->type)
+        {
+            case star:
+            ((Star*)cels[i])->update_location(simnow);
+            break;
+
+            case rocky:
+            case gas_giant:
+            case ice_giant:
+            ((Planet*)cels[i])->update_location(simnow);
+            break;
+
+            default:
+            ;
+        }
+
         Point rel = cels[i]->location;
         rel -= here;
 
         try
         {
-            vmag_cache[i] = cels[i]->viewer_magnitude(here);
+            vmag_cache[i] = (cels[i]->type == rocky || cels[i]->type == ice_giant || cels[i]->type == gas_giant)
+                ? ((Planet*)cels[i])->viewer_reflectance_magnitude(here)
+                : cels[i]->viewer_magnitude(here);
 
             double v_brightness = global_brightness * pow(magnbase, -vmag_cache[i]);
-            magrad_cache[i] = fmin(10, fmax(1.414, pow(v_brightness, 0.25)));
+            magrad_cache[i] = fmin(15, fmax(1.414, pow(v_brightness, 0.25)));
 
             Cartesian2D cart(rel, azimuth, altitude, zoom);
             int dx = (int)(dispcx + cart.x * dispcx), dy = (int)(dispcy + cart.y * dispcx);
@@ -374,6 +397,7 @@ void draw_objects()
     // Dits and doscs
     for (pass=0; pass<=1; pass++) for (i=0; cels[i] && i<MAX_CELOBJS; i++)
     {
+        if (i == whereami) continue;
         if (!pass && magrad_cache[i] > 3) continue;
         else if (pass && magrad_cache[i] <= 3) continue;
 
@@ -409,11 +433,13 @@ void draw_objects()
 
         xycoord = ImVec2(cels[i]->drawnx, cels[i]->drawny);
         appmag = vmag_cache[i];
-        Color col = Color::color_from_magnitude_indices(appmag, cels[i]->BV_magnitude);
         magrad = magrad_cache[i];
 
+        double appmag_step = (3.0 - appmag) / magrad;
         for (jay=magrad; jay>=0.5; jay-=0.5)
         {
+            Color col = Color::color_from_magnitude_indices(fmax(appmag, 4.0 - appmag_step * (magrad-jay)), cels[i]->BV_color);
+            // if (magrad > 10) std::cout << jay << " / " << (4.0 - appmag_step * (magrad-jay)) << std::endl;
             RGB rgb = Color::rgb_from_color(col, jay*jay);
             if (rgb.r < 4 && rgb.b < 4) continue;
             ImGui::GetBackgroundDrawList()->AddCircleFilled(xycoord, jay, IM_COL32(rgb.r, rgb.g, rgb.b, 255), 0);
@@ -657,8 +683,16 @@ void process_keyboard_commands(ImGuiIO& io)
             case 'b': global_brightness *= 1.5; break;
             case 'B': global_brightness *= 0.666; break;
             case 'c': show_consln = !show_consln; break;
+            case 'd': JDnow += 1; viewchanged = true; break;
+            case 'D': JDnow -= 1; viewchanged = true; break;
             case 'g': show_grid = !show_grid; break;
+            case 'h': JDnow += 1.0/24; viewchanged = true; break;
+            case 'H': JDnow -= 1.0/24; viewchanged = true; break;
+            case 'i': JDnow += 1.0/1440; viewchanged = true; break;
+            case 'I': JDnow -= 1.0/1440; viewchanged = true; break;
             case 'l': show_labels = !show_labels; break;
+            case 'm': JDnow += 30; viewchanged = true; break;
+            case 'M': JDnow -= 30; viewchanged = true; break;
             case 'n': objinfwnd = !objinfwnd; break;
 
             case 'o':
@@ -677,6 +711,8 @@ void process_keyboard_commands(ImGuiIO& io)
             whereami = 0;
             here.local_position = here.system_center = Point(0,0,0);
             viewchanged = true;
+            simnow = std::time(nullptr);
+            JDnow = ((double)simnow - J2000_TIME_T)/86400 + J2000;
             break;
 
             case 'R': redlight_mode = !redlight_mode; break;
@@ -695,6 +731,11 @@ void process_keyboard_commands(ImGuiIO& io)
             velocity = Point(0,0,0);
             viewchanged = true;
             break;
+
+            case 'y': JDnow += 365.2422; viewchanged = true; break;
+            case 'Y': JDnow -= 365.2422; viewchanged = true; break;
+            case 'z': JDnow += 36524.22; viewchanged = true; break;
+            case 'Z': JDnow -= 36524.22; viewchanged = true; break;
 
             case '+':
             vm = velocity.magnitude();
@@ -1002,7 +1043,7 @@ int main (int argc, char** argv)
 
     read_cons_lines();
     load_catalogs();
-    bv_correction = log(blackbody_flux(5778, 5.4e-7) / blackbody_flux(5778, 4.6e-7)) / log(magnbase) - cels[0]->BV_magnitude;
+    bv_correction = log(blackbody_flux(5778, 5.4e-7) / blackbody_flux(5778, 4.6e-7)) * invlogmagnbase - cels[0]->BV_color;
     cache_cons_lines();
     rename_all_from_Bayer_Flamsteed();
 
@@ -1022,9 +1063,9 @@ int main (int argc, char** argv)
             s->apparent_magnitude = s->absolute_magnitude = magnitude;
             s->distance = parsec*10;
             s->proper_motion_decl = s->proper_motion_RA = s->radial_velocity = 0;
-            s->BV_magnitude = 0.5;
+            s->BV_color = 0.5;
             s->epoch = J2000;
-            s->update_location(J2000);
+            s->update_location(J2000_TIME_T);
             cels[ncelobjs++] = s;
         }
     }

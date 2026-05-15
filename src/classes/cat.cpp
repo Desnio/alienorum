@@ -249,11 +249,11 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
 
         //  76- 80  F5.2   mag     B-V      ? color
         read_field_onebased(buffer, 76, 80, field);
-        s->BV_magnitude = atof(field);
+        s->BV_color = atof(field);
 
         //  83- 87  F5.2   mag     U-B      ? color
         read_field_onebased(buffer, 83, 87, field);
-        s->UB_magnitude = atof(field);
+        s->UB_color = atof(field);
 
         //  90- 94  F5.2   mag     R-I      ? color
         read_field_onebased(buffer, 90, 94, field);
@@ -277,7 +277,7 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
         read_field_onebased(buffer, 147, 152, field);
         s->HD = atoi(field);
 
-        s->update_location(J2000);
+        s->update_location(J2000_TIME_T);
 
         cels[offset+num_read] = s;
         num_read++;
@@ -315,7 +315,7 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
         {
             for (j=0; j<offset; j++)
             {
-                if (((Star*)cels[j])->HD == HDno)
+                if (cels[j]->type == star && ((Star*)cels[j])->HD == HDno)
                 {
                     HDfound = true;
                     s = (Star*)cels[j];
@@ -420,11 +420,11 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
 
         //  110-114  F5.2   mag     B-V      ? B-V color in the UBV system
         read_field_onebased(buffer, 110, 114, field);
-        s->BV_magnitude = atof(field);
+        s->BV_color = atof(field);
 
         //  116-120  F5.2   mag     U-B      ? U-B color in the UBV system
         read_field_onebased(buffer, 116, 120, field);
-        s->UB_magnitude = atof(field);
+        s->UB_color = atof(field);
 
         //  122-126  F5.2   mag     R-I      ? R-I   in system specified by n_R-I
         read_field_onebased(buffer, 122, 126, field);
@@ -462,9 +462,9 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
             if (s->HD) s->name = (std::string)"HD" + std::to_string(s->HD);
         }
 
-        s->VR_magnitude = (s->RI_magnitude + s->BV_magnitude*2) / 3;      // VERY rough estimate
+        s->VR_magnitude = (s->RI_magnitude + s->BV_color*2) / 3;      // VERY rough estimate
         double intrinsic_brightness = pow(magnbase, -s->apparent_magnitude) * pow(fmax(AU, s->distance) / parsec / 10, 2);
-        s->absolute_magnitude = -log(intrinsic_brightness) / log(magnbase);
+        s->absolute_magnitude = -log(intrinsic_brightness) * invlogmagnbase;
 
         #if 0
         // stellar radius = sqrt( lum(sun) * 10^(0.4 * mag(sun)-mag) / 4 pi sigma T^4 )
@@ -474,7 +474,7 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
         s->mass = ?????
         #endif
 
-        s->update_location(J2000);
+        s->update_location(J2000_TIME_T);
 
         if (!HDfound)
         {
@@ -575,18 +575,18 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         f = atof(field);
         if (f || trim(field).size()) s->apparent_magnitude = f;
         double intrinsic_brightness = pow(magnbase, -s->apparent_magnitude) * pow(fmax(AU, s->distance) / parsec / 10, 2);
-        s->absolute_magnitude = -log(intrinsic_brightness) / log(magnbase);
+        s->absolute_magnitude = -log(intrinsic_brightness) * invlogmagnbase;
 
         // 246-251  F6.3  mag     B-V       ? Johnson B-V colour
         read_field_onebased(buffer, 246, 251, field);
         f = atof(field);
-        if (f || trim(field).size()) s->BV_magnitude = f;
+        if (f || trim(field).size()) s->BV_color = f;
 
         // 436-447  A12   ---     SpType    Spectral type
         read_field_onebased(buffer, 436, 447, field);
         if (trim(field).size()) s->spectral_type = field;
 
-        s->update_location(J2000);
+        s->update_location(J2000_TIME_T);
 
         num_read++;
     }
@@ -627,6 +627,7 @@ int CatalogReader::read_starname_dat(CelestialObject **cels)
 
         for (i=0; cels[i]; i++)
         {
+            if (cels[i]->type != star) continue;
             Star* s = (Star*)cels[i];
             if ((HD && s->HD == HD) || (HIP && s->HIP == HIP) || (Gliese.size() && s->Gliese == Gliese))
             {
@@ -635,6 +636,113 @@ int CatalogReader::read_starname_dat(CelestialObject **cels)
                 break;
             }
         }
+    }
+
+    return num_read;
+}
+
+int CatalogReader::read_local_planets(CelestialObject **cels, int max)
+{
+    std::string path = "catalogs/planets.dat";
+    char buffer[1024];
+    char field[32];
+    int i, j, offset, num_read = 0;
+
+    for (offset=0; offset<max && cels[offset]; offset++);
+    if (offset >= max) return 0;
+
+    FILE* fp = fopen(path.c_str(), "rb");
+    if (!fp) return 0;
+
+    while (fgets(buffer, 1020, fp))
+    {
+        if (*buffer == '#') continue;
+
+        j = -1;
+        read_field_onebased(buffer, 1, 25, field);
+        std::string cenname = trim(field);
+        for (i=0; i<offset; i++)
+        {
+            if (!strcmp(cels[i]->name.c_str(), cenname.c_str()))
+            {
+                j = i;
+                break;
+            }
+        }
+
+        if (j < 0)
+        {
+            read_field_onebased(buffer, 26, 42, field);
+            std::cerr << "Warning: center of orbit unknown for " << field << std::endl;
+            continue;
+        }
+
+        Orbit* o = new Orbit();
+        o->center = cels[j];
+        Planet* p = new Planet();
+        p->orbit = o;
+        read_field_onebased(buffer, 26, 42, field);
+        p->name = trim(field);
+
+        read_field_onebased(buffer, 44, 58, field);
+        o->semimajor_axis = atof(field);
+
+        read_field_onebased(buffer, 60, 64, field);
+        p->BV_color = atof(field);
+
+        read_field_onebased(buffer, 66, 70, field);
+        p->UB_color = atof(field);
+
+        read_field_onebased(buffer, 72, 77, field);
+        o->eccentricity = atof(field);
+
+        read_field_onebased(buffer, 79, 85, field);
+        o->ascending_node = atof(field);
+
+        read_field_onebased(buffer, 87, 94, field);
+        o->arg_periapsis = atof(field);
+
+        read_field_onebased(buffer, 96, 105, field);
+        o->mean_anomaly = atof(field);
+
+        read_field_onebased(buffer, 107, 112, field);
+        p->absolute_magnitude = atof(field);
+
+        read_field_onebased(buffer, 114, 123, field);
+        p->volumetric_mean_radius = atof(field);
+
+        read_field_onebased(buffer, 125, 134, field);
+        p->oblateness = atof(field);
+
+        read_field_onebased(buffer, 136, 147, field);
+        o->eccentricity = atof(field);
+
+        read_field_onebased(buffer, 149, 166, field);
+        o->orbit_period = atof(field);
+
+        read_field_onebased(buffer, 168, 174, field);
+        p->inclination = atof(field);
+
+        read_field_onebased(buffer, 176, 184, field);
+        p->equinox = atof(field);
+
+        read_field_onebased(buffer, 186, 203, field);
+        p->sidereal_rotational_period = atof(field);
+
+        read_field_onebased(buffer, 205, 216, field);
+        p->mass = atof(field);
+        if (p->mass < 4e+28) p->type = rocky;
+        else if (p->mass >= 2.5e+29) p->type = gas_giant;
+        else p->type = ice_giant;
+
+        read_field_onebased(buffer, 218, 223, field);
+        p->surface_pressure = atof(field);
+
+        p->epoch = J2000;
+        p->color = Color::color_from_magnitude_indices(p->absolute_magnitude, p->BV_color);
+
+        cels[offset++] = p;
+        num_read++;
     }
 
     return num_read;

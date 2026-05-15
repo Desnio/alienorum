@@ -26,6 +26,7 @@ class CatalogReader
     int read_BrightStars_catalog(CelestialObject** cels, int max);
     int read_Hipparcos_catalog(CelestialObject** cels, int max);
     int read_starname_dat(CelestialObject** cels);                  // No max because we are not adding stars, only setting names.
+    int read_local_planets(CelestialObject** cels, int max);
 
     protected:
     void read_field_onebased(char* buffer, int start, int end, char* out);

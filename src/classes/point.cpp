@@ -110,6 +110,30 @@ double find_angle(double dx, double dy)
     return angle;
 }
 
+double find_3D_angle(Point &A, Point &B, Point &source)
+{
+    Point lA = A - source;
+    lA.scale(1);
+    Point lB = B - source;
+    lB.scale(1);
+
+    // https://stackoverflow.com/questions/1211212/how-to-calculate-an-angle-from-three-points
+    double P12 = lA.magnitude();
+    double P13 = lB.magnitude();
+    double P23 = lA.distance_to(lB);
+
+    double param = (P12*P12 + P13*P13 - P23*P23)/(2 * P12 * P13+.00000000001);
+    if (param < -1) param = -1;
+    if (param >  1) param =  1;
+    double retval = acos(param);
+    if (isnan(retval))
+    {
+        std::cerr << "P12 " << P12 << " P13 " << P13 << " P23 " << P23 << std::endl;
+        throw 0xbad9a9;
+    }
+    return retval;
+}
+
 double Point::magnitude() const
 {
     return sqrt(x*x + y*y + z*z);
@@ -181,7 +205,7 @@ double find_angle_along_vector(Point& pt1, Point& pt2, Point& source, Point& v)
     return a2 - a1;
 }
 
-Point rotate3D(Point& point, Point& source, Point& axis, double theta)
+Point rotate3D(Point point, Point source, Point axis, double theta)
 {
     // Originally from https://web.archive.org/web/20131229124319/http://inside.mines.edu/fs_home/gmurray/ArbitraryAxisRotation/
 

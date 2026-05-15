@@ -1,6 +1,7 @@
 
 #include <math.h>
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 #include "celestial.h"
 
@@ -10,10 +11,15 @@ CelestialLocation here;
 
 double CelestialObject::viewer_magnitude(CelestialLocation seen_from)
 {
+    if (type == rocky || type == ice_giant || type == gas_giant)
+    {
+        std::cerr << "Called viewer_magnitude() on a non-self-luminous object." << std::endl;
+        throw 0xbadc0de;
+    }
     double r = seen_from.distance_to(location) / parsec / 10;
     double intrinsic = pow(magnbase, -absolute_magnitude);
     double apparent = intrinsic / (r*r);
-    return -log(apparent) / log(magnbase);
+    return -log(apparent) * invlogmagnbase;
 }
 
 double CelestialObject::distance_from_magnitudes(double apparent, double absolute)
