@@ -64,7 +64,7 @@ void Planet::update_location(double tmnow)
 
     // 1. Calculate current Mean Anomaly
     double rads_sec = (M_PI * 2) / orbit->orbit_period;
-    double M = orbit->mean_anomaly + M_PI + rads_sec * (tmnow - J2000_TIME_T + (J2000 - epoch)*86400);
+    double M = orbit->mean_anomaly + M_PI/2 + rads_sec * (tmnow - J2000_TIME_T) + ((J2000 - epoch)*86400);
     M = std::fmod(M, 2.0 * M_PI);
 
     // 2. Solve for Eccentric Anomaly

@@ -340,12 +340,14 @@ void compute_object_draw_coordinates()
         {
             case star:
             ((Star*)cels[i])->update_location(simnow);
+            if (whereami == i) here = cels[i]->location;
             break;
 
             case rocky:
             case gas_giant:
             case ice_giant:
             ((Planet*)cels[i])->update_location(simnow);
+            if (whereami == i) here = cels[i]->location;
             break;
 
             default:
@@ -695,16 +697,16 @@ void process_keyboard_commands(ImGuiIO& io)
             case 'b': global_brightness *= 1.5; break;
             case 'B': global_brightness *= 0.666; break;
             case 'c': show_consln = !show_consln; break;
-            case 'd': JDnow += 1; viewchanged = true; break;
-            case 'D': JDnow -= 1; viewchanged = true; break;
+            case 'd': JDnow += 1; viewchanged = true; compute_object_draw_coordinates(); break;
+            case 'D': JDnow -= 1; viewchanged = true; compute_object_draw_coordinates(); break;
             case 'g': show_grid = !show_grid; break;
-            case 'h': JDnow += 1.0/24; viewchanged = true; break;
-            case 'H': JDnow -= 1.0/24; viewchanged = true; break;
-            case 'i': JDnow += 1.0/1440; viewchanged = true; break;
-            case 'I': JDnow -= 1.0/1440; viewchanged = true; break;
+            case 'h': JDnow += 1.0/24; viewchanged = true; compute_object_draw_coordinates(); break;
+            case 'H': JDnow -= 1.0/24; viewchanged = true; compute_object_draw_coordinates(); break;
+            case 'i': JDnow += 1.0/1440; viewchanged = true; compute_object_draw_coordinates(); break;
+            case 'I': JDnow -= 1.0/1440; viewchanged = true; compute_object_draw_coordinates(); break;
             case 'l': show_labels = !show_labels; break;
-            case 'm': JDnow += 30; viewchanged = true; break;
-            case 'M': JDnow -= 30; viewchanged = true; break;
+            case 'm': JDnow += 30; viewchanged = true; compute_object_draw_coordinates(); break;
+            case 'M': JDnow -= 30; viewchanged = true; compute_object_draw_coordinates(); break;
             case 'n': objinfwnd = !objinfwnd; break;
 
             case 'o':
@@ -727,6 +729,7 @@ void process_keyboard_commands(ImGuiIO& io)
             viewchanged = true;
             simnow = std::time(nullptr);
             JDnow = ((double)simnow - J2000_TIME_T)/86400 + J2000;
+            compute_object_draw_coordinates();
             break;
 
             case 'R': redlight_mode = !redlight_mode; break;
@@ -746,10 +749,10 @@ void process_keyboard_commands(ImGuiIO& io)
             viewchanged = true;
             break;
 
-            case 'y': JDnow += 365.2422; viewchanged = true; break;
-            case 'Y': JDnow -= 365.2422; viewchanged = true; break;
-            case 'z': JDnow += 36524.22; viewchanged = true; break;
-            case 'Z': JDnow -= 36524.22; viewchanged = true; break;
+            case 'y': JDnow += 365.2422; viewchanged = true; compute_object_draw_coordinates(); break;
+            case 'Y': JDnow -= 365.2422; viewchanged = true; compute_object_draw_coordinates(); break;
+            case 'z': JDnow += 36524.22; viewchanged = true; compute_object_draw_coordinates(); break;
+            case 'Z': JDnow -= 36524.22; viewchanged = true; compute_object_draw_coordinates(); break;
 
             case '+':
             vm = velocity.magnitude();

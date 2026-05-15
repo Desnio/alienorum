@@ -713,43 +713,43 @@ int CatalogReader::read_local_planets(CelestialObject **cels, int max)
         read_field_onebased(buffer, 79, 85, field);
         o->ascending_node = atof(field) * fiftyseventh;
 
-        read_field_onebased(buffer, 87, 94, field);
+        read_field_onebased(buffer, 89, 96, field);
         o->arg_periapsis = atof(field) * fiftyseventh;
 
-        read_field_onebased(buffer, 96, 105, field);
+        read_field_onebased(buffer, 99, 108, field);
         o->mean_anomaly = atof(field) * fiftyseventh;
 
-        read_field_onebased(buffer, 107, 112, field);
+        read_field_onebased(buffer, 110, 115, field);
         p->absolute_magnitude = atof(field);
 
-        read_field_onebased(buffer, 114, 123, field);
+        read_field_onebased(buffer, 117, 126, field);
         p->volumetric_mean_radius = atof(field);
 
-        read_field_onebased(buffer, 125, 134, field);
+        read_field_onebased(buffer, 128, 137, field);
         p->oblateness = atof(field);
 
-        read_field_onebased(buffer, 136, 147, field);
+        read_field_onebased(buffer, 139, 150, field);
         o->eccentricity = atof(field);
 
-        read_field_onebased(buffer, 149, 166, field);
+        read_field_onebased(buffer, 152, 169, field);
         o->orbit_period = atof(field);
 
-        read_field_onebased(buffer, 168, 174, field);
+        read_field_onebased(buffer, 172, 177, field);
         p->inclination = atof(field) * fiftyseventh;
 
-        read_field_onebased(buffer, 176, 184, field);
+        read_field_onebased(buffer, 179, 187, field);
         p->equinox = atof(field) * fiftyseventh;
 
-        read_field_onebased(buffer, 186, 203, field);
+        read_field_onebased(buffer, 189, 206, field);
         p->sidereal_rotational_period = atof(field);
 
-        read_field_onebased(buffer, 205, 216, field);
+        read_field_onebased(buffer, 208, 219, field);
         p->mass = atof(field);
         if (p->mass < 4e+28) p->type = rocky;
         else if (p->mass >= 2.5e+29) p->type = gas_giant;
         else p->type = ice_giant;
 
-        read_field_onebased(buffer, 218, 223, field);
+        read_field_onebased(buffer, 221, 226, field);
         p->surface_pressure = atof(field);
 
         p->epoch = J2000;
