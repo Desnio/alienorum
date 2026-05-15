@@ -61,13 +61,6 @@ class Point
 // This way, the system_center for the Sun and all solar system objects can be 2.5e+20 m from the
 // galactic center, while the local_position for the Sun can be [0,0,0] and all solar system
 // objects will have their own local positions relative to the Sun.
-class CelestialLocation
-{
-    public:
-    Point system_center;
-    Point local_position;
-    double distance_to(CelestialLocation& other);
-};
 
 struct Rotation
 {
@@ -79,6 +72,15 @@ struct Rotation
     };
 };
 
+class CelestialLocation
+{
+    public:
+    Point system_center;
+    Point local_position;
+    Rotation local_plane;
+    double distance_to(CelestialLocation& other);
+};
+
 Point compute_normal(Point pt1, Point pt2, Point pt3);
 double find_angle(double dx, double dy);
 double find_3D_angle(Point pt1, Point pt2, Point source);
@@ -88,6 +90,7 @@ Point rotate3D(Point point, Point source, Point axis, double theta);
 
 extern Point center, xaxis, yaxis, zaxis;
 extern Point solar_north, ecliptic_north, galactic_north;
+extern Rotation ICRF_to_ecliptic;
 extern Point velocity;
 
 #endif

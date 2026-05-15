@@ -86,14 +86,13 @@ void Planet::update_location(double tmnow)
     double y = (sinw * sini) * x_plane + (cosw * sini) * y_plane;
     double z = (sinO * cosw + cosO * sinw * cosi) * x_plane + (-sinO * sinw + cosO * cosw * cosi) * y_plane;
 
-    // TODO: THIS IS A TERRIBLE KLUDGE!
-    Point result = rotate3D(Point(x,y,z), Point(0,0,0), Point(0,0,-1), 23.45*fiftyseventh);
-    x = result.x; y = result.y; z = result.z;
-
-    // std::cout << name << " @ " << x << ", " << y << ", " << z << std::endl;
+    // TODO: This ecliptic stuff is specific to the solar system.
+    // For exoplanets, assume the planetary orbits and stellar equator are in the same plane and set the stellar inclination to zero.
+    // Point result = rotate3D(Point(x,y,z), Point(0,0,0), ICRF_to_ecliptic.v, -ICRF_to_ecliptic.a);
+    Point result = rotate3D(Point(x,y,z), Point(0,0,0), location.local_plane.v, -location.local_plane.a);
 
     location.system_center = orbit->center->location.system_center;
-    location.local_position = Point(x,y,z) + orbit->center->location.local_position;
+    location.local_position = result+ orbit->center->location.local_position;
 }
 
 Planet::Planet()

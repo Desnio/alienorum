@@ -287,6 +287,8 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
             if (s->equinox < 0) s->equinox += (M_PI*2);
             std::cout << s->name << " inclination: " << (s->inclination * fiftyseven) << std::endl;
             std::cout << s->name << " equinox: " << (s->equinox * fiftyseven) << std::endl;
+
+            s->location.local_plane = ICRF_to_ecliptic;
         }
 
         cels[offset+num_read] = s;
@@ -706,16 +708,16 @@ int CatalogReader::read_local_planets(CelestialObject **cels, int max)
         p->UB_color = atof(field);
 
         read_field_onebased(buffer, 72, 77, field);
-        o->eccentricity = atof(field);
+        o->inclination = atof(field) * fiftyseventh;
 
         read_field_onebased(buffer, 79, 85, field);
-        o->ascending_node = atof(field);
+        o->ascending_node = atof(field) * fiftyseventh;
 
         read_field_onebased(buffer, 87, 94, field);
-        o->arg_periapsis = atof(field);
+        o->arg_periapsis = atof(field) * fiftyseventh;
 
         read_field_onebased(buffer, 96, 105, field);
-        o->mean_anomaly = atof(field);
+        o->mean_anomaly = atof(field) * fiftyseventh;
 
         read_field_onebased(buffer, 107, 112, field);
         p->absolute_magnitude = atof(field);
@@ -733,10 +735,10 @@ int CatalogReader::read_local_planets(CelestialObject **cels, int max)
         o->orbit_period = atof(field);
 
         read_field_onebased(buffer, 168, 174, field);
-        p->inclination = atof(field);
+        p->inclination = atof(field) * fiftyseventh;
 
         read_field_onebased(buffer, 176, 184, field);
-        p->equinox = atof(field);
+        p->equinox = atof(field) * fiftyseventh;
 
         read_field_onebased(buffer, 186, 203, field);
         p->sidereal_rotational_period = atof(field);
@@ -752,6 +754,8 @@ int CatalogReader::read_local_planets(CelestialObject **cels, int max)
 
         p->epoch = J2000;
         p->color = Color::color_from_magnitude_indices(p->absolute_magnitude, p->BV_color);
+
+        p->location = o->center->location;          // Copy the system center and local plane. The local position will auto-fill later.
 
         cels[offset++] = p;
         num_read++;

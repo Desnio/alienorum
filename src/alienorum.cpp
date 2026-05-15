@@ -355,10 +355,14 @@ void compute_object_draw_coordinates()
         Point rel = cels[i]->location;
         rel -= here;
 
-        if (whereami == 0)
+        if (whereami >= 0)
         {
             double eqx = -cels[whereami]->equinox;
             Point equinox_axis( std::sin(eqx), 0, std::cos(eqx) );
+            if (cels[whereami]->type == rocky || cels[whereami]->type == ice_giant || cels[whereami]->type == gas_giant)
+            {
+                rel = rotate3D(rel, Point(0,0,0), cels[whereami]->location.local_plane.v, cels[whereami]->location.local_plane.a);
+            }
             rel = rotate3D(rel, center, equinox_axis, -cels[whereami]->inclination);
         }
 
