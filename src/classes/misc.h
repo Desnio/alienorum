@@ -14,6 +14,8 @@
 #define year (365 * 86400 + 5 * 3600 + 48 * 60 + 45)
 #define J2000 2451544.5
 #define speed_of_light 299792458.0
+#define kB 1.380649e-23
+#define Planck 6.62607015e-34
 #define earth_mass 5.972e+27
 #define jupiter_mass 1.898e+30
 #define solar_mass 1.989e+33
@@ -24,10 +26,11 @@
 #define fiftyseventh (M_PI/180)
 #define arcminute (fiftyseventh / 60)
 #define arcsecond (arcminute / 60)
+#define color_ref_temp 9758.5
 
 #define MAX_CELOBJS 262144
 #define its_behind_you 0xbe419d10
-#define default_brightness 13.0
+#define default_brightness 81.0
 #define default_gamma 1.0
 #define target_frame_rate 30
 const std::time_t J2000_TIME_T = 946684800;
@@ -46,6 +49,7 @@ double frand(double lmin, double lmax);
 int Grkno_from_abbrev(char* abbrev);
 std::string Greek_from_abbrev(char* abbrev);
 std::string Greek_from_abbrev(std::string abbrev);
+double blackbody_flux(double temperature, double wavelength);               // Kelvins and meters.
 int Damerau_Levenshtein(const std::string &s1, const std::string &s2);
 
 // Takes velocity in m/s and computes the ratio of Δt(moving)/Δt(stationary). The result will always be <= 1.
@@ -53,6 +57,7 @@ double compute_time_dilation(double velocity);
 
 extern const char* lbltypes[nlbltyp];
 extern int cbolbls_selected_idx;
+extern double bv_correction;
 
 // APP STATUS AND SETTINGS
 extern int ncelobjs, selected, cursor_size, circle_size, xaorngsim, objinfwnd_hei, timeout_ms, lmx, lmy, whereami, is_an_obj_under_cursor;
@@ -62,5 +67,7 @@ extern bool show_grid, show_consln, show_xonsm, show_labels, is_mouse_over_windo
 extern ImU32 cursor_color, grid_color, grid_color_brighter, consline_color, conslbl_color, selected_color, objlbl_color;
 extern std::string objname, objinfo;
 extern time_t simnow;
+extern double appmagn_lblcut, absmagn_lblcut, distance_lblcut;
+extern char lblcut0[256], lblcut1[256], lblcut2[256];
 
 #endif

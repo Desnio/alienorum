@@ -12,21 +12,28 @@ bool redlight_mode = false;
 double drawblxscalex, drawblxscaley;
 int *bx_cache = new int[MAX_CELOBJS], *by_cache = new int[MAX_CELOBJS];
 
+double Color::luminance()
+{
+    return 0.29 * red + 0.57 * green + 0.14 * blue;
+}
 
 Color Color::color_from_magnitude_indices(double Vmag, double BV)
 {
     Color c;
+    double BV_literal = BV+bv_correction, brightness = global_brightness * pow(magnbase, -Vmag);
 
-    // Literal B-V indices look too red on the screen.
-    BV -= 0.7;
+    c.green = 1;
+    c.blue = pow(magnbase, -BV_literal);
+    c.red = pow(magnbase,  BV_literal);
 
-    c.green = global_brightness * pow(magnbase, -Vmag);
-    c.blue = global_brightness * pow(magnbase, -Vmag-BV);
-    c.red = global_brightness * pow(magnbase, -Vmag+BV);
+    double lum = c.luminance(), invlum = 1.0 / lum;
+    c.red   *= brightness * invlum;
+    c.green *= brightness * invlum;
+    c.blue  *= brightness * invlum;
 
     // Literal B-V indices look too saturated on the screen.
-    c.red = (c.red + c.green + c.green) / 3;
-    // c.blue = (c.blue + c.green) / 2;
+    // c.red = (c.red + c.green) / 2;
+    // c.blue = fmax(c.blue, (c.blue + c.green) / 2);
 
     return c;
 }
@@ -34,55 +41,14 @@ Color Color::color_from_magnitude_indices(double Vmag, double BV)
 RGB Color::rgb_from_color(Color c, double bloom_radius)
 {
     RGB result;
-    /*if (bloom_radius < 1) bloom_radius = 1;
-    double bloom = 1.0 / pow(bloom_radius, 3);*/
-
-    // Treat c.red, c.green, c.blue as linear photon flux amounts.
-    // Bloom radius zero will have output = value up to a maximum of 255.
-    // Successive bloom radii will carry the overflow divided by the circumference
-    // of a circle with radius = bloom radius.
     int red, green, blue;
-    if (bloom_radius < 1)
-    {
-        red   = min(255, (int)(255.0 * pow(c.red,   global_inverse_gamma)));
-        green = min(255, (int)(255.0 * pow(c.green, global_inverse_gamma)));
-        blue  = min(255, (int)(255.0 * pow(c.blue,  global_inverse_gamma)));
-    }
-    else
-    {
-        int i;
-        double lum = 0.29*c.red + 0.57*c.green + 0.14 * c.blue, rc = c.red, gc = c.green, bc = c.blue;
-        for (i=0; i<bloom_radius; i++)
-        {
-            double circ = fmax(1, 2.0 * M_PI * i);
-            lum = fmax(0, lum - fmin(circ, lum));
-            if (!lum) return result;
-        }
 
-        gc = lum;
-        rc = c.red/c.green*lum;
-        bc = c.blue/c.green*lum;
+    double circ = 2.0 * M_PI * bloom_radius;
+    double invcirc = 1.0 / circ;
 
-        double circ = 2.0 * M_PI * bloom_radius;
-        double invcirc = 1.0 / circ;
-
-        // red   = min(255, (int)(255.0 * pow(rc * invcirc, global_inverse_gamma)));
-        // green = min(255, (int)(255.0 * pow(gc * invcirc, global_inverse_gamma)));
-        // blue  = min(255, (int)(255.0 * pow(bc * invcirc, global_inverse_gamma)));
-        red   = 255 * fmin(1.0, pow(rc * invcirc, global_inverse_gamma));
-        green = 255 * fmin(1.0, pow(gc * invcirc, global_inverse_gamma));
-        blue  = 255 * fmin(1.0, pow(bc * invcirc, global_inverse_gamma));
-
-        if (red<0 || red>255)
-        {
-            red = 255;
-        }
-
-    }
-
-    /*int red   = min(255, (int)(255.0 * pow(c.red   * bloom, global_inverse_gamma)));
-    int green = min(255, (int)(255.0 * pow(c.green * bloom, global_inverse_gamma)));
-    int blue  = min(255, (int)(255.0 * pow(c.blue  * bloom, global_inverse_gamma)));*/
+    red   = 255 * fmin(1.0, pow(c.red   * invcirc, global_inverse_gamma));
+    green = 255 * fmin(1.0, pow(c.green * invcirc, global_inverse_gamma));
+    blue  = 255 * fmin(1.0, pow(c.blue  * invcirc, global_inverse_gamma));
 
     if (redlight_mode)
     {

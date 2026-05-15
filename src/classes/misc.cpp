@@ -38,6 +38,12 @@ bool hide_mouse = true;
 bool searched = false;
 const char* lbltypes[nlbltyp] = { "Brightest", "Intrinsic", "Nearby", "Sunlike" };
 int cbolbls_selected_idx = 0;
+double bv_correction = 0;
+
+double appmagn_lblcut = 2.0,
+       absmagn_lblcut = -3.5,
+       distance_lblcut = 25*light_year;
+char lblcut0[256], lblcut1[256], lblcut2[256];
 
 const std::string WHITESPACE = " \n\r\t\f\v";
 __uint32_t xonsm[13] = {0x0e432843, 0x0e4328ec, 0x25443485, 0x29cc28ec, 0x29cc513a, 0x43363485, 0x511e0000, 0x511e3485, 0x511e513a, 0x511e5147, 0x511eab3a, 0x2b85e980, 0x57e47000};
@@ -91,6 +97,17 @@ std::string Greek_from_abbrev(char *abbrev)
 std::string Greek_from_abbrev(std::string abbrev)
 {
     return Greek_from_abbrev(abbrev.c_str());
+}
+
+double blackbody_flux(double T, double nu)
+{
+    double c = speed_of_light, h = Planck;
+
+    double numerator = 2.0 * h * std::pow(c, 2);
+    double exponent = (h * c) / (nu * kB * T);
+    double denominator = std::pow(nu, 5) * (std::exp(exponent) - 1.0);
+
+    return numerator / denominator;
 }
 
 double compute_time_dilation(double velocity)

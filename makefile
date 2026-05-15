@@ -103,19 +103,19 @@ $(OBJ)/imgui_impl_sdl2.o:$(IMGUI_DIR)/backends/imgui_impl_sdl2.cpp
 $(OBJ)/misc.o: $(CLASSES_DIR)/misc.cpp $(CLASSES_DIR)/misc.h makefile
 	$(CPP) $(CLASSES_DIR)/misc.cpp $(CPPFLAGS) -c -o $(OBJ)/misc.o
 
-$(OBJ)/color.o: $(CLASSES_DIR)/color.cpp $(CLASSES_DIR)/color.h makefile
+$(OBJ)/color.o: $(CLASSES_DIR)/color.cpp $(CLASSES_DIR)/color.h $(CLASSES_DIR)/misc.h makefile
 	$(CPP) $(CLASSES_DIR)/color.cpp $(CPPFLAGS) -c -o $(OBJ)/color.o
 
-$(OBJ)/point.o: $(CLASSES_DIR)/point.cpp $(CLASSES_DIR)/point.h makefile
+$(OBJ)/point.o: $(CLASSES_DIR)/point.cpp $(CLASSES_DIR)/point.h $(CLASSES_DIR)/misc.h makefile
 	$(CPP) $(CLASSES_DIR)/point.cpp $(CPPFLAGS) -c -o $(OBJ)/point.o
 
-$(OBJ)/celestial.o: $(CLASSES_DIR)/celestial.cpp $(CLASSES_DIR)/celestial.h makefile
+$(OBJ)/celestial.o: $(CLASSES_DIR)/celestial.cpp $(CLASSES_DIR)/celestial.h $(CLASSES_DIR)/misc.h makefile
 	$(CPP) $(CLASSES_DIR)/celestial.cpp $(CPPFLAGS) -c -o $(OBJ)/celestial.o
 
-$(OBJ)/star.o: $(CLASSES_DIR)/star.cpp $(CLASSES_DIR)/star.h makefile
+$(OBJ)/star.o: $(CLASSES_DIR)/star.cpp $(CLASSES_DIR)/star.h $(CLASSES_DIR)/misc.h makefile
 	$(CPP) $(CLASSES_DIR)/star.cpp $(CPPFLAGS) -c -o $(OBJ)/star.o
 
-$(OBJ)/cat.o: $(CLASSES_DIR)/cat.cpp $(CLASSES_DIR)/cat.h makefile
+$(OBJ)/cat.o: $(CLASSES_DIR)/cat.cpp $(CLASSES_DIR)/cat.h $(CLASSES_DIR)/misc.h makefile
 	$(CPP) $(CLASSES_DIR)/cat.cpp $(CPPFLAGS) -c -o $(OBJ)/cat.o
 
 $(BIN)/alienorum: src/alienorum.cpp $(OBJS)

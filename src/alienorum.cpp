@@ -336,19 +336,19 @@ void compute_object_draw_coordinates()
 
         try
         {
+            vmag_cache[i] = cels[i]->viewer_magnitude(here);
+
+            double v_brightness = global_brightness * pow(magnbase, -vmag_cache[i]);
+            magrad_cache[i] = fmin(10, fmax(1.414, pow(v_brightness, 0.25)));
+
             Cartesian2D cart(rel, azimuth, altitude, zoom);
             int dx = (int)(dispcx + cart.x * dispcx), dy = (int)(dispcy + cart.y * dispcx);
             cels[i]->drawnx = dx;
             cels[i]->drawny = dy;
 
-            double appmag = cels[i]->viewer_magnitude(here);
-            vmag_cache[i] = appmag;
-            double magrad = fmax(1, 5.0 - appmag)*1.5;
-            if (magrad < 1) magrad = 1;
-            magrad_cache[i] = magrad;
-
             if (dx < 0 or dx >= dispcx*2) continue;
             if (dy < 0 or dy >= dispcy*2) continue;
+
             bx = dx*drawblxscalex;
             by = dy*drawblxscaley;
             if (bx<0 || bx>=drawn_cache_split || by<0 || by>=drawn_cache_split) continue;
@@ -385,16 +385,18 @@ void draw_objects()
 
         // Any brighter object within reach, skip this one.
         bool skip = false;
+        double searchrad;
         if (bx_cache[i] >= 0 && bx_cache[i] < drawn_cache_split && by_cache[i] >= 0 && by_cache[i] < drawn_cache_split)
         {
             n = drawnblocks[bx_cache[i]][by_cache[i]].size();
             for (l=0; l<n; l++)
             {
                 j = drawnblocks[bx_cache[i]][by_cache[i]][l];
+                searchrad = fmax(3, magrad_cache[i]+magrad_cache[j]);
                 if (j==i) continue;
-                if (fabs(cels[i]->drawnx - cels[j]->drawnx) < magrad_cache[i]+magrad_cache[j]
+                if (fabs(cels[i]->drawnx - cels[j]->drawnx) < searchrad
                     &&
-                    fabs(cels[i]->drawny - cels[j]->drawny) < magrad_cache[i]+magrad_cache[j]
+                    fabs(cels[i]->drawny - cels[j]->drawny) < searchrad
                     && vmag_cache[j] < vmag_cache[i]
                     )
                 {
@@ -406,32 +408,32 @@ void draw_objects()
         if (skip) continue;
 
         xycoord = ImVec2(cels[i]->drawnx, cels[i]->drawny);
-        appmag = (cels[i]->type == star) ? vmag_cache[i] : cels[i]->absolute_magnitude;
-        magrad = magrad_cache[i];
+        appmag = vmag_cache[i];
         Color col = Color::color_from_magnitude_indices(appmag, cels[i]->BV_magnitude);
+        magrad = magrad_cache[i];
 
         for (jay=magrad; jay>=0.5; jay-=0.5)
         {
-            RGB rgb = Color::rgb_from_color(col, jay-1);
-            if (rgb.r < 16 && rgb.b < 16) continue;
-            if (jay > 2) ImGui::GetBackgroundDrawList()->AddCircle(xycoord, jay, IM_COL32(rgb.r, rgb.g, rgb.b, 255), 0, 1.5);
-            else ImGui::GetBackgroundDrawList()->AddCircleFilled(xycoord, jay, IM_COL32(rgb.r, rgb.g, rgb.b, 255), 8);
+            RGB rgb = Color::rgb_from_color(col, jay*jay);
+            if (rgb.r < 4 && rgb.b < 4) continue;
+            ImGui::GetBackgroundDrawList()->AddCircleFilled(xycoord, jay, IM_COL32(rgb.r, rgb.g, rgb.b, 255), 0);
+            if (rgb.r == 255 || rgb.b == 255) break;
         }
-    }
-
-    // Labels
-    if (show_labels) for (i=0; cels[i] && i<MAX_CELOBJS; i++)
-    {
-        xycoord = ImVec2(cels[i]->drawnx, cels[i]->drawny);
-        appmag = (cels[i]->type == star) ? vmag_cache[i] : cels[i]->absolute_magnitude;
-        magrad = magrad_cache[i];
         if (selected == i)
         {
             ImGui::GetBackgroundDrawList()->AddCircle(xycoord, magrad+2, rgba_apply_redlight(selected_color), 0, 2);
         }
-        if ((!cbolbls_selected_idx && appmag <= 1.5) 
-            || (cbolbls_selected_idx == 1 && cels[i]->absolute_magnitude <= 1.5)
-            || (cbolbls_selected_idx == 2 && here.distance_to(cels[i]->location) <= 25*light_year)
+    }
+
+    // Labels and selection
+    if (show_labels) for (i=0; cels[i] && i<MAX_CELOBJS; i++)
+    {
+        xycoord = ImVec2(cels[i]->drawnx, cels[i]->drawny);
+        appmag = vmag_cache[i];
+        magrad = magrad_cache[i];
+        if ((!cbolbls_selected_idx && appmag <= appmagn_lblcut)
+            || (cbolbls_selected_idx == 1 && cels[i]->absolute_magnitude <= absmagn_lblcut)
+            || (cbolbls_selected_idx == 2 && here.distance_to(cels[i]->location) <= distance_lblcut)
             || (cbolbls_selected_idx == 3 && cels[i]->type == star && ((Star*)cels[i])->is_sunlike())
             || i == selected)
         {
@@ -826,7 +828,10 @@ void draw_status_window(ImGuiIO& io)
         {
             const bool is_selected = (cbolbls_selected_idx == n);
             if (ImGui::Selectable(lbltypes[n], is_selected))
+            {
                 cbolbls_selected_idx = n;
+                show_labels = true;
+            }
 
             // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
             if (is_selected)
@@ -835,6 +840,34 @@ void draw_status_window(ImGuiIO& io)
         ImGui::EndCombo();
     }
     statheight += txtyscale*1.3;
+
+    if (cbolbls_selected_idx == 0)
+    {
+        sprintf(lblcut0, "%.2f", appmagn_lblcut);
+        ImGui::Text("Mag limit:");
+        ImGui::SameLine();
+        ImGui::InputText("##appmaglim", lblcut0, 255);
+        statheight += txtyscale*1.3;
+        appmagn_lblcut = atof(lblcut0);
+    }
+    else if (cbolbls_selected_idx == 1)
+    {
+        sprintf(lblcut1, "%.2f", absmagn_lblcut);
+        ImGui::Text("Mag limit:");
+        ImGui::SameLine();
+        ImGui::InputText("##absmaglim", lblcut1, 255);
+        statheight += txtyscale*1.3;
+        absmagn_lblcut = atof(lblcut1);
+    }
+    else if (cbolbls_selected_idx == 2)
+    {
+        sprintf(lblcut2, "%.2f", distance_lblcut/light_year);
+        ImGui::Text("Dist. l.y.:");
+        ImGui::SameLine();
+        ImGui::InputText("##distlim", lblcut2, 255);
+        statheight += txtyscale*1.3;
+        distance_lblcut = atof(lblcut2)*light_year;
+    }
 
     flagstr = (std::string)"Redlgt (Sh+R): "
         + std::string(redlight_mode ? "ON" : "OFF");
@@ -936,6 +969,7 @@ void draw_objinf_window(ImGuiIO& io)
 int main (int argc, char** argv)
 {
     int i, j, l, n;
+    bool magnitude_test = false;
     cels = new CelestialObject*[MAX_CELOBJS];
     vmag_cache = new double[MAX_CELOBJS];
     magrad_cache = new double[MAX_CELOBJS];
@@ -944,7 +978,6 @@ int main (int argc, char** argv)
     by_cache = new int[MAX_CELOBJS];
 
     memset(lookfor, 0, 256);
-
     if (!look_for_catalogs()) return -1;
 
     for (l=1; l<argc; l++)
@@ -963,16 +996,38 @@ int main (int argc, char** argv)
                 xaorngsim = l;
             }
         }
+
+        if (!strcmp(argv[l], "magtest")) magnitude_test = true;
     }
 
     read_cons_lines();
     load_catalogs();
+    bv_correction = log(blackbody_flux(5778, 5.4e-7) / blackbody_flux(5778, 4.6e-7)) / log(magnbase) - cels[0]->BV_magnitude;
     cache_cons_lines();
     rename_all_from_Bayer_Flamsteed();
 
     CatalogReader cr;
     cr.read_starname_dat(cels);
     Gliese_doubles_fix();
+
+    if (magnitude_test)
+    {
+        for (i=0; i<290; i++)
+        {
+            double magnitude = -1.0 + 0.1 * i;
+            Star* s = new Star();
+            s->name = (std::string)"Test "+std::to_string(magnitude);
+            s->right_ascension = fiftyseventh * i;
+            s->declination = -2.59 * fiftyseventh;
+            s->apparent_magnitude = s->absolute_magnitude = magnitude;
+            s->distance = parsec*10;
+            s->proper_motion_decl = s->proper_motion_RA = s->radial_velocity = 0;
+            s->BV_magnitude = 0.5;
+            s->epoch = J2000;
+            s->update_location(J2000);
+            cels[ncelobjs++] = s;
+        }
+    }
 
     //////////////////////////////////////////////////
     // Begin ImGui-specific setup code              //
@@ -1188,7 +1243,7 @@ int main (int argc, char** argv)
         }
         else if (io.MouseWheel < 0 && zoom > 1)
         {
-            zoom *= 0.9;
+            zoom = fmax(1, zoom * 0.9);
             global_brightness *= 0.9;
             viewchanged = true;
         }

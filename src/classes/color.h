@@ -18,6 +18,7 @@ class Color
     double green = 0;
     double blue = 0;
 
+    double luminance();
     static Color color_from_magnitude_indices(double Vmag, double BV);
     static Color color_from_magnitude_indices(double Vmag, double BV, double VR);
     static RGB rgb_from_color(Color c, double bloom_radius = 0);                    // Bloom radius = distance in pixels from center.
