@@ -77,7 +77,8 @@ class CelestialLocation
     public:
     Point system_center;
     Point local_position;
-    Rotation local_plane;
+    Rotation local_system_plane;
+    Rotation orbital_plane;
     Rotation equatorial_plane;
     double distance_to(CelestialLocation& other);
 };

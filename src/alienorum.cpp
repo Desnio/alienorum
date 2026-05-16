@@ -357,8 +357,9 @@ void compute_object_draw_coordinates()
         Point rel = cels[i]->location;
         rel -= here;
 
-        rel = rotate3D(rel, Point(0,0,0), here.equatorial_plane.v, -here.equatorial_plane.a);
-        rel = rotate3D(rel, Point(0,0,0), here.local_plane.v, here.local_plane.a);
+        rel = rotate3D(rel, Point(0,0,0), here.equatorial_plane.v, here.equatorial_plane.a);
+        rel = rotate3D(rel, Point(0,0,0), here.orbital_plane.v, here.orbital_plane.a);
+        rel = rotate3D(rel, Point(0,0,0), here.local_system_plane.v, here.local_system_plane.a);
 
         try
         {
@@ -614,7 +615,7 @@ void identify_object_under_cursor(ImGuiIO& io)
         objinfo += (std::string)"RA:    " + cels[i]->RA_as_hms(here) + (std::string)"\n"
                 + (std::string)"Decl:  " + cels[i]->Decl_as_degms(here) + (std::string)"\n"
                 + (std::string)"Mag:   " + std::to_string(lmag) + (std::string)"\n"
-                + (std::string)"Epoch: " + std::to_string((cels[i]->epoch-J2000)/365.2425+2000) + (std::string)"\n"
+                // + (std::string)"Epoch: " + std::to_string((cels[i]->epoch-J2000)/365.2425+2000) + (std::string)"\n"
                 ;
         if (cels[i]->distance_known)
             objinfo += (std::string)"Dist:  " + cels[i]->scaled_distance(here) + (std::string)"\n";
@@ -686,8 +687,8 @@ void process_keyboard_commands(ImGuiIO& io)
         ImWchar c = io.InputQueueCharacters[i];
         switch (c)
         {
-            case 'b': global_brightness *= 1.5; break;
-            case 'B': global_brightness *= 0.666; break;
+            case 'b': global_brightness *= 1.1; break;
+            case 'B': global_brightness *= 0.9; break;
             case 'c': show_consln = !show_consln; break;
             case 'd': JDnow += 1; viewchanged = true; compute_object_draw_coordinates(); break;
             case 'D': JDnow -= 1; viewchanged = true; compute_object_draw_coordinates(); break;
@@ -706,6 +707,7 @@ void process_keyboard_commands(ImGuiIO& io)
             {
                 here = cels[selected]->location;
                 whereami = selected;
+                selected = -1;
                 global_brightness = default_brightness;
                 zoom = 1;
             }
@@ -732,8 +734,9 @@ void process_keyboard_commands(ImGuiIO& io)
             velocity.x =  sin(azimuth) * cos(altitude) * speed_of_light / target_frame_rate;
             velocity.z =  cos(azimuth) * cos(altitude) * speed_of_light / target_frame_rate;
             velocity.y =  sin(altitude) * speed_of_light / target_frame_rate;
-            velocity = rotate3D(velocity, Point(0,0,0), here.equatorial_plane.v, here.equatorial_plane.a);
-            velocity = rotate3D(velocity, Point(0,0,0), here.local_plane.v, -here.local_plane.a);
+            velocity = rotate3D(velocity, Point(0,0,0), here.local_system_plane.v, -here.local_system_plane.a);
+            velocity = rotate3D(velocity, Point(0,0,0), here.orbital_plane.v, -here.orbital_plane.a);
+            velocity = rotate3D(velocity, Point(0,0,0), here.equatorial_plane.v, -here.equatorial_plane.a);
             spin = 0;
             viewchanged = true;
             whereami = -1;
@@ -757,12 +760,15 @@ void process_keyboard_commands(ImGuiIO& io)
                 velocity.x =  sin(azimuth) * cos(altitude) * 1000;
                 velocity.z =  cos(azimuth) * cos(altitude) * 1000;
                 velocity.y =  sin(altitude) * 1000;
-                velocity = rotate3D(velocity, Point(0,0,0), here.equatorial_plane.v, here.equatorial_plane.a);
-                velocity = rotate3D(velocity, Point(0,0,0), here.local_plane.v, -here.local_plane.a);
+                velocity = rotate3D(velocity, Point(0,0,0), here.local_system_plane.v, -here.local_system_plane.a);
+                velocity = rotate3D(velocity, Point(0,0,0), here.orbital_plane.v, -here.orbital_plane.a);
+                velocity = rotate3D(velocity, Point(0,0,0), here.equatorial_plane.v, -here.equatorial_plane.a);
                 whereami = -1;
             }
             viewchanged = true;
             break;
+
+            case '!': show_consln = show_grid = show_labels = false; break;
 
             case '-':
             vm = velocity.magnitude();
@@ -770,15 +776,8 @@ void process_keyboard_commands(ImGuiIO& io)
             viewchanged = true;
             break;
 
-            case '`':
-            global_gamma += 0.2;
-            set_gamma(global_gamma);
-            break;
-
-            case '~':
-            global_gamma -= 0.2;
-            set_gamma(global_gamma);
-            break;
+            case '`': global_gamma += 0.2; set_gamma(global_gamma); break;
+            case '~': global_gamma -= 0.2; set_gamma(global_gamma); break;
 
             default:
             ;

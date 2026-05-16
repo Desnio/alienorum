@@ -110,16 +110,18 @@ std::string CelestialObject::Decl_as_degms(CelestialLocation seen_from)
 double CelestialObject::RA_as_radians(CelestialLocation seen_from)
 {
     Point relloc = (location.system_center - seen_from.system_center) + (location.local_position - seen_from.local_position);
-    relloc = rotate3D(relloc, center, seen_from.local_plane.v, seen_from.local_plane.a);
-    relloc = rotate3D(relloc, center, seen_from.equatorial_plane.v, -seen_from.equatorial_plane.a);
+    relloc = rotate3D(relloc, center, seen_from.equatorial_plane.v, seen_from.equatorial_plane.a);
+    relloc = rotate3D(relloc, center, seen_from.orbital_plane.v, seen_from.orbital_plane.a);
+    relloc = rotate3D(relloc, center, seen_from.local_system_plane.v, seen_from.local_system_plane.a);
     return find_angle(relloc.z, -relloc.x);
 }
 
 double CelestialObject::Decl_as_radians(CelestialLocation seen_from)
 {
     Point relloc = (location.system_center - seen_from.system_center) + (location.local_position - seen_from.local_position);
-    relloc = rotate3D(relloc, center, seen_from.local_plane.v, seen_from.local_plane.a);
-    relloc = rotate3D(relloc, center, seen_from.equatorial_plane.v, -seen_from.equatorial_plane.a);
+    relloc = rotate3D(relloc, center, seen_from.equatorial_plane.v, seen_from.equatorial_plane.a);
+    relloc = rotate3D(relloc, center, seen_from.orbital_plane.v, seen_from.orbital_plane.a);
+    relloc = rotate3D(relloc, center, seen_from.local_system_plane.v, seen_from.local_system_plane.a);
     double result = find_angle(sqrt(relloc.x*relloc.x+relloc.z*relloc.z), relloc.y);
     if (result > M_PI/2) result -= M_PI*2;
     return result;

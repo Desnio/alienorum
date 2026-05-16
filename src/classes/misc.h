@@ -43,7 +43,7 @@
 
 #define MAX_CELOBJS 262144
 #define its_behind_you 0xbe419d10
-#define default_brightness 81.0
+#define default_brightness 100.0
 #define default_gamma 1.0
 #define target_frame_rate 30
 const std::time_t J2000_TIME_T = 946684800;
