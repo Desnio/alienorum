@@ -24,10 +24,10 @@ status pane speeds up.
 
 As you're speeding up, you can use the mouse to have a look around. Once you press the + key the first time,
 it sets your direction of travel and any use of + or - will affect only your speed and not your direction.
-You can see the Sun and inner planets zooming away from you as you keep accelerating.
+You can see the Sun and inner planets zooming away behind you as you keep accelerating.
 
 Notice that due to time dilation, it takes a long time to get up to interstellar speeds. A really really long time!
-You would be forgiven for wondering how the developers of this app can be so cruel, but it's relativity that's this cruel.
+You would be forgiven for wondering how the developer of this app can be so cruel, but it's relativity that's this cruel.
 The universe is really really really big, and relativity says the closer you get to the cosmic speed limit,
 the more energy you have to dump into your engines.
 
@@ -39,13 +39,14 @@ will eventually reach interstellar speed. Fortunately, there's a better way.
 Point the view in the direction you want to go and press W. Notice that you are now traveling at warp 1,
 and that the clock is keeping normal time. Press + several more times until you see the stars begin to move.
 Warp speed is a frequent sci-fi trope to get around the limitations of relativity, often involving some kind
-of astrophysics shortcut that gets around actually moving through space. For our purposes, we can bypass
-simulated relativity and do spaceflight and flyby sequences.
+of astrophysics shortcut that bypasses actually moving through normal space. For our purposes, we can just ignore
+relativity and show what spaceflight and flyby sequences would look like without it.
 
 Even with the help of warp speed, it still takes getting up to a few million to a few tens of millions of times
 the speed of light just to see the stars rush by. Space is really really really really REALLY big.
 
-Sublight speed can be useful for moving between solar system objects, while warp is great for interstellar flight.
+Sublight speed can be useful for moving between solar system objects,
+while warp is pretty much a necessity for interstellar flight.
 
 To stop spaceflight, press X.
 
@@ -55,10 +56,10 @@ Hovering the mouse over a celestial object displays information about that objec
 Clicking will select the object, resulting in a green circle around it. To clear object selection, press Shift+S.
 
 After slecting an object, pressing O will teleport to that object. The local reference plane will update in the 
-view, so you will likely be looking in a different direction than before.
+view, so you might be looking in a different direction than before.
 
 You can also use the search box in the left pane to find objects. You can search by friendly name (e.g. Polaris),
-Bayer-Flamsteed name (Alp UMi or 1 UMi), HD designation, HIP designation, Gliese, and so on. It uses a fuzzy 
+Bayer-Flamsteed name (Alp UMi or 1 UMi), HD designation, HIP designation, or Gliese number. It uses a fuzzy 
 search algorithm that sometimes gets caught on names with similar letters - if you search Proxima it returns
 Porrima (Gam Vir), but "proxima cent" finds the right star. After clicking Find or pressing Enter, the search 
 result will be selected.
@@ -76,7 +77,7 @@ select the object of interest and track it with T.
 
 Then speed up to approach the object, watching its distance in the right pane. Before getting too close, begin
 slowing down. It's very easy to overshoot and zip right past it. If you keep your speed just right, you can
-float past it and watch it roll along against the background stars.
+float by it and watch it seem to roll across the background stars.
 
 ## Keyboard Shortcuts
 
@@ -84,39 +85,48 @@ The full list of keyboard shortcuts so far is:
 
 ### View Controls
 
+```
 B           Increase brightness
 Shift+B     Decrease brightness
 `           Increase gamma
 ~           Decrease gamma
 Shift+R     Toggle red light mode
+```
 
 ## Info and Tracking
 
+```
 {click}     Select object
 Shift+S     Clear selection
 T           Track selected object
 Shift+T     Clear tracking
+```
 
 ### Image Elements
 
+```
 C           Show/hide constellation lines
 G           Show/hide RA/Dec lines
 L           Show/hide labels
 N           Show/hide info panel
 S           Show/hide status panel
 !           Hide all annotations (realism mode)
+```
 
 ### Motion and Location
 
+```
 O           Go to object
 R           Return to default view, from Earth, at current time
 W           Warp speed
 X           Full stop
 +           Increase speed
 -           Decrease speed (no effect if already stopped)
+```
 
 ### Time Seeking
 
+```
 Z           Advance one century
 Shift+Z     Rewind one century
 Y           Advance one year
@@ -129,3 +139,4 @@ H           Advance one hour
 Shift+H     Rewind one hour
 I           Advance one minute
 Shift+I     Rewind one minute
+```
