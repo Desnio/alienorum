@@ -73,7 +73,7 @@ extern int cbolbls_selected_idx;
 extern double bv_correction;
 
 // APP STATUS AND SETTINGS
-extern int ncelobjs, selected, cursor_size, circle_size, xaorngsim, objinfwnd_hei, timeout_ms, lmx, lmy, whereami, iamhome, is_an_obj_under_cursor;
+extern int ncelobjs, selected, trackidx, cursor_size, circle_size, xaorngsim, objinfwnd_hei, timeout_ms, lmx, lmy, whereami, iamhome, is_an_obj_under_cursor;
 extern double azimuth, altitude, spin, global_gamma, zoom, vm, obj_magn_under_cursor, velocmag, JDnow;
 extern bool show_grid, show_consln, show_xonsm, show_labels, is_mouse_over_window, dragging, dragged, viewchanged,
     objinfwnd, statuswnd, hide_mouse, searched;

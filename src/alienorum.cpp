@@ -614,7 +614,13 @@ void identify_object_under_cursor(ImGuiIO& io)
 
     is_an_obj_under_cursor = -1;
     obj_magn_under_cursor = 1e9;
-    for (i=0; cels[i] && i<MAX_CELOBJS; i++)
+    if (trackidx >= 0)
+    {
+        is_an_obj_under_cursor = trackidx;
+        azimuth = -cels[trackidx]->RA_as_radians(here);
+        altitude = cels[trackidx]->Decl_as_radians(here);
+    }
+    else for (i=0; cels[i] && i<MAX_CELOBJS; i++)
     {
         if (abs(cels[i]->drawnx - io.MousePos.x) < circle_size
             &&
@@ -762,7 +768,7 @@ void process_keyboard_commands(ImGuiIO& io)
             {
                 here = cels[selected]->location;
                 whereami = selected;
-                selected = -1;
+                selected = trackidx = -1;
                 global_brightness = default_brightness;
                 zoom = 1;
             }
@@ -775,6 +781,7 @@ void process_keyboard_commands(ImGuiIO& io)
             zoom = 1;
             spin = 0;
             whereami = iamhome;
+            trackidx = -1;
             here.local_position = here.system_center = Point(0,0,0);
             global_brightness = default_brightness;
             case '@':
@@ -786,6 +793,8 @@ void process_keyboard_commands(ImGuiIO& io)
 
             case 'R': redlight_mode = !redlight_mode; break;
             case 's': statuswnd = !statuswnd; break;
+            case 't': trackidx = selected; selected = -1; break;
+            case 'T': trackidx = -1; break;
 
             case 'w':
             velocity.x =  sin(azimuth) * cos(altitude) * speed_of_light / target_frame_rate;

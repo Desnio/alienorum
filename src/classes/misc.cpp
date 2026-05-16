@@ -7,7 +7,7 @@
 #include "misc.h"
 
 int ncelobjs = 0;
-int selected = -1;
+int selected = -1, trackidx = -1;
 double azimuth = 0, altitude = 0;
 double spin = 0;
 double global_gamma = 1.8;
