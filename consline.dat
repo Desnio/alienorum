@@ -24,18 +24,21 @@ Gam Aqr, Zet2Aqr
 Zet2Aqr, Pi  Aqr
 Zet2Aqr, Eta Aqr
 Zet2Aqr, Lam Aqr
-Gam Aqr, Zet2Aqr
 Lam Aqr, Tau Aqr
 Tau Aqr, Del Aqr
 Lam Aqr, Tau2Aqr
 Tau2Aqr, Del Aqr
 Del Aqr, 88  Aqr
+88  Aqr, 89  Aqr
+89  Aqr, 86  Aqr
 88  Aqr, 98  Aqr
 98  Aqr, 99  Aqr
-99  Aqr, 104 Aqr
-104 Aqr, 102 Aqr
+99  Aqr, 101 Aqr
+98  Aqr, 104 Aqr
 104 Aqr, Ome1Aqr
-102 Aqr, Psi1Aqr
+104 Aqr, 106 Aqr
+106 Aqr, 107 Aqr
+107 Aqr, 108 Aqr
 Ome1Aqr, Psi1Aqr
 Psi1Aqr, Phi Aqr
 Phi Aqr, Lam Aqr

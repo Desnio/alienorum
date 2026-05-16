@@ -893,6 +893,7 @@ void lookfor_cb()
                 azimuth = -cels[i]->RA_as_radians(here);
                 altitude = cels[i]->Decl_as_radians(here);
                 selected = i;
+                trackidx = -1;
                 searched = true;
                 if (!lev) break;
             }
@@ -1371,7 +1372,7 @@ int main (int argc, char** argv)
         // Clicking and dragging
         bool is_mouse_down = ImGui::IsMouseDown(0) || ImGui::IsMouseDown(1) || ImGui::IsMouseDown(2);
         if (is_mouse_down && !is_mouse_over_window && dragging) pan_with_crosshairs(io);
-        if (is_mouse_down && (io.MousePos.x != lmx || io.MousePos.y != lmy)) dragging = true;
+        if (is_mouse_down && (fabs(io.MousePos.x - lmx) >= 3 || fabs(io.MousePos.y - lmy) >= 3)) dragging = true;
         else if (is_click) dragging = false;
 
         // Scroll wheel to zoom
