@@ -19,7 +19,8 @@ The stars are alien suns.
 
 To begin a spaceflight, point the view in the direction you wish to go, and press the + (plus sign) key.
 You can monitor your speed using the status pane at left. Most likely you will want to zoom past the stars,
-so just hold the + key down until you get very very close to the speed of light.
+so just hold the + key down until you get very very close to the speed of light. Notice the clock in the
+status pane speeds up.
 
 As you're speeding up, you can use the mouse to have a look around. Once you press the + key the first time,
 it sets your direction of travel and any use of + or - will affect only your speed and not your direction.
