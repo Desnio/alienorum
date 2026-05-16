@@ -20,7 +20,7 @@ double Color::luminance()
 Color Color::color_from_magnitude_indices(double Vmag, double BV)
 {
     Color c;
-    double BV_literal = BV+bv_correction, brightness = global_brightness * pow(magnbase, -Vmag);
+    double BV_literal = BV+bv_correction, brightness = global_brightness * pow(magnbase, -Vmag) * 128;
 
     c.green = 1;
     c.blue = pow(magnbase, -BV_literal);

@@ -538,6 +538,7 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         // Even if the star already has coordinates in J2000,
         // use the Hipparcos coordinates because they are high accuracy.
         s = nullptr;
+        bool is_new = false;
         for (j=0; j<offset; j++)
         {
             if (cels[j]->type != star) continue;
@@ -550,7 +551,17 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
                 break;
             }
         }
-        if (!s) continue;
+        if (!s)
+        {
+            read_field_onebased(buffer, 42, 46, field);
+            if (!trim(field).size()) continue;
+            f = atof(field);
+            read_field_onebased(buffer, 436, 447, field);
+            if (!strchr(field, 'I') || strchr(field, 'V')) continue;
+            if (f > 6.5) continue;
+            s = new Star();
+            is_new = true;
+        }
 
         s->HD = HD;
         s->HIP = HIP;
@@ -590,10 +601,10 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         f = atof(field) / 1000 / 3600 / year * fiftyseventh;
         if (f) s->proper_motion_decl = f;
 
-        // 231-236  F6.3  mag     VTmag     ? Mean VT magnitude
-        read_field_onebased(buffer, 231, 236, field);
+        //  42- 46  F5.2  mag     Vmag      ? Magnitude in Johnson V                  (H5)
+        read_field_onebased(buffer, 42, 46, field);
         f = atof(field);
-        if (f || trim(field).size()) s->apparent_magnitude = f;
+        if (trim(field).size()) s->apparent_magnitude = f;
         double intrinsic_brightness = pow(magnbase, -s->apparent_magnitude) * pow(fmax(AU, s->distance) / parsec / 10, 2);
         s->absolute_magnitude = -log(intrinsic_brightness) * invlogmagnbase;
 
@@ -607,8 +618,13 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         if (trim(field).size()) s->spectral_type = field;
 
         s->update_location(J2000_TIME_T);
+        if (is_new)
+        {
+            cels[offset++] = s;
+        }
 
         num_read++;
+        if (num_read >= max-4) break;
     }
 
     fclose(fp);

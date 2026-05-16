@@ -31,6 +31,7 @@ char lookfor[256];
 std::vector<int> drawnblocks[drawn_cache_split][drawn_cache_split];
 std::filesystem::path p = "catalogs";
 bool catalogs_found = false;
+int num_galaxies=0, num_stars=0, num_planets=0, num_moons=0, num_asteroids=0, num_comets=0, num_sat=0;
 int dispcx, dispcy;
 double txtyscale, txtycompact;
 bool is_click;
@@ -166,6 +167,7 @@ void load_catalogs()
 
     cout << "Reading local planets..." << endl << flush;
     int npl = cr.read_local_planets(cels, MAX_CELOBJS);                   // Read solar system planets now, before painting the sky with stars
+    num_planets += npl;
     cout << "Read " << npl << " objects." << endl << flush;
 
     if (have_BSC)
@@ -180,9 +182,11 @@ void load_catalogs()
     {
         cout << "Reading Hipparcos catalog..." << endl << flush;
         int nHIP = cr.read_Hipparcos_catalog(cels, MAX_CELOBJS);
-        cout << "Updated " << nHIP << " objects." << endl << flush;
+        cout << "Read " << nHIP << " objects." << endl << flush;
     }
     #endif
+
+    for (i=0; cels[i]; i++) if (cels[i]->type == star) num_stars++;
 }
 
 void read_cons_lines()
@@ -721,6 +725,7 @@ void process_keyboard_commands(ImGuiIO& io)
             spin = 0;
             whereami = iamhome;
             here.local_position = here.system_center = Point(0,0,0);
+            global_brightness = default_brightness;
             viewchanged = true;
             simnow = std::time(nullptr);
             JDnow = ((double)simnow - J2000_TIME_T)/86400 + J2000;
@@ -962,6 +967,20 @@ void draw_status_window(ImGuiIO& io)
     }
     ImGui::Text(velocstr.c_str());
     statheight += txtyscale;
+
+    std::string numobjs;
+    if (num_stars)
+    {
+        numobjs = std::to_string(num_stars) + " stars";
+        ImGui::Text(numobjs.c_str());
+        statheight += txtyscale;
+    }
+    if (num_planets)
+    {
+        numobjs = std::to_string(num_planets) + " planets";
+        ImGui::Text(numobjs.c_str());
+        statheight += txtyscale;
+    }
 
     struct tm *utc_time = std::gmtime(&simnow);
     int mon = utc_time->tm_mon + 1, mday = utc_time->tm_mday;
