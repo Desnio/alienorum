@@ -738,6 +738,7 @@ void process_keyboard_commands(ImGuiIO& io)
     int i;
     for (i = 0; i < io.InputQueueCharacters.Size; i++)
     {
+        timeout_ms = 1;
         ImWchar c = io.InputQueueCharacters[i];
         switch (c)
         {
@@ -1008,7 +1009,7 @@ void draw_status_window(ImGuiIO& io)
     if (isnan(vm)) vm = 0;
     velocmag = vm;
     std::string velocstr;
-    if (velocmag < 0.01 * speed_of_light) velocstr = std::string("Velocity: ") + std::to_string(velocmag / 1000 * 3600) + std::string(" km/h");
+    if (velocmag < 0.01 * speed_of_light) velocstr = std::string("Velocity: ") + std::to_string((int)(velocmag / 1000 * 3600)) + std::string(" km/h");
     else if (velocmag < speed_of_light) velocstr = std::string("Velocity: ") + std::to_string(velocmag / speed_of_light) + std::string(" c");
     else
     {
