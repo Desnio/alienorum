@@ -26,7 +26,7 @@ it sets your direction of travel and any use of + or - will affect only your spe
 You can see the Sun and inner planets zooming away from you as you keep accelerating.
 
 Notice that due to time dilation, it takes a long time to get up to interstellar speeds. A really really long time!
-You may be wondering how the developers of this app can be so cruel. Well, it's relativity that's this cruel.
+You would be forgiven for wondering how the developers of this app can be so cruel, but it's relativity that's this cruel.
 The universe is really really really big, and relativity says the closer you get to the cosmic speed limit,
 the more energy you have to dump into your engines.
 
