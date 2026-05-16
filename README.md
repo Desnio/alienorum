@@ -30,7 +30,7 @@ You would be forgiven for wondering how the developers of this app can be so cru
 The universe is really really really big, and relativity says the closer you get to the cosmic speed limit,
 the more energy you have to dump into your engines.
 
-Fortunately, in this app you have unlimited energy. If you have a way to hold down that + key, the simulation
+At least there's unlimited in-app spaceflight fuel. If you have some way to hold down that + key, the simulation
 will eventually reach interstellar speed. Fortunately, there's a better way.
 
 ## Warp Speed
