@@ -43,6 +43,7 @@ void draw_ra_dec_lines()
     Cartesian2D prev, zdes;
     ImU32 gc = rgba_apply_redlight(grid_color);
     ImU32 gcb = rgba_apply_redlight(grid_color_brighter);
+    ImU32 ec = rgba_apply_redlight(ecliptic_color);
     bool prev_valid = false;
     // RA and Dec lines.
     for (i=0; i<24; i++)
@@ -50,10 +51,10 @@ void draw_ra_dec_lines()
         prev_valid = false;
         for (j=-80; j<=80; j+=10)
         {
-            Point ihavetomove = Point::from_ra_dec(fiftyseventh * i * 15, fiftyseventh * j, 5);
+            Point noreallyicantkeeplivinginthisplace = Point::from_ra_dec(fiftyseventh * i * 15, fiftyseventh * j, 5);
             try
             {
-                zdes = Cartesian2D(ihavetomove, azimuth, altitude, zoom);
+                zdes = Cartesian2D(noreallyicantkeeplivinginthisplace, azimuth, altitude, zoom);
             }
             catch (...)
             {
@@ -70,23 +71,23 @@ void draw_ra_dec_lines()
 
                     if (prev_valid)
                     ImGui::GetBackgroundDrawList()->AddLine(
-                        ImVec2(dx1, dy1), ImVec2(dx2, dy2),
-                        gc, 1);
+                        ImVec2(dx1, dy1), ImVec2(dx2, dy2), gc, 1);
             }
 
             prev = zdes;
             prev_valid = true;
         }
     }
+
     for (j=-80; j <= 80; j+=10)
     {
         prev_valid = false;
         for (i=0; i<=24; i++)
         {
-            Point ihavetomove = Point::from_ra_dec(fiftyseventh * i * 15, fiftyseventh * j, 5);
+            Point noreallyicantkeeplivinginthisplace = Point::from_ra_dec(fiftyseventh * i * 15, fiftyseventh * j, 5);
             try
             {
-                zdes = Cartesian2D(ihavetomove, azimuth, altitude, zoom);
+                zdes = Cartesian2D(noreallyicantkeeplivinginthisplace, azimuth, altitude, zoom);
             }
             catch (...)
             {
@@ -103,8 +104,41 @@ void draw_ra_dec_lines()
 
                     if (prev_valid)
                     ImGui::GetBackgroundDrawList()->AddLine(
-                        ImVec2(dx1, dy1), ImVec2(dx2, dy2),
-                        j?gc:gcb, 1);
+                        ImVec2(dx1, dy1), ImVec2(dx2, dy2), j?gc:gcb, 1);
+            }
+
+            prev = zdes;
+            prev_valid = true;
+        }
+    }
+
+    if (whereami >= 0 && (cels[whereami]->type == rocky || cels[whereami]->type == ice_giant || cels[whereami]->type == gas_giant))
+    {
+        prev_valid = false;
+        for (i=0; i<=360; i++)
+        {
+            Point pt = Point::from_ra_dec(fiftyseventh * i, 0, AU);
+            pt = rotate3D(pt, center, here.equatorial_plane.v, here.equatorial_plane.a);
+            try
+            {
+                zdes = Cartesian2D(pt, azimuth, altitude, zoom);
+            }
+            catch (...)
+            {
+                prev_valid = false;
+                continue;
+            }
+
+            if (i & 1)
+            {
+                int dx1 = dispcx + zdes.x * dispcx,
+                    dy1 = dispcy + zdes.y * dispcx,
+                    dx2 = dispcx + prev.x * dispcx,
+                    dy2 = dispcy + prev.y * dispcx;
+
+                    if (prev_valid)
+                    ImGui::GetBackgroundDrawList()->AddLine(
+                        ImVec2(dx1, dy1), ImVec2(dx2, dy2), ec, 1);
             }
 
             prev = zdes;
@@ -372,7 +406,7 @@ void compute_object_draw_coordinates()
                 : cels[i]->viewer_magnitude(here);
 
             double v_brightness = global_brightness * pow(magnbase, -vmag_cache[i]);
-            magrad_cache[i] = fmin(15, fmax(1.414, pow(v_brightness, 0.25)));
+            magrad_cache[i] = fmin(15, fmax(1.414, pow(v_brightness, 0.333)));
 
             Cartesian2D cart(rel, azimuth, altitude, zoom);
             int dx = (int)(dispcx + cart.x * dispcx), dy = (int)(dispcy + cart.y * dispcx);
@@ -445,12 +479,12 @@ void draw_objects()
         appmag = vmag_cache[i];
         magrad = magrad_cache[i];
 
-        double appmag_step = (3.0 - appmag) / magrad;
+        double appmag_step = (4.0 - appmag) / magrad;
         for (jay=magrad; jay>=0.5; jay-=0.5)
         {
             Color col = Color::color_from_magnitude_indices(fmax(appmag, 4.0 - appmag_step * (magrad-jay)), cels[i]->BV_color);
             // if (magrad > 10) std::cout << jay << " / " << (4.0 - appmag_step * (magrad-jay)) << std::endl;
-            RGB rgb = Color::rgb_from_color(col, jay*jay);
+            RGB rgb = Color::rgb_from_color(col, 1);
             if (rgb.r < 4 && rgb.b < 4) continue;
             ImGui::GetBackgroundDrawList()->AddCircleFilled(xycoord, jay, IM_COL32(rgb.r, rgb.g, rgb.b, 255), 0);
             if (rgb.r == 255 && rgb.b == 255) break;
@@ -726,6 +760,7 @@ void process_keyboard_commands(ImGuiIO& io)
             whereami = iamhome;
             here.local_position = here.system_center = Point(0,0,0);
             global_brightness = default_brightness;
+            case '@':
             viewchanged = true;
             simnow = std::time(nullptr);
             JDnow = ((double)simnow - J2000_TIME_T)/86400 + J2000;
