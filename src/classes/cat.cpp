@@ -291,6 +291,12 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
             s->location.local_plane = ICRF_to_ecliptic;
             s->location.equatorial_plane = rot;
         }
+        else
+        {
+            s->update_location(J2000_TIME_T);
+            // Assumed 90 degree inclination for all extrasolar systems unles sinclination known.
+            s->location.local_plane = align_points_3d(cels[0]->location.system_center, Point(0,0,light_year*1e9), s->location.system_center);
+        }
 
         cels[offset+num_read] = s;
         num_read++;
@@ -488,6 +494,8 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
         #endif
 
         s->update_location(J2000_TIME_T);
+        // Assumed 90 degree inclination for all extrasolar systems unles sinclination known.
+        s->location.local_plane = align_points_3d(cels[0]->location.system_center, Point(0,0,light_year*1e9), s->location.system_center);
 
         if (!HDfound)
         {

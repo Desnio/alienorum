@@ -357,19 +357,8 @@ void compute_object_draw_coordinates()
         Point rel = cels[i]->location;
         rel -= here;
 
-        rel = rotate3D(rel, Point(0,0,0), here.local_plane.v, here.local_plane.a);
         rel = rotate3D(rel, Point(0,0,0), here.equatorial_plane.v, -here.equatorial_plane.a);
-
-        /*if (whereami >= 0)
-        {
-            double eqx = -cels[whereami]->equinox;
-            Point equinox_axis( std::sin(eqx), 0, std::cos(eqx) );
-            if (cels[whereami]->type == rocky || cels[whereami]->type == ice_giant || cels[whereami]->type == gas_giant)
-            {
-                rel = rotate3D(rel, Point(0,0,0), cels[whereami]->location.local_plane.v, cels[whereami]->location.local_plane.a);
-            }
-            rel = rotate3D(rel, center, equinox_axis, -cels[whereami]->inclination);
-        }*/
+        rel = rotate3D(rel, Point(0,0,0), here.local_plane.v, here.local_plane.a);
 
         try
         {
@@ -398,7 +387,7 @@ void compute_object_draw_coordinates()
         catch (...)
         {
             // Object is behind the camera.
-            cels[i]->drawnx = cels[i]->drawny = -1e9;;
+            cels[i]->drawnx = cels[i]->drawny = -1e9;
         }
     }
 }
@@ -743,6 +732,8 @@ void process_keyboard_commands(ImGuiIO& io)
             velocity.x =  sin(azimuth) * cos(altitude) * speed_of_light / target_frame_rate;
             velocity.z =  cos(azimuth) * cos(altitude) * speed_of_light / target_frame_rate;
             velocity.y =  sin(altitude) * speed_of_light / target_frame_rate;
+            velocity = rotate3D(velocity, Point(0,0,0), here.equatorial_plane.v, here.equatorial_plane.a);
+            velocity = rotate3D(velocity, Point(0,0,0), here.local_plane.v, -here.local_plane.a);
             spin = 0;
             viewchanged = true;
             whereami = -1;
@@ -766,6 +757,8 @@ void process_keyboard_commands(ImGuiIO& io)
                 velocity.x =  sin(azimuth) * cos(altitude) * 1000;
                 velocity.z =  cos(azimuth) * cos(altitude) * 1000;
                 velocity.y =  sin(altitude) * 1000;
+                velocity = rotate3D(velocity, Point(0,0,0), here.equatorial_plane.v, here.equatorial_plane.a);
+                velocity = rotate3D(velocity, Point(0,0,0), here.local_plane.v, -here.local_plane.a);
                 whereami = -1;
             }
             viewchanged = true;
