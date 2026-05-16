@@ -26,9 +26,7 @@ double Planet::viewer_reflectance_magnitude(CelestialLocation seen_from)
         std::cerr << "Called viewer_reflectance_magnitude on an object without a center of orbit." << std::endl;
         throw 0xbadc0de;
     }
-    double r = seen_from.distance_to(location) * invAU;
-    double rcen = location.distance_to(orbit->center->location) * invAU;
-    double rsq = r*r*rcen*rcen;
+
     CelestialObject *light_center = orbit->center;
     int i;
     for (i=0; i<5; i++)
@@ -41,13 +39,18 @@ double Planet::viewer_reflectance_magnitude(CelestialLocation seen_from)
                 std::cerr << "Cannot find light source for " << name << std::endl;
                 throw 0xbadda7a;
             }
+            // std::cout << "Light source for " << name << " is " << light_center->name << std::endl;
         }
         else break;
     }
 
+    double r = seen_from.distance_to(location) * invAU;
+    double rcen = location.distance_to(light_center->location) * invAU;
+    double rsq = r*r*rcen*rcen;
+
     double phase = find_3D_angle(seen_from.local_position, light_center->location.local_position, location.local_position);
     double phabs = fabs(phase);
-    double amt_lit = fabs(M_PI - fmin(phabs, M_PI*2-phabs)) / M_PI;
+    amt_lit = fabs(M_PI - fmin(phabs, M_PI*2-phabs)) / M_PI;
 
     double reflectivity = pow(magnbase, -absolute_magnitude);
     double apparent = reflectivity * amt_lit / rsq;

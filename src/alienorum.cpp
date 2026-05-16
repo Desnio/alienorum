@@ -112,7 +112,9 @@ void draw_ra_dec_lines()
         }
     }
 
-    if (whereami >= 0 && (cels[whereami]->type == rocky || cels[whereami]->type == ice_giant || cels[whereami]->type == gas_giant))
+    // TODO: Fix the ecliptic line for planets other than Earth.
+    // if (whereami >= 0 && (cels[whereami]->type == rocky || cels[whereami]->type == ice_giant || cels[whereami]->type == gas_giant))
+    if (whereami == iamhome)
     {
         prev_valid = false;
         for (i=0; i<=360; i++)
@@ -370,63 +372,67 @@ void cache_cons_lines()
 
 void compute_object_draw_coordinates()
 {
-    int i, bx, by;
+    int i, j, bx, by;
     double theta;
-    if (viewchanged) for (i=0; cels[i] && i<MAX_CELOBJS; i++)
+    if (viewchanged)
     {
-        switch (cels[i]->type)
+        for (i=0; i<drawn_cache_split; i++) for (j=0; j<drawn_cache_split; j++) drawnblocks[i][j].clear();
+        for (i=0; cels[i] && i<MAX_CELOBJS; i++)
         {
-            case star:
-            ((Star*)cels[i])->update_location(simnow);
-            break;
+            switch (cels[i]->type)
+            {
+                case star:
+                ((Star*)cels[i])->update_location(simnow);
+                break;
 
-            case rocky:
-            case gas_giant:
-            case ice_giant:
-            ((Planet*)cels[i])->update_location(simnow);
-            break;
+                case rocky:
+                case gas_giant:
+                case ice_giant:
+                ((Planet*)cels[i])->update_location(simnow);
+                break;
 
-            default:
-            ;
-        }
+                default:
+                ;
+            }
 
-        if (whereami == i) here = cels[i]->location;
+            if (whereami == i) here = cels[i]->location;
 
-        Point rel = cels[i]->location;
-        rel -= here;
+            Point rel = cels[i]->location;
+            rel -= here;
 
-        rel = rotate3D(rel, Point(0,0,0), here.equatorial_plane.v, here.equatorial_plane.a);
-        rel = rotate3D(rel, Point(0,0,0), here.orbital_plane.v, here.orbital_plane.a);
-        rel = rotate3D(rel, Point(0,0,0), here.local_system_plane.v, here.local_system_plane.a);
+            rel = rotate3D(rel, Point(0,0,0), here.equatorial_plane.v, here.equatorial_plane.a);
+            rel = rotate3D(rel, Point(0,0,0), here.orbital_plane.v, here.orbital_plane.a);
+            rel = rotate3D(rel, Point(0,0,0), here.local_system_plane.v, here.local_system_plane.a);
 
-        try
-        {
-            vmag_cache[i] = (cels[i]->type == rocky || cels[i]->type == ice_giant || cels[i]->type == gas_giant)
-                ? ((Planet*)cels[i])->viewer_reflectance_magnitude(here)
-                : cels[i]->viewer_magnitude(here);
+            try
+            {
+                vmag_cache[i] = (cels[i]->type == rocky || cels[i]->type == ice_giant || cels[i]->type == gas_giant)
+                    ? ((Planet*)cels[i])->viewer_reflectance_magnitude(here)
+                    : cels[i]->viewer_magnitude(here);
 
-            double v_brightness = global_brightness * pow(magnbase, -vmag_cache[i]);
-            magrad_cache[i] = fmin(15, fmax(1.414, pow(v_brightness, 0.333)));
+                double v_brightness = global_brightness * pow(magnbase, -vmag_cache[i]);
+                magrad_cache[i] = fmin(15, fmax(1.414, pow(v_brightness, 0.333)));
 
-            Cartesian2D cart(rel, azimuth, altitude, zoom);
-            int dx = (int)(dispcx + cart.x * dispcx), dy = (int)(dispcy + cart.y * dispcx);
-            cels[i]->drawnx = dx;
-            cels[i]->drawny = dy;
+                Cartesian2D cart(rel, azimuth, altitude, zoom);
+                int dx = (int)(dispcx + cart.x * dispcx), dy = (int)(dispcy + cart.y * dispcx);
+                cels[i]->drawnx = dx;
+                cels[i]->drawny = dy;
 
-            if (dx < 0 or dx >= dispcx*2) continue;
-            if (dy < 0 or dy >= dispcy*2) continue;
+                if (dx < 0 or dx >= dispcx*2) continue;
+                if (dy < 0 or dy >= dispcy*2) continue;
 
-            bx = dx*drawblxscalex;
-            by = dy*drawblxscaley;
-            if (bx<0 || bx>=drawn_cache_split || by<0 || by>=drawn_cache_split) continue;
-            drawnblocks[bx][by].push_back(i);
-            bx_cache[i] = bx;
-            by_cache[i] = by;
-        }
-        catch (...)
-        {
-            // Object is behind the camera.
-            cels[i]->drawnx = cels[i]->drawny = -1e9;
+                bx = dx*drawblxscalex;
+                by = dy*drawblxscaley;
+                if (bx<0 || bx>=drawn_cache_split || by<0 || by>=drawn_cache_split) continue;
+                drawnblocks[bx][by].push_back(i);
+                bx_cache[i] = bx;
+                by_cache[i] = by;
+            }
+            catch (...)
+            {
+                // Object is behind the camera.
+                cels[i]->drawnx = cels[i]->drawny = -1e9;
+            }
         }
     }
 }
@@ -650,17 +656,27 @@ void identify_object_under_cursor(ImGuiIO& io)
             if (((Star*)cels[i])->HR) objinfo += (std::string)"HR" + std::to_string(((Star*)cels[i])->HR) + (std::string)"\n";
             if (((Star*)cels[i])->HIP) objinfo += (std::string)"HIP" + std::to_string(((Star*)cels[i])->HIP) + (std::string)"\n";
         }
+
         objinfo += (std::string)"RA:    " + cels[i]->RA_as_hms(here) + (std::string)"\n"
                 + (std::string)"Decl:  " + cels[i]->Decl_as_degms(here) + (std::string)"\n"
                 + (std::string)"Mag:   " + std::to_string(lmag) + (std::string)"\n"
                 // + (std::string)"Epoch: " + std::to_string((cels[i]->epoch-J2000)/365.2425+2000) + (std::string)"\n"
                 ;
+
         if (cels[i]->distance_known)
             objinfo += (std::string)"Dist:  " + cels[i]->scaled_distance(here) + (std::string)"\n";
         if (cels[i]->type == star)
         {
             Star* s = (Star*)cels[i];
             objinfo += (std::string)"SpTyp: " + s->spectral_type + (std::string)"\n";
+        }
+        else if (cels[i]->type == galaxy)
+        {
+            //
+        }
+        else
+        {
+            objinfo += (std::string)"Lit %: " + std::to_string((int)(((Planet*)cels[i])->amt_lit*100)) + (std::string)"\n";
         }
     }
     else
@@ -1096,7 +1112,7 @@ int main (int argc, char** argv)
             char* ucpdhahzs = "\x2b\x85\xe9\x80\x57\xe4\x70\x00";
             i = 0;
             for (j=0; ucpdhahzs[j]; j++)
-                if (argv[l][j] == ucpdhahzs[j] ^ (xonsm[j] & 0377)) i++;
+                if (argv[l][j] == (ucpdhahzs[j] ^ (xonsm[j] & 0377))) i++;
 
             if (i==n)
             {
@@ -1303,9 +1319,9 @@ int main (int argc, char** argv)
         if (hide_mouse && !is_mouse_over_window) SDL_ShowCursor(SDL_DISABLE);
         dispcx = (int)io.DisplaySize.x/2;
         dispcy = (int)io.DisplaySize.y / 2;
-        drawblxscalex = 2.0 / (dispcx/drawn_cache_split);
-        drawblxscaley = 2.0 / (dispcy/drawn_cache_split);
-        for (i=0; i<drawn_cache_split; i++) for (j=0; j<drawn_cache_split; j++) drawnblocks[i][j].clear();
+        drawblxscalex = drawn_cache_split / io.DisplaySize.x;
+        drawblxscaley = drawn_cache_split / io.DisplaySize.y;
+
         if (whereami >= 0) here = cels[whereami]->location;
 
         if (show_grid) draw_ra_dec_lines();

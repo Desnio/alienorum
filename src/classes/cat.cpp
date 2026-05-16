@@ -693,6 +693,7 @@ int CatalogReader::read_local_planets(CelestialObject **cels, int max)
     while (fgets(buffer, 1020, fp))
     {
         if (*buffer == '#') continue;
+        if (!trim(buffer).size()) continue;
 
         j = -1;
         read_field_onebased(buffer, 1, 25, field);
@@ -723,6 +724,12 @@ int CatalogReader::read_local_planets(CelestialObject **cels, int max)
 
         read_field_onebased(buffer, 44, 58, field);
         o->semimajor_axis = atof(field);
+        if (!o->semimajor_axis)
+        {
+            delete p;
+            delete o;
+            continue;
+        }
 
         read_field_onebased(buffer, 60, 64, field);
         p->BV_color = atof(field);
@@ -733,49 +740,51 @@ int CatalogReader::read_local_planets(CelestialObject **cels, int max)
         read_field_onebased(buffer, 72, 77, field);
         o->inclination = atof(field) * fiftyseventh;
 
-        read_field_onebased(buffer, 79, 85, field);
+        read_field_onebased(buffer, 81, 87, field);
         o->ascending_node = atof(field) * fiftyseventh;
 
-        read_field_onebased(buffer, 89, 96, field);
+        read_field_onebased(buffer, 91, 98, field);
         o->arg_periapsis = atof(field) * fiftyseventh;
 
-        read_field_onebased(buffer, 99, 108, field);
+        read_field_onebased(buffer, 101, 110, field);
         o->mean_anomaly = atof(field) * fiftyseventh;
 
-        read_field_onebased(buffer, 110, 115, field);
+        read_field_onebased(buffer, 112, 117, field);
         p->absolute_magnitude = atof(field);
 
-        read_field_onebased(buffer, 117, 126, field);
+        read_field_onebased(buffer, 119, 128, field);
         p->volumetric_mean_radius = atof(field);
 
-        read_field_onebased(buffer, 128, 137, field);
+        read_field_onebased(buffer, 132, 141, field);
         p->oblateness = atof(field);
 
-        read_field_onebased(buffer, 139, 150, field);
+        read_field_onebased(buffer, 143, 154, field);
         o->eccentricity = atof(field);
 
-        read_field_onebased(buffer, 152, 169, field);
+        read_field_onebased(buffer, 156, 173, field);
         o->orbit_period = atof(field);
 
-        read_field_onebased(buffer, 172, 177, field);
+        read_field_onebased(buffer, 175, 181, field);
         p->inclination = atof(field) * fiftyseventh;
 
-        read_field_onebased(buffer, 179, 187, field);
+        read_field_onebased(buffer, 183, 191, field);
         p->equinox = atof(field) * fiftyseventh;
 
-        read_field_onebased(buffer, 189, 206, field);
+        read_field_onebased(buffer, 193, 210, field);
         p->sidereal_rotational_period = atof(field);
 
-        read_field_onebased(buffer, 208, 219, field);
+        read_field_onebased(buffer, 212, 223, field);
         p->mass = atof(field);
         if (p->mass < 4e+28) p->type = rocky;
         else if (p->mass >= 2.5e+29) p->type = gas_giant;
         else p->type = ice_giant;
 
-        read_field_onebased(buffer, 221, 226, field);
+        read_field_onebased(buffer, 225, 231, field);
         p->surface_pressure = atof(field);
 
-        p->epoch = J2000;
+        read_field_onebased(buffer, 233, 241, field);
+        p->epoch = J2000 + (atof(field) - 2000)*365.2422;
+
         p->color = Color::color_from_magnitude_indices(p->absolute_magnitude, p->BV_color);
         p->distance_known = true;
 
