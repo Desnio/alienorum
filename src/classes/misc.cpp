@@ -11,7 +11,7 @@ int selected = -1, trackidx = -1;
 double azimuth = 0, altitude = 0;
 double spin = 0;
 double global_gamma = 1.8;
-double zoom = 1, vm;
+double zoom = 1, vm, vmfr;
 bool show_grid = true, show_consln = true, show_xonsm = false, show_labels = true;
 int cursor_size = 10, circle_size = 3, xaorngsim = 0;
 ImU32 cursor_color = IM_COL32(255, 32, 0, 255);

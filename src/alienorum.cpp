@@ -32,7 +32,7 @@ std::vector<int> drawnblocks[drawn_cache_split][drawn_cache_split];
 std::filesystem::path p = "catalogs";
 bool catalogs_found = false;
 int num_galaxies=0, num_stars=0, num_planets=0, num_moons=0, num_asteroids=0, num_comets=0, num_sat=0;
-int dispcx, dispcy;
+int dispcx, dispcy, frames_without_mousemove = 0;
 double txtyscale, txtycompact;
 bool is_click;
 double frame_dur = 0, best_frame_dur = 1e9;
@@ -497,6 +497,7 @@ void draw_objects()
             RGB rgb = Color::rgb_from_color(col, 1);
             if (rgb.r >= 16 || rgb.b >= 16)
                 ImGui::GetBackgroundDrawList()->AddCircleFilled(xycoord, jay, IM_COL32(rgb.r, rgb.g, rgb.b, 255), 0);
+            else magrad_cache[i] = jay;
             if (rgb.r == 255 && rgb.b == 255) break;
 
             col.red *= bloom_exponent; col.green *= bloom_exponent; col.blue *= bloom_exponent;
@@ -589,6 +590,8 @@ void draw_cons_lines()
 
 void draw_mouse_cursor(ImGuiIO& io)
 {
+    if (frames_without_mousemove > 203) return;
+
     cursor_size = (int)io.DisplaySize.x/81;
     circle_size = cursor_size / 2.5;
 
@@ -799,13 +802,14 @@ void process_keyboard_commands(ImGuiIO& io)
 
             case 'R': redlight_mode = !redlight_mode; break;
             case 's': statuswnd = !statuswnd; break;
+            case 'S': selected = -1; break;
             case 't': trackidx = selected; selected = -1; break;
             case 'T': trackidx = -1; break;
 
             case 'w':
-            velocity.x =  sin(azimuth) * cos(altitude) * speed_of_light / target_frame_rate;
-            velocity.z =  cos(azimuth) * cos(altitude) * speed_of_light / target_frame_rate;
-            velocity.y =  sin(altitude) * speed_of_light / target_frame_rate;
+            velocity.x =  sin(azimuth) * cos(altitude) * speed_of_light * 1.00001 / target_frame_rate;
+            velocity.z =  cos(azimuth) * cos(altitude) * speed_of_light * 1.00001 / target_frame_rate;
+            velocity.y =  sin(altitude) * speed_of_light * 1.00001 / target_frame_rate;
             velocity = rotate3D(velocity, Point(0,0,0), here.local_system_plane.v, -here.local_system_plane.a);
             velocity = rotate3D(velocity, Point(0,0,0), here.orbital_plane.v, -here.orbital_plane.a);
             velocity = rotate3D(velocity, Point(0,0,0), here.equatorial_plane.v, -here.equatorial_plane.a);
@@ -826,7 +830,13 @@ void process_keyboard_commands(ImGuiIO& io)
 
             case '+':
             vm = velocity.magnitude();
-            if (vm) velocity.scale(vm * 1.5);
+            vmfr = vm * target_frame_rate;
+            if (vm)
+            {
+                if (vmfr < 0.1 * speed_of_light) velocity.scale(vm + 0.5 * vm * compute_time_dilation(vmfr));
+                else if (vmfr < speed_of_light) velocity.scale(vm + 0.5 * (speed_of_light - vmfr) / target_frame_rate * compute_time_dilation(vmfr));
+                else velocity.scale(vm * 1.5);
+            }
             else
             {
                 velocity.x =  sin(azimuth) * cos(altitude) * 1000;
@@ -1026,12 +1036,17 @@ void draw_status_window(ImGuiIO& io)
     velocmag = vm;
     std::string velocstr;
     if (velocmag < 0.01 * speed_of_light) velocstr = std::string("Velocity: ") + std::to_string((int)(velocmag / 1000 * 3600)) + std::string(" km/h");
-    else if (velocmag < speed_of_light) velocstr = std::string("Velocity: ") + std::to_string(velocmag / speed_of_light) + std::string(" c");
+    else if (velocmag < speed_of_light)
+    {
+        std::ostringstream oss;
+        oss << std::setprecision(13) << (velocmag / speed_of_light);
+        velocstr = std::string("Velocity: ") + oss.str() + std::string(" c");
+    }
     else
     {
         std::ostringstream oss;
         oss << std::scientific << std::setprecision(2) << (velocmag / speed_of_light);
-        velocstr = std::string("Velocity: ") + oss.str() + std::string(" warp");
+        velocstr = std::string("Velocity: Warp ") + oss.str();
     }
     ImGui::Text(velocstr.c_str());
     statheight += txtyscale;
@@ -1043,12 +1058,12 @@ void draw_status_window(ImGuiIO& io)
         ImGui::Text(numobjs.c_str());
         statheight += txtyscale;
     }
-    if (num_planets)
+    /* if (num_planets)
     {
         numobjs = std::to_string(num_planets) + " planets";
         ImGui::Text(numobjs.c_str());
         statheight += txtyscale;
-    }
+    } */
 
     struct tm *utc_time = std::gmtime(&simnow);
     int mon = utc_time->tm_mon + 1, mday = utc_time->tm_mday;
@@ -1365,7 +1380,10 @@ int main (int argc, char** argv)
         if (objinfwnd) draw_objinf_window(io);
 
         // Positioning updates
-        here.local_position += velocity;
+        vmfr = velocity.magnitude() * target_frame_rate;
+        Point vdil = velocity;
+        if (vmfr < speed_of_light) vdil.scale(vdil.magnitude() / compute_time_dilation(vmfr));
+        here.local_position += vdil;
         azimuth += spin;
         viewchanged = searched || spin || velocity.magnitude() || (PrevDispSize.x != io.DisplaySize.x) || (PrevDispSize.y != io.DisplaySize.y);
 
@@ -1402,6 +1420,9 @@ int main (int argc, char** argv)
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         SDL_GL_SwapWindow(window);
 
+        if (io.MousePos.x != lmx || io.MousePos.y != lmy) frames_without_mousemove = 0;
+        else frames_without_mousemove++;
+
         if ((io.MousePos.x != lmx || io.MousePos.y != lmy || viewchanged || velocity.magnitude()) && frame_dur > (1.0/target_frame_rate))
         {
             timeout_ms *= 0.333;
@@ -1432,7 +1453,17 @@ int main (int argc, char** argv)
         frame_dur = frame_elapsed.count() * 1e-6;
         if (frame_dur < best_frame_dur) best_frame_dur = frame_dur;
 
-        JDnow += frame_dur/86400;
+        vmfr = velocity.magnitude() * target_frame_rate;
+        if (vmfr >= speed_of_light)
+        {
+            // No time dilation in warp mode because faster than light is impossible so warp mode is
+            // some kind of hand wavy physics that bypass relativity.
+            JDnow += frame_dur/86400;
+        }
+        else
+        {
+            JDnow += frame_dur/86400 / compute_time_dilation(vmfr);
+        }
         simnow = (JDnow - J2000)*86400 + J2000_TIME_T;
     }
 
