@@ -411,7 +411,7 @@ void compute_object_draw_coordinates()
                     : cels[i]->viewer_magnitude(here);
 
                 double v_brightness = global_brightness * pow(magnbase, -vmag_cache[i]);
-                magrad_cache[i] = fmin(15, fmax(1.414, pow(v_brightness, 0.333)));
+                magrad_cache[i] = fmin(15, fmax(1.414, pow(v_brightness, 0.666)));
 
                 Cartesian2D cart(rel, azimuth, altitude, zoom);
                 int dx = (int)(dispcx + cart.x * dispcx), dy = (int)(dispcy + cart.y * dispcx);
@@ -466,7 +466,7 @@ void draw_objects()
             for (l=0; l<n; l++)
             {
                 j = drawnblocks[bx_cache[i]][by_cache[i]][l];
-                searchrad = fmax(3, magrad_cache[i]+magrad_cache[j]);
+                searchrad = fmax(3, (magrad_cache[i]+magrad_cache[j])*0.666);
                 if (j==i) continue;
                 if (fabs(cels[i]->drawnx - cels[j]->drawnx) < searchrad
                     &&
@@ -474,7 +474,9 @@ void draw_objects()
                     && vmag_cache[j] < vmag_cache[i]
                     )
                 {
-                    skip = true;
+                    double dx = cels[i]->drawnx - cels[j]->drawnx, dy = cels[i]->drawny - cels[j]->drawny;
+                    double r = sqrt(dx*dx+dy*dy);
+                    skip = (r < searchrad);
                     break;
                 }
             }
@@ -485,15 +487,19 @@ void draw_objects()
         appmag = vmag_cache[i];
         magrad = magrad_cache[i];
 
-        double appmag_step = (4.0 - appmag) / magrad;
+        #define bloom_exponent 2.5
+
+        Color col = Color::color_from_magnitude_indices(appmag, cels[i]->BV_color);
+        double divisor = 1.0 / (pow(bloom_exponent, magrad*2-1));
+        col.red *= divisor; col.green *= divisor; col.blue *= divisor;
         for (jay=magrad; jay>=0.5; jay-=0.5)
         {
-            Color col = Color::color_from_magnitude_indices(fmax(appmag, 4.0 - appmag_step * (magrad-jay)), cels[i]->BV_color);
-            // if (magrad > 10) std::cout << jay << " / " << (4.0 - appmag_step * (magrad-jay)) << std::endl;
             RGB rgb = Color::rgb_from_color(col, 1);
-            if (rgb.r < 4 && rgb.b < 4) continue;
-            ImGui::GetBackgroundDrawList()->AddCircleFilled(xycoord, jay, IM_COL32(rgb.r, rgb.g, rgb.b, 255), 0);
+            if (rgb.r >= 16 || rgb.b >= 16)
+                ImGui::GetBackgroundDrawList()->AddCircleFilled(xycoord, jay, IM_COL32(rgb.r, rgb.g, rgb.b, 255), 0);
             if (rgb.r == 255 && rgb.b == 255) break;
+
+            col.red *= bloom_exponent; col.green *= bloom_exponent; col.blue *= bloom_exponent;
         }
         if (selected == i)
         {
@@ -1122,7 +1128,7 @@ int main (int argc, char** argv)
             char* ucpdhahzs = "\x2b\x85\xe9\x80\x57\xe4\x70\x00";
             i = 0;
             for (j=0; ucpdhahzs[j]; j++)
-                if (argv[l][j] == (ucpdhahzs[j] ^ (xonsm[j] & 0377))) i++;
+                if (argv[l][j] == ((ucpdhahzs[j] ^ xonsm[j]) & 0377)) i++;
 
             if (i==n)
             {
