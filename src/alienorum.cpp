@@ -311,10 +311,11 @@ void cache_cons_lines()
         {
             if (cels[j]->type != star) continue;
             Star* s = (Star*)cels[j];
+            if (s->apparent_magnitude > 6) continue;
             if (founda < 0
                 && 
                 (
-                    !strcmp(s->Bayer.c_str(), consline_a[i].c_str()) 
+                    !strcmp(s->Bayer.c_str(), consline_a[i].c_str())
                     ||
                     !strcmp(s->Flamsteed.c_str(), consline_a[i].c_str())
                     ||
@@ -515,6 +516,7 @@ void draw_objects()
     if (show_labels) for (i=0; cels[i] && i<MAX_CELOBJS; i++)
     {
         if (i == whereami) continue;
+        if (cels[i]->type == star && !((Star*)cels[i])->is_in_visible_box(here.system_center)) continue;
         xycoord = ImVec2(cels[i]->drawnx, cels[i]->drawny);
         appmag = vmag_cache[i];
         magrad = magrad_cache[i];
