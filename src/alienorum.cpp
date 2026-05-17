@@ -307,11 +307,12 @@ void cache_cons_lines()
     for (i=0; i<nconsln; i++)
     {
         int founda = -1, foundb = -1;
+        float foundamag = 1e9, foundbmag = 1e9;
         for (j=0; cels[j]; j++)
         {
             if (cels[j]->type != star) continue;
             Star* s = (Star*)cels[j];
-            if (s->apparent_magnitude > 6) continue;
+            if (s->apparent_magnitude > 6.5) continue;
             if (founda < 0
                 && 
                 (
@@ -325,7 +326,9 @@ void cache_cons_lines()
                     )
                 ))
             {
+                if (s->apparent_magnitude > foundamag) continue;
                 founda = j;
+                foundamag = s->apparent_magnitude;
             }
             else if (foundb < 0
                 &&
@@ -340,7 +343,9 @@ void cache_cons_lines()
                     )
                 ))
             {
+                if (s->apparent_magnitude > foundbmag) continue;
                 foundb = j;
+                foundbmag = s->apparent_magnitude;
             }
         }
 
@@ -872,6 +877,7 @@ void process_keyboard_commands(ImGuiIO& io)
             break;
 
             case '!': show_consln = show_grid = show_labels = false; break;
+            case '%': zoom = 1; global_brightness = 1; viewchanged = true; break;
 
             case '-':
             vm = velocity.magnitude();

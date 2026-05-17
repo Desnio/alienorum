@@ -7,6 +7,10 @@ GCVS                https://cdsarc.cds.unistra.fr/viz-bin/nph-Cat/tar.gz?B/gcvs
 CGO                 https://cdsarc.cds.unistra.fr/viz-bin/nph-Cat/tar.gz?III/274
 2MASS               https://cdsarc.cds.unistra.fr/viz-bin/nph-Cat/tar.gz?II/246
 
+# multi star systems
+CCDM                https://cdsarc.cds.unistra.fr/viz-bin/nph-Cat/tar.gz?I/274
+SB9                 https://cdsarc.cds.unistra.fr/viz-bin/nph-Cat/tar.gz?B/sb9
+
 # galaxies
 # REGALADE            https://cdsarc.cds.unistra.fr/viz-bin/nph-Cat/tar.gz?J/A+A/706/A284
 GALEX               https://cdsarc.cds.unistra.fr/viz-bin/nph-Cat/tar.gz?J/ApJS/173/185
