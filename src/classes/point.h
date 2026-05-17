@@ -46,6 +46,7 @@ class Point
     void scale(double new_magn);
 
     static Point from_ra_dec(double right_ascension, double declination, double distance);
+    std::string printable() const;
 };
 
 class Box
@@ -97,6 +98,8 @@ double find_3D_angle(Point pt1, Point pt2, Point source);
 double find_angle_along_vector(Point pt1, Point pt2, Point source, Point v);
 Rotation align_points_3d(Point point, Point align, Point center);
 Point rotate3D(Point point, Point source, Point axis, double theta);
+
+std::ostream& operator<<(std::ostream& os, const Point& p);
 
 extern Point center, xaxis, yaxis, zaxis;
 extern Point solar_north, ecliptic_north, galactic_north;

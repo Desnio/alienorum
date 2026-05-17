@@ -865,28 +865,28 @@ int CatalogReader::read_star_orbits_dat(CelestialObject **cels)
         s->orbit->center = A;
 
         read_field_onebased(buffer, 49, 63, field);
-        s->orbit->orbit_period = atoi(field);
+        s->orbit->orbit_period = atof(field);
 
         read_field_onebased(buffer, 65, 75, field);
-        s->orbit->ascending_node = atoi(field) * fiftyseventh;
+        s->orbit->ascending_node = atof(field) * fiftyseventh;
 
         read_field_onebased(buffer, 77, 87, field);
-        s->orbit->inclination = atoi(field) * fiftyseventh;
+        s->orbit->inclination = atof(field) * fiftyseventh;
 
         read_field_onebased(buffer, 89, 99, field);
-        s->orbit->arg_periapsis = atoi(field) * fiftyseventh;
+        s->orbit->arg_periapsis = atof(field) * fiftyseventh;
 
         read_field_onebased(buffer, 101, 111, field);
-        s->orbit->semimajor_axis = atoi(field);
+        s->orbit->semimajor_axis = atof(field);
 
         read_field_onebased(buffer, 113, 123, field);
-        s->orbit->eccentricity = atoi(field);
+        s->orbit->eccentricity = atof(field);
 
         read_field_onebased(buffer, 125, 143, field);
-        s->orbit->mean_anomaly = atoi(field) * fiftyseventh;
+        s->orbit->mean_anomaly = atof(field) * fiftyseventh;
 
         read_field_onebased(buffer, 145, 155, field);
-        s->orbit->mean_anomaly = atoi(field) * fiftyseventh;
+        s->orbit->mean_anomaly = atof(field) * fiftyseventh;
 
         // First, solve for inclination
         Rotation inclined = align_points_3d(cels[0]->location.system_center,

@@ -189,5 +189,5 @@ void CelestialObject::update_orbit_location(double tmnow)
     Point result = rotate3D(Point(x,y,z), Point(0,0,0), location.local_system_plane.v, -location.local_system_plane.a);
 
     location.system_center = orbit->center->location.system_center;
-    location.local_position = result+ orbit->center->location.local_position;
+    location.local_position = result + orbit->center->location.local_position;
 }

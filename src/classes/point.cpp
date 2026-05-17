@@ -4,6 +4,7 @@
 #include <cctype>
 #include <iostream>
 #include <algorithm>
+#include <sstream>
 #include "point.h"
 
 Point center(0,0,0), xaxis(1e37, 0, 0), yaxis(0, 1e37, 0), zaxis(0, 0, 1e37);
@@ -312,6 +313,19 @@ Point compute_normal(Point pt1, Point pt2, Point pt3)
                  U.z * V.x - U.x * V.z,
                  U.x * V.y - U.y * V.x
                 );
+}
+
+std::string Point::printable() const
+{
+    std::stringstream buffer;
+    buffer << "[" << (0.001 * (int)(x*1000)) << "," << (0.001 * (int)(y*1000)) << "," << (0.001 * (int)(z*1000)) << "]";
+    return buffer.str();
+}
+
+std::ostream& operator<<(std::ostream& os, const Point& p)
+{
+    os << p.printable();
+    return os;
 }
 
 double CelestialLocation::distance_to(CelestialLocation &other)
