@@ -641,7 +641,7 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         }
         else
         {
-            std::cout << "Updated " << s->name << std::endl << std::flush;
+            if (frand(0,1) < 0.003) std::cout << "Updated " << s->name << std::endl << std::flush;
         }
 
         num_read++;
