@@ -637,7 +637,7 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         if (is_new)
         {
             cels[offset++] = s;
-            std::cout << "Added " << s->name << std::endl << std::flush;
+            // std::cout << "Added HIP" << s->HIP << std::endl << std::flush;
         }
         else
         {
