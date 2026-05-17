@@ -73,6 +73,9 @@ class CelestialObject
     double RA_as_radians(CelestialLocation seen_from);
     double Decl_as_radians(CelestialLocation seen_from);
     std::string scaled_distance(CelestialLocation fromwhere);
+
+    protected:
+    void update_orbit_location(double tmnow);
 };
 
 extern CelestialObject **cels;

@@ -15,8 +15,8 @@ double zoom = 1, vm, vmfr;
 bool show_grid = true, show_consln = true, show_xonsm = false, show_labels = true;
 int cursor_size = 10, circle_size = 3, xaorngsim = 0;
 ImU32 cursor_color = IM_COL32(255, 32, 0, 255);
-ImU32 cursor_color1 = IM_COL32(96, 12, 0, 76);
-ImU32 cursor_color2 = IM_COL32(160, 20, 0, 76);
+ImU32 cursor_color1 = IM_COL32(96, 0, 12, 76);
+ImU32 cursor_color2 = IM_COL32(160, 10, 10, 76);
 ImU32 cursor_color3 = IM_COL32(255, 32, 0, 76);
 ImU32 grid_color = IM_COL32(255, 0, 0, 96);
 ImU32 grid_color_brighter = IM_COL32(255, 0, 0, 140);
@@ -119,6 +119,19 @@ double blackbody_flux(double T, double nu)
 double compute_time_dilation(double velocity)
 {
     return sqrt(1.0 - (velocity*velocity)/(speed_of_light*speed_of_light));
+}
+
+// Solve Kepler's Equation: M = E - e*sin(E) using Newton's Method
+double solve_Kepler(double M, double e)
+{
+    double E = M; // Initial guess
+    double delta;
+    do
+    {
+        delta = E - e * std::sin(E) - M;
+        E = E - delta / (1.0 - e * std::cos(E));
+    } while (std::abs(delta) > 1e-10);
+    return E;
 }
 
 // Trim from start (left)

@@ -5,20 +5,6 @@
 #include "planet.h"
 #include "point.h"
 
-
-// Solve Kepler's Equation: M = E - e*sin(E) using Newton's Method
-double solve_Kepler(double M, double e)
-{
-    double E = M; // Initial guess
-    double delta;
-    do
-    {
-        delta = E - e * std::sin(E) - M;
-        E = E - delta / (1.0 - e * std::cos(E));
-    } while (std::abs(delta) > 1e-10);
-    return E;
-}
-
 double Planet::viewer_reflectance_magnitude(CelestialLocation seen_from)
 {
     if (!orbit)
@@ -63,41 +49,7 @@ double Planet::viewer_reflectance_magnitude(CelestialLocation seen_from)
 
 void Planet::update_location(double tmnow)
 {
-    if (!orbit) return;
-
-    // 1. Calculate current Mean Anomaly
-    double rads_sec = (M_PI * 2) / orbit->orbit_period;
-    double M = orbit->mean_anomaly + M_PI/2 + rads_sec * (tmnow - J2000_TIME_T) + ((J2000 - epoch)*86400);
-    M = std::fmod(M, 2.0 * M_PI);
-
-    // 2. Solve for Eccentric Anomaly
-    double E = solve_Kepler(M, orbit->eccentricity);
-
-    // 3. Calculate position in orbital plane (x', y')
-    double x_plane = orbit->semimajor_axis * (std::cos(E) - orbit->eccentricity);
-    double y_plane = orbit->semimajor_axis * std::sqrt(1.0 - orbit->eccentricity * orbit->eccentricity) * std::sin(E);
-
-    // 4. Rotate to 3D Heliocentric Coordinates
-    double cosO = std::cos(orbit->ascending_node);
-    double sinO = std::sin(orbit->ascending_node);
-    double cosw = std::cos(orbit->arg_periapsis);
-    double sinw = std::sin(orbit->arg_periapsis);
-    double cosi = std::cos(orbit->inclination);
-    double sini = std::sin(orbit->inclination);
-
-    double x = (cosO * cosw - sinO * sinw * cosi) * x_plane + (-cosO * sinw - sinO * cosw * cosi) * y_plane;
-    double y = (sinw * sini) * x_plane + (cosw * sini) * y_plane;
-    double z = (sinO * cosw + cosO * sinw * cosi) * x_plane + (-sinO * sinw + cosO * cosw * cosi) * y_plane;
-    location.orbital_plane.v = Point(cosO, 0, sinO);
-    location.orbital_plane.a = orbit->inclination;
-
-    // TODO: This ecliptic stuff is specific to the solar system.
-    // For exoplanets, assume the planetary orbits and stellar equator are in the same plane and set the stellar inclination to zero.
-    // Point result = rotate3D(Point(x,y,z), Point(0,0,0), ICRF_to_ecliptic.v, -ICRF_to_ecliptic.a);
-    Point result = rotate3D(Point(x,y,z), Point(0,0,0), location.local_system_plane.v, -location.local_system_plane.a);
-
-    location.system_center = orbit->center->location.system_center;
-    location.local_position = result+ orbit->center->location.local_position;
+    update_orbit_location(tmnow);
 }
 
 Planet::Planet()

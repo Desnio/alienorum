@@ -27,5 +27,3 @@ class Planet : public CelestialObject
 };
 
 #endif
-
-double solve_Kepler(double M, double e);

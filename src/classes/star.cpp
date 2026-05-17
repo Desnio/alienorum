@@ -6,6 +6,12 @@
 
 void Star::update_location(double tmnow)
 {
+    if (orbit)
+    {
+        update_orbit_location(tmnow);
+        return;
+    }
+
     // How many seconds since star's epoch
     double elapsed = tmnow - J2000_TIME_T + 86400 * (J2000 - epoch);
 
@@ -158,7 +164,7 @@ void Gliese_doubles_fix()
                 name2[n] = 0;
                 if (!strcmp(name1, name2))
                 {
-                    s2->name = s1->name + std::string(" ") + &name2[n+1];
+                    // s2->name = s1->name + std::string(" ") + &name2[n+1];
                     s2->right_ascension = s1->right_ascension;
                     s2->declination = s1->declination;
                     s2->distance = s1->distance;

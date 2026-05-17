@@ -50,7 +50,7 @@ const std::time_t J2000_TIME_T = 946684800;
 #define nlbltyp 4
 #define _filter_Hipparcos_stars_appmag 0
 #define _filter_Hipparcos_stars_absmag 1
-#define _cursor_fade 3
+#define _cursor_fade 2
 
 extern double magnbase, invlogmagnbase;
 extern std::string Greek_letter[24];
@@ -70,6 +70,9 @@ int Damerau_Levenshtein(const std::string &s1, const std::string &s2);
 
 // Takes velocity in m/s and computes the ratio of Δt(moving)/Δt(stationary). The result will always be <= 1.
 double compute_time_dilation(double velocity);
+
+// For orbits.
+double solve_Kepler(double M, double e);
 
 extern const char* lbltypes[nlbltyp];
 extern int cbolbls_selected_idx;

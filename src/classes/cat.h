@@ -15,17 +15,26 @@ extern std::vector<int> considx, lnpercons;
 extern std::vector<Cartesian2D> conscen;
 extern int nconsln;
 extern int *consaidx, *consbidx;
-extern bool have_Gliese, have_BSC, have_HIP;
+extern bool have_Gliese, have_BSC, have_HIP, have_CCDM;
 
 class CatalogReader
 {
     public:
     std::vector<std::string>find_catalogs(std::string path);
     void download_catalogs();
+
+    // Source Catalogs for Stars
     int read_Gliese_catalog(CelestialObject** cels, int max);
     int read_BrightStars_catalog(CelestialObject** cels, int max);
     int read_Hipparcos_catalog(CelestialObject** cels, int max);
+
+    // Binary and Multiple Systems
+    int read_CCDM_catalog(CelestialObject** cels, int max);
+    int read_SB9_catalog(CelestialObject** cels, int max);
+
+    // Internal Catalogs
     int read_starname_dat(CelestialObject** cels);                  // No max because we are not adding stars, only setting names.
+    int read_star_orbits_dat(CelestialObject** cels);
     int read_local_planets(CelestialObject** cels, int max);
 
     protected:

@@ -192,6 +192,7 @@ void load_catalogs()
         if (!strcmp(cats[i].c_str(), "catalogs/Gliese")) have_Gliese = true;
         if (!strcmp(cats[i].c_str(), "catalogs/BSC")) have_BSC = true;
         if (!strcmp(cats[i].c_str(), "catalogs/Hipparcos")) have_HIP = true;
+        if (!strcmp(cats[i].c_str(), "catalogs/CCDM")) have_CCDM = true;
     }
 
     if (have_Gliese)
@@ -220,6 +221,12 @@ void load_catalogs()
         cout << "Reading Hipparcos catalog..." << endl << flush;
         int nHIP = cr.read_Hipparcos_catalog(cels, MAX_CELOBJS);
         cout << "Read " << nHIP << " objects." << endl << flush;
+    }
+    if (have_CCDM)
+    {
+        cout << "Reading CCDM catalog..." << endl << flush;
+        int nCCDM = cr.read_CCDM_catalog(cels, MAX_CELOBJS);
+        cout << "Read " << nCCDM << " objects." << endl << flush;
     }
     #endif
 
@@ -618,41 +625,41 @@ void draw_mouse_cursor(ImGuiIO& io)
         ImGui::GetBackgroundDrawList()->AddLine(
             ImVec2(io.MousePos.x - circle_size, io.MousePos.y - circle_size*2 + (i-1)*_cursor_fade),
             ImVec2(io.MousePos.x, io.MousePos.y - cursor_size - circle_size + (i-1)*_cursor_fade),
-            cc[i], _cursor_fade);
+            cc[i], _cursor_fade+1);
         ImGui::GetBackgroundDrawList()->AddLine(
             ImVec2(io.MousePos.x + circle_size, io.MousePos.y - circle_size*2 + (i-1)*_cursor_fade),
             ImVec2(io.MousePos.x, io.MousePos.y - cursor_size - circle_size + (i-1)*_cursor_fade),
-            cc[i], _cursor_fade);
+            cc[i], _cursor_fade+1);
 
         // left
         ImGui::GetBackgroundDrawList()->AddLine(
             ImVec2(io.MousePos.x - circle_size*2 + (i-1)*_cursor_fade, io.MousePos.y - circle_size),
             ImVec2(io.MousePos.x - cursor_size - circle_size + (i-1)*_cursor_fade, io.MousePos.y),
-            cc[i], _cursor_fade);
+            cc[i], _cursor_fade+1);
         ImGui::GetBackgroundDrawList()->AddLine(
             ImVec2(io.MousePos.x - circle_size*2 + (i-1)*_cursor_fade, io.MousePos.y + circle_size),
             ImVec2(io.MousePos.x - cursor_size - circle_size + (i-1)*_cursor_fade, io.MousePos.y),
-            cc[i], _cursor_fade);
+            cc[i], _cursor_fade+1);
 
         // bottom
         ImGui::GetBackgroundDrawList()->AddLine(
             ImVec2(io.MousePos.x - circle_size, io.MousePos.y + circle_size*2 - (i-1)*_cursor_fade),
             ImVec2(io.MousePos.x, io.MousePos.y + cursor_size + circle_size - (i-1)*_cursor_fade),
-            cc[i], _cursor_fade);
+            cc[i], _cursor_fade+1);
         ImGui::GetBackgroundDrawList()->AddLine(
             ImVec2(io.MousePos.x + circle_size, io.MousePos.y + circle_size*2 - (i-1)*_cursor_fade),
             ImVec2(io.MousePos.x, io.MousePos.y + cursor_size + circle_size - (i-1)*_cursor_fade),
-            cc[i], _cursor_fade);
+            cc[i], _cursor_fade+1);
 
         // right
         ImGui::GetBackgroundDrawList()->AddLine(
             ImVec2(io.MousePos.x + circle_size*2 - (i-1)*_cursor_fade, io.MousePos.y + circle_size),
             ImVec2(io.MousePos.x + cursor_size + circle_size - (i-1)*_cursor_fade, io.MousePos.y),
-            cc[i], _cursor_fade);
+            cc[i], _cursor_fade+1);
         ImGui::GetBackgroundDrawList()->AddLine(
             ImVec2(io.MousePos.x + circle_size*2 - (i-1)*_cursor_fade, io.MousePos.y - circle_size),
             ImVec2(io.MousePos.x + cursor_size + circle_size - (i-1)*_cursor_fade, io.MousePos.y),
-            cc[i], _cursor_fade);
+            cc[i], _cursor_fade+1);
     }
 
     /*ImU32 c = rgba_apply_redlight(cursor_color);
@@ -735,7 +742,7 @@ void identify_object_under_cursor(ImGuiIO& io)
         objinfo += (std::string)"RA:    " + cels[i]->RA_as_hms(here) + (std::string)"\n"
                 + (std::string)"Decl:  " + cels[i]->Decl_as_degms(here) + (std::string)"\n"
                 + (std::string)"Mag:   " + std::to_string(lmag) + (std::string)"\n"
-                // + (std::string)"Epoch: " + std::to_string((cels[i]->epoch-J2000)/365.2425+2000) + (std::string)"\n"
+                // + (std::string)"Epoch: " + std::to_string((cels[i]->epoch-J2000)/(year/86400)+2000) + (std::string)"\n"
                 ;
 
         if (cels[i]->distance_known)
@@ -899,10 +906,10 @@ void process_keyboard_commands(ImGuiIO& io)
             viewchanged = true;
             break;
 
-            case 'y': JDnow += 365.2422; viewchanged = true; compute_object_draw_coordinates(); break;
-            case 'Y': JDnow -= 365.2422; viewchanged = true; compute_object_draw_coordinates(); break;
-            case 'z': JDnow += 36524.22; viewchanged = true; compute_object_draw_coordinates(); break;
-            case 'Z': JDnow -= 36524.22; viewchanged = true; compute_object_draw_coordinates(); break;
+            case 'y': JDnow += (year/86400); viewchanged = true; compute_object_draw_coordinates(); break;
+            case 'Y': JDnow -= (year/86400); viewchanged = true; compute_object_draw_coordinates(); break;
+            case 'z': JDnow += (year/864); viewchanged = true; compute_object_draw_coordinates(); break;
+            case 'Z': JDnow -= (year/864); viewchanged = true; compute_object_draw_coordinates(); break;
 
             case '+':
             vm = velocity.magnitude();
@@ -1240,6 +1247,7 @@ int main (int argc, char** argv)
     CatalogReader cr;
     cr.read_starname_dat(cels);
     Gliese_doubles_fix();
+    cr.read_star_orbits_dat(cels);
 
     if (magnitude_test)
     {
