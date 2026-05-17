@@ -31,6 +31,11 @@ class Star : public CelestialObject
     void update_location(double tmnow);     // Apply proper motion and re-derive 3D coordinates from the result.
     void rename_from_Bayer_Flamsteed();
     bool is_sunlike();
+    bool is_in_visible_box(Point seen_from);
+
+    protected:
+    Box visible_area;
+    bool visible_area_set = false;
 };
 
 void rename_all_from_Bayer_Flamsteed();

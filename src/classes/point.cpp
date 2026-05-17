@@ -319,3 +319,11 @@ double CelestialLocation::distance_to(CelestialLocation &other)
     Point relloc = (system_center - other.system_center) + (local_position - other.local_position);
     return relloc.magnitude();
 }
+
+bool Box::point_in_box(Point pt)
+{
+    return (pt.x >= corner1.x && pt.x <= corner2.x
+         && pt.y >= corner1.y && pt.y <= corner2.y
+         && pt.z >= corner1.z && pt.z <= corner2.z
+            );
+}

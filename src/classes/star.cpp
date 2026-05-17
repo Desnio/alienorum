@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string.h>
 #include <algorithm>
+#include <math.h>
 #include "star.h"
 
 void Star::update_location(double tmnow)
@@ -91,6 +92,21 @@ bool Star::is_sunlike()
     bool mainseq = (sptyp[i] == 'V' && sptyp[i+1] != 'I');
 
     return mainseq && ((mklett == 'F' && mklettsub >= 8) || (mklett == 'G') || (mklett == 'K' && mklettsub <= 2));
+}
+
+bool Star::is_in_visible_box(Point seen_from)
+{
+    if (!visible_area_set)
+    {
+        double intrinsic = pow(magnbase, -absolute_magnitude);
+        double ratio = intrinsic / intrinsic_cutoff;
+        double cutoff_dist = sqrt(ratio) * parsec * 10;
+        visible_area.corner1 = Point(-cutoff_dist, -cutoff_dist, -cutoff_dist) + location.system_center;
+        visible_area.corner2 = Point( cutoff_dist,  cutoff_dist,  cutoff_dist) + location.system_center;
+        visible_area_set = true;
+    }
+
+    return visible_area.point_in_box(seen_from);
 }
 
 void rename_all_from_Bayer_Flamsteed()

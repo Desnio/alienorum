@@ -48,6 +48,14 @@ class Point
     static Point from_ra_dec(double right_ascension, double declination, double distance);
 };
 
+class Box
+{
+    public:
+    Point corner1, corner2;
+
+    bool point_in_box(Point pt);
+};
+
 // We cannot simply use 3 dimensional x,y,z coordinates to plot celestial objects in space.
 // Why? Because the sheer distances involved are immense, as are the ranges of distances.
 // Suppose you use the center of the Milky Way galaxy as [0,0,0].

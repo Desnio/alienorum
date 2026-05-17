@@ -32,7 +32,8 @@ std::vector<int> drawnblocks[drawn_cache_split][drawn_cache_split];
 std::filesystem::path p = "catalogs";
 bool catalogs_found = false;
 int num_galaxies=0, num_stars=0, num_planets=0, num_moons=0, num_asteroids=0, num_comets=0, num_sat=0;
-int dispcx, dispcy, frames_without_mousemove = 0;
+float dispcx, dispcy;
+int frames_without_mousemove = 0;
 double txtyscale, txtycompact;
 bool is_click;
 double frame_dur = 0, best_frame_dur = 1e9;
@@ -382,6 +383,7 @@ void compute_object_draw_coordinates()
             switch (cels[i]->type)
             {
                 case star:
+                if (!((Star*)cels[i])->is_in_visible_box(here.system_center)) continue;
                 ((Star*)cels[i])->update_location(simnow);
                 break;
 
@@ -414,7 +416,7 @@ void compute_object_draw_coordinates()
                 magrad_cache[i] = fmin(15, fmax(1.414, pow(v_brightness, 0.666)));
 
                 Cartesian2D cart(rel, azimuth, altitude, zoom);
-                int dx = (int)(dispcx + cart.x * dispcx), dy = (int)(dispcy + cart.y * dispcx);
+                float dx = (int)(dispcx + cart.x * dispcx), dy = (int)(dispcy + cart.y * dispcx);
                 cels[i]->drawnx = dx;
                 cels[i]->drawny = dy;
 
@@ -450,6 +452,7 @@ void draw_objects()
         if (i == whereami) continue;
         if (!pass && magrad_cache[i] > 3) continue;
         else if (pass && magrad_cache[i] <= 3) continue;
+        if (cels[i]->type == star && !((Star*)cels[i])->is_in_visible_box(here.system_center)) continue;
 
         Point rel = cels[i]->location;
         rel -= here;
@@ -748,12 +751,21 @@ void pan_with_crosshairs(ImGuiIO& io)
     }
 }
 
+void center_selected()
+{
+    if (selected >= 0)
+    {
+        azimuth = -cels[selected]->RA_as_radians(here);
+        altitude = cels[selected]->Decl_as_radians(here);
+    }
+}
+
 void process_keyboard_commands(ImGuiIO& io)
 {
     int i;
     for (i = 0; i < io.InputQueueCharacters.Size; i++)
     {
-        timeout_ms = 1;
+        timeout_ms = 5;
         ImWchar c = io.InputQueueCharacters[i];
         switch (c)
         {
@@ -803,7 +815,14 @@ void process_keyboard_commands(ImGuiIO& io)
             case 'R': redlight_mode = !redlight_mode; break;
             case 's': statuswnd = !statuswnd; break;
             case 'S': selected = -1; break;
-            case 't': trackidx = selected; selected = -1; break;
+
+            case 't':
+            center_selected();
+            trackidx = selected;
+            selected = -1;
+            viewchanged = true;
+            break;
+
             case 'T': trackidx = -1; break;
 
             case 'w':
@@ -875,9 +894,8 @@ void lookfor_cb()
     {
         if (!strcmp(cels[i]->name.c_str(), lookfor))
         {
-            azimuth = -cels[i]->RA_as_radians(here);
-            altitude = cels[i]->Decl_as_radians(here);
             selected = i;
+            center_selected();
             searched = true;
             break;
         }
@@ -900,9 +918,8 @@ void lookfor_cb()
             if (lev < best_Levenshtein)
             {
                 best_Levenshtein = lev;
-                azimuth = -cels[i]->RA_as_radians(here);
-                altitude = cels[i]->Decl_as_radians(here);
                 selected = i;
+                center_selected();
                 trackidx = -1;
                 searched = true;
                 if (!lev) break;

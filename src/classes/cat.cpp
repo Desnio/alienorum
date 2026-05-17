@@ -553,12 +553,26 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         }
         if (!s)
         {
+            // There are only a handful with no V magnitude; omit them.
             read_field_onebased(buffer, 42, 46, field);
             if (!trim(field).size()) continue;
+            double appmag = atof(field);
+
+            #if _filter_Hipparcos_stars_appmag
             f = atof(field);
+            // From spectral type, determine if star is at least giant.
             read_field_onebased(buffer, 436, 447, field);
             if (!strchr(field, 'I') || strchr(field, 'V')) continue;
             if (f > 6.5) continue;
+            #endif
+            #if _filter_Hipparcos_stars_absmag
+            read_field_onebased(buffer, 80, 86, field);
+            double parallax = atof(field);
+            double distance = (parallax > 0) ? (parsec / parallax * 1000) : light_year*1e4;
+            double intrinsic_brightness = pow(magnbase, -appmag) * pow(fmax(AU, distance) / parsec / 10, 2);
+            double absolute_magnitude = -log(intrinsic_brightness) * invlogmagnbase;
+            if (absolute_magnitude > 7) continue;
+            #endif
             s = new Star();
             is_new = true;
         }
@@ -625,7 +639,10 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
 
         num_read++;
         if (num_read >= max-4) break;
+
+        if (frand(0,1) < 0.01) std::cout << "." << std::flush;
     }
+    std::cout << std::endl;
 
     fclose(fp);
     return num_read;
