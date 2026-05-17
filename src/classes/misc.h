@@ -50,6 +50,7 @@ const std::time_t J2000_TIME_T = 946684800;
 #define nlbltyp 4
 #define _filter_Hipparcos_stars_appmag 0
 #define _filter_Hipparcos_stars_absmag 1
+#define _cursor_fade 3
 
 extern double magnbase, invlogmagnbase;
 extern std::string Greek_letter[24];
@@ -79,7 +80,8 @@ extern int ncelobjs, selected, trackidx, cursor_size, circle_size, xaorngsim, ob
 extern double azimuth, altitude, spin, global_gamma, zoom, vm, vmfr, obj_magn_under_cursor, velocmag, JDnow;
 extern bool show_grid, show_consln, show_xonsm, show_labels, is_mouse_over_window, dragging, dragged, viewchanged,
     objinfwnd, statuswnd, hide_mouse, searched;
-extern ImU32 cursor_color, grid_color, grid_color_brighter, ecliptic_color, consline_color, conslbl_color, selected_color, objlbl_color;
+extern ImU32 cursor_color, cursor_color1, cursor_color2, cursor_color3, grid_color, grid_color_brighter, ecliptic_color, consline_color,
+    conslbl_color, selected_color, objlbl_color;
 extern std::string objname, objinfo;
 extern time_t simnow;
 extern double appmagn_lblcut, absmagn_lblcut, distance_lblcut, intrinsic_cutoff;

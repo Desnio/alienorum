@@ -605,7 +605,57 @@ void draw_mouse_cursor(ImGuiIO& io)
     cursor_size = (int)io.DisplaySize.x/81;
     circle_size = cursor_size / 2.5;
 
-    ImU32 c = rgba_apply_redlight(cursor_color);
+    ImU32 cc[3];
+    cc[0] = rgba_apply_redlight(cursor_color1);
+    cc[1] = rgba_apply_redlight(cursor_color2);
+    cc[2] = rgba_apply_redlight(cursor_color3);
+
+    int i;
+
+    for (i=0; i<3; i++)
+    {
+        // top
+        ImGui::GetBackgroundDrawList()->AddLine(
+            ImVec2(io.MousePos.x - circle_size, io.MousePos.y - circle_size*2 + (i-1)*_cursor_fade),
+            ImVec2(io.MousePos.x, io.MousePos.y - cursor_size - circle_size + (i-1)*_cursor_fade),
+            cc[i], _cursor_fade);
+        ImGui::GetBackgroundDrawList()->AddLine(
+            ImVec2(io.MousePos.x + circle_size, io.MousePos.y - circle_size*2 + (i-1)*_cursor_fade),
+            ImVec2(io.MousePos.x, io.MousePos.y - cursor_size - circle_size + (i-1)*_cursor_fade),
+            cc[i], _cursor_fade);
+
+        // left
+        ImGui::GetBackgroundDrawList()->AddLine(
+            ImVec2(io.MousePos.x - circle_size*2 + (i-1)*_cursor_fade, io.MousePos.y - circle_size),
+            ImVec2(io.MousePos.x - cursor_size - circle_size + (i-1)*_cursor_fade, io.MousePos.y),
+            cc[i], _cursor_fade);
+        ImGui::GetBackgroundDrawList()->AddLine(
+            ImVec2(io.MousePos.x - circle_size*2 + (i-1)*_cursor_fade, io.MousePos.y + circle_size),
+            ImVec2(io.MousePos.x - cursor_size - circle_size + (i-1)*_cursor_fade, io.MousePos.y),
+            cc[i], _cursor_fade);
+
+        // bottom
+        ImGui::GetBackgroundDrawList()->AddLine(
+            ImVec2(io.MousePos.x - circle_size, io.MousePos.y + circle_size*2 - (i-1)*_cursor_fade),
+            ImVec2(io.MousePos.x, io.MousePos.y + cursor_size + circle_size - (i-1)*_cursor_fade),
+            cc[i], _cursor_fade);
+        ImGui::GetBackgroundDrawList()->AddLine(
+            ImVec2(io.MousePos.x + circle_size, io.MousePos.y + circle_size*2 - (i-1)*_cursor_fade),
+            ImVec2(io.MousePos.x, io.MousePos.y + cursor_size + circle_size - (i-1)*_cursor_fade),
+            cc[i], _cursor_fade);
+
+        // right
+        ImGui::GetBackgroundDrawList()->AddLine(
+            ImVec2(io.MousePos.x + circle_size*2 - (i-1)*_cursor_fade, io.MousePos.y + circle_size),
+            ImVec2(io.MousePos.x + cursor_size + circle_size - (i-1)*_cursor_fade, io.MousePos.y),
+            cc[i], _cursor_fade);
+        ImGui::GetBackgroundDrawList()->AddLine(
+            ImVec2(io.MousePos.x + circle_size*2 - (i-1)*_cursor_fade, io.MousePos.y - circle_size),
+            ImVec2(io.MousePos.x + cursor_size + circle_size - (i-1)*_cursor_fade, io.MousePos.y),
+            cc[i], _cursor_fade);
+    }
+
+    /*ImU32 c = rgba_apply_redlight(cursor_color);
     ImGui::GetBackgroundDrawList()->AddLine(
         ImVec2(io.MousePos.x, io.MousePos.y - cursor_size),
         ImVec2(io.MousePos.x, io.MousePos.y - circle_size - 1),
@@ -624,7 +674,7 @@ void draw_mouse_cursor(ImGuiIO& io)
         c, 1);
     ImGui::GetBackgroundDrawList()->AddCircle(
         ImVec2(io.MousePos.x, io.MousePos.y),
-        circle_size, c, 8, 1);
+        circle_size, c, 8, 1);*/
 }
 
 void identify_object_under_cursor(ImGuiIO& io)
@@ -1461,11 +1511,7 @@ int main (int argc, char** argv)
 
         std::this_thread::sleep_for(std::chrono::milliseconds(timeout_ms));
 
-        #ifdef DEBUG
-        hide_mouse = false;
-        #else
         hide_mouse = frame_dur < 0.1 || abs(lmx - io.MousePos.x) <= 4 || abs(lmy - io.MousePos.y) <= 4;
-        #endif
 
         lmx = io.MousePos.x;
         lmy = io.MousePos.y;
