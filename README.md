@@ -139,4 +139,5 @@ H           Advance one hour
 Shift+H     Rewind one hour
 I           Advance one minute
 Shift+I     Rewind one minute
+@           Return to present moment
 ```
