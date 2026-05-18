@@ -423,7 +423,7 @@ void compute_object_draw_coordinates()
             switch (cels[i]->type)
             {
                 case star:
-                if (!((Star*)cels[i])->is_in_visible_box(here.system_center)) continue;
+                if (i!=selected && i!=trackidx && !((Star*)cels[i])->is_in_visible_box(here.system_center)) continue;
                 ((Star*)cels[i])->update_location(simnow);
                 break;
 
@@ -492,7 +492,7 @@ void draw_objects()
         if (i == whereami) continue;
         if (!pass && magrad_cache[i] > 3) continue;
         else if (pass && magrad_cache[i] <= 3) continue;
-        if (cels[i]->type == star && !((Star*)cels[i])->is_in_visible_box(here.system_center)) continue;
+        if (cels[i]->type == star && i!=selected && i!=trackidx && !((Star*)cels[i])->is_in_visible_box(here.system_center)) continue;
 
         Point rel = cels[i]->location;
         rel -= here;
@@ -557,7 +557,7 @@ void draw_objects()
     {
         if (i == whereami) continue;
         if (celskip[i]) continue;
-        if (cels[i]->type == star && !((Star*)cels[i])->is_in_visible_box(here.system_center)) continue;
+        if (cels[i]->type == star && i!=selected && i!=trackidx && !((Star*)cels[i])->is_in_visible_box(here.system_center)) continue;
         xycoord = ImVec2(cels[i]->drawnx, cels[i]->drawny);
         appmag = vmag_cache[i];
         magrad = magrad_cache[i];
