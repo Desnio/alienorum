@@ -754,18 +754,25 @@ void identify_object_under_cursor(ImGuiIO& io)
         objinfo = "";
         if (cels[i]->type == star)
         {
-            if (strlen(((Star*)cels[i])->Bayer) && strlen(((Star*)cels[i])->Flamsteed))
+            Star* s = (Star*)cels[i];
+            if (strlen(s->Bayer) && strlen(s->Flamsteed))
             {
-                int Fl = atoi(((Star*)cels[i])->Flamsteed);
-                objinfo += std::to_string(Fl) + (std::string)((Star*)cels[i])->Bayer + (std::string)"\n";
+                int Fl = atoi(s->Flamsteed);
+                objinfo += std::to_string(Fl) + (std::string)s->Bayer + (std::string)"\n";
             }
-            else if (strlen(((Star*)cels[i])->Flamsteed)) objinfo += (std::string)((Star*)cels[i])->Flamsteed + (std::string)"\n";
-            else if (strlen(((Star*)cels[i])->Bayer)) objinfo += (std::string)((Star*)cels[i])->Bayer + (std::string)"\n";
+            else if (strlen(s->Flamsteed)) objinfo += (std::string)s->Flamsteed + (std::string)"\n";
+            else if (strlen(s->Bayer)) objinfo += (std::string)s->Bayer + (std::string)"\n";
 
-            if (strlen(((Star*)cels[i])->Gliese)) objinfo += (std::string)((Star*)cels[i])->Gliese + (std::string)"\n";
-            if (((Star*)cels[i])->HD) objinfo += (std::string)"HD" + std::to_string(((Star*)cels[i])->HD) + (std::string)"\n";
-            if (((Star*)cels[i])->HR) objinfo += (std::string)"HR" + std::to_string(((Star*)cels[i])->HR) + (std::string)"\n";
-            if (((Star*)cels[i])->HIP) objinfo += (std::string)"HIP" + std::to_string(((Star*)cels[i])->HIP) + (std::string)"\n";
+            if (strlen(s->Gliese)) objinfo += (std::string)s->Gliese + (std::string)"\n";
+            if (s->HD) objinfo += (std::string)"HD" + std::to_string(s->HD) + (std::string)"\n";
+            if (s->HR) objinfo += (std::string)"HR" + std::to_string(s->HR) + (std::string)"\n";
+            if (s->HIP) objinfo += (std::string)"HIP" + std::to_string(s->HIP) + (std::string)"\n";
+            if (s->Bonn_survey[0])
+            {
+                char BD[3] = {s->Bonn_survey[0],s->Bonn_survey[1],0};
+                objinfo += std::string(BD) + (s->Bonn_survey_declination > 0 ? std::string("+") : std::string(""))
+                    + std::to_string(s->Bonn_survey_declination) + std::string(" ") + std::to_string(s->Bonn_survey_sequential) + std::string("\n");
+            }
         }
 
         objinfo += (std::string)"RA:    " + cels[i]->RA_as_hms(here) + (std::string)"\n"

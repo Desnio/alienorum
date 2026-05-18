@@ -136,7 +136,7 @@ void CatalogReader::download_catalogs()
     }
 }
 
-// Assumes no other catalogs have been loaded before Gliese,
+// Assumes no other star catalogs have been loaded before Gliese,
 // since Gliese contains the Sun.
 int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
 {
@@ -220,6 +220,7 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
 
         s->declination = (deg + mnt/60 + sec/3600) * fiftyseventh * sgndecl;
         s->epoch = 2433282.42345905;
+        s->RA_Dec_accuracy = fiftyseventh * 2.5;
 
         // TODO: Keep the epoch but translate the coordinates to the J2000 system.
         // Have to apply precession of the equinoxes; this is the major component.
@@ -270,10 +271,19 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
         absmagn = atof(field);
         s->absolute_magnitude = absmagn;
         s->distance = CelestialObject::distance_from_magnitudes(s->apparent_magnitude, absmagn);
-        if (absmagn && s->apparent_magnitude) s->distance_known = true;
+        if (absmagn && s->apparent_magnitude)
+        {
+            s->distance_known = true;
+            s->distance_accuracy = (s->parallax+0.5)/(s->parallax-0.5)-1;
+        }
 
         // Sun is distance zero.
-        if (!s->right_ascension && !s->declination) s->distance = 0;
+        if (!s->right_ascension && !s->declination)
+        {
+            s->distance = 0;
+            s->distance_known = true;
+            s->distance_accuracy = 0;
+        }
 
         // 147-152  I6     ---     HD       [15/352860]? designation
         read_field_onebased(buffer, 147, 152, field);
@@ -294,7 +304,7 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
         else
         {
             s->update_location(J2000_TIME_T);
-            // Assumed 90 degree inclination for all extrasolar systems unles sinclination known.
+            // Assumed 90 degree inclination for all extrasolar systems unless inclination known.
             s->location.local_system_plane = align_points_3d(cels[0]->location.system_center, Point(0,0,light_year*1e9), s->location.system_center);
         }
 
@@ -316,6 +326,7 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
     int offset, HDno, j;
     double deg, mnt, sec;
     bool HDfound;
+    double f, paralacc, cat_radec_acc = fiftyseventh / 3600;                 // one arc second
 
     for (offset=0; offset<max && cels[offset]; offset++);
     if (offset >= max) return 0;
@@ -359,6 +370,15 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
         read_field_onebased(buffer, 5, 14, field);
         if (strlen(trim(field).c_str())) strcpy(s->name, trim(field).c_str());
 
+        //  15- 25  A11    ---     DM       Durchmusterung Identification (zone in bytes 17-19)
+        read_field_onebased(buffer, 15, 16, field);
+        s->Bonn_survey[0] = field[0];
+        s->Bonn_survey[1] = field[1];
+        read_field_onebased(buffer, 17, 19, field);
+        s->Bonn_survey_declination = atoi(field);
+        read_field_onebased(buffer, 20, 25, field);
+        s->Bonn_survey_sequential = atoi(field);
+
         read_field_onebased(buffer, 5, 7, field);
         s->FlamsteedNo = atoi(field);
         read_field_onebased(buffer, 8, 11, field);
@@ -400,39 +420,43 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
         read_field_onebased(buffer, 32, 37, field);
         s->SAO = atoi(field);
 
-        //   76- 77  I2     h       RAh      ?Hours RA, equinox J2000, epoch 2000.0 (1)
-        read_field_onebased(buffer, 76, 77, field);
-        deg = atof(field) * 15;
+        if (s->RA_Dec_accuracy > cat_radec_acc)
+        {
+            //   76- 77  I2     h       RAh      ?Hours RA, equinox J2000, epoch 2000.0 (1)
+            read_field_onebased(buffer, 76, 77, field);
+            deg = atof(field) * 15;
 
-        //   78- 79  I2     min     RAm      ?Minutes RA, equinox J2000, epoch 2000.0 (1)
-        read_field_onebased(buffer, 78, 79, field);
-        mnt = atof(field) * 15;
+            //   78- 79  I2     min     RAm      ?Minutes RA, equinox J2000, epoch 2000.0 (1)
+            read_field_onebased(buffer, 78, 79, field);
+            mnt = atof(field) * 15;
 
-        //   80- 83  F4.1   s       RAs      ?Seconds RA, equinox J2000, epoch 2000.0 (1)
-        read_field_onebased(buffer, 80, 83, field);
-        sec = atof(field) * 15;
+            //   80- 83  F4.1   s       RAs      ?Seconds RA, equinox J2000, epoch 2000.0 (1)
+            read_field_onebased(buffer, 80, 83, field);
+            sec = atof(field) * 15;
 
-        s->right_ascension = (deg + mnt/60 + sec/3600) * fiftyseventh;
+            s->right_ascension = (deg + mnt/60 + sec/3600) * fiftyseventh;
 
-        //       84  A1     ---     DE-      ?Sign Dec, equinox J2000, epoch 2000.0 (1)
-        read_field_onebased(buffer, 84, 84, field);
-        int sgndecl = (field[0] == '-') ? -1 : 1;
+            //       84  A1     ---     DE-      ?Sign Dec, equinox J2000, epoch 2000.0 (1)
+            read_field_onebased(buffer, 84, 84, field);
+            int sgndecl = (field[0] == '-') ? -1 : 1;
 
-        //   85- 86  I2     deg     DEd      ?Degrees Dec, equinox J2000, epoch 2000.0 (1)
-        read_field_onebased(buffer, 85, 86, field);
-        deg = atof(field);
+            //   85- 86  I2     deg     DEd      ?Degrees Dec, equinox J2000, epoch 2000.0 (1)
+            read_field_onebased(buffer, 85, 86, field);
+            deg = atof(field);
 
-        //   87- 88  I2     arcmin  DEm      ?Minutes Dec, equinox J2000, epoch 2000.0 (1)
-        read_field_onebased(buffer, 87, 88, field);
-        mnt = atof(field);
+            //   87- 88  I2     arcmin  DEm      ?Minutes Dec, equinox J2000, epoch 2000.0 (1)
+            read_field_onebased(buffer, 87, 88, field);
+            mnt = atof(field);
 
-        //   89- 90  I2     arcsec  DEs      ?Seconds Dec, equinox J2000, epoch 2000.0 (1)
-        read_field_onebased(buffer, 89, 90, field);
-        sec = atof(field);
+            //   89- 90  I2     arcsec  DEs      ?Seconds Dec, equinox J2000, epoch 2000.0 (1)
+            read_field_onebased(buffer, 89, 90, field);
+            sec = atof(field);
 
-        s->declination = (deg + mnt/60 + sec/3600) * fiftyseventh * sgndecl;
-        if (!s->right_ascension && !s->declination) continue;
-        s->epoch = J2000;
+            s->declination = (deg + mnt/60 + sec/3600) * fiftyseventh * sgndecl;
+            if (!s->right_ascension && !s->declination) continue;
+            s->epoch = J2000;
+            s->RA_Dec_accuracy = cat_radec_acc;
+        }
 
         //  103-107  F5.2   mag     Vmag     ?Visual magnitude (1)
         read_field_onebased(buffer, 103, 107, field);
@@ -464,13 +488,20 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
 
         //  162-166  F5.3   arcsec  Parallax ? Trigonometric parallax (unless n_Parallax)
         read_field_onebased(buffer, 162, 166, field);
-        s->parallax = atof(field);
-        if (!strcmp(s->name, "Sun"))
-            s->distance = 0;
-        else
-            s->distance = (s->parallax > 0) ? (parsec / s->parallax) : light_year*1e4;
-        if (s->parallax > 0) s->distance_known = true;
-        s->parallax /= fiftyseven * 3600;
+        f = atof(field);
+        if (f > 0)
+        {
+            paralacc = (f+0.0005) / (f-0.0005) - 1;
+            if (paralacc < s->distance_accuracy)
+            {
+                s->parallax = f;
+                s->distance = parsec / s->parallax;
+                s->distance_known = true;
+                s->distance_accuracy = paralacc;
+                s->parallax /= fiftyseven * 3600;
+            }
+        }
+        else if (!s->distance_known) s->distance = light_year*1e4;
 
         //  167-170  I4     km/s    RadVel   ? Heliocentric Radial Velocity
         read_field_onebased(buffer, 167, 170, field);
@@ -514,9 +545,10 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
     std::string path = "catalogs/Hipparcos/hip_main.dat";
     char buffer[1024];
     char field[32];
+    char Bonn[32], Cordoba[32], Cape[32];
     int num_read = 0;
     int offset, HD, HIP, j;
-    double RA, Decl, f;
+    double RA, Decl, f, f1;
     Star* s;
 
     for (offset=0; offset<max && cels[offset]; offset++);
@@ -583,6 +615,43 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         s->HD = HD;
         s->HIP = HIP;
 
+        // 398-407  A10   ---     BD        Bonner DM <I/119>, <I/122>               (H72)
+        read_field_onebased(buffer, 398, 407, Bonn);
+
+        // 409-418  A10   ---     CoD       Cordoba Durchmusterung (DM) <I/114>      (H73)
+        read_field_onebased(buffer, 409, 418, Cordoba);
+
+        // 420-429  A10   ---     CPD       Cape Photographic DM <I/108>             (H74)
+        read_field_onebased(buffer, 420, 429, Cape);
+
+        if (Cape[0] != ' ')
+        {
+            s->Bonn_survey[0] = 'C';
+            s->Bonn_survey[1] = 'P';
+            read_field_onebased(buffer, 421, 423, field);
+            s->Bonn_survey_declination = atoi(field);
+            read_field_onebased(buffer, 424, 429, field);
+            s->Bonn_survey_sequential = atoi(field);
+        }
+        else if (Cordoba[0] != ' ')
+        {
+            s->Bonn_survey[0] = 'C';
+            s->Bonn_survey[1] = 'D';
+            read_field_onebased(buffer, 410, 412, field);
+            s->Bonn_survey_declination = atoi(field);
+            read_field_onebased(buffer, 413, 418, field);
+            s->Bonn_survey_sequential = atoi(field);
+        }
+        else if (Bonn[0] != ' ')
+        {
+            s->Bonn_survey[0] = 'B';
+            s->Bonn_survey[1] = 'D';
+            read_field_onebased(buffer, 399, 401, field);
+            s->Bonn_survey_declination = atoi(field);
+            read_field_onebased(buffer, 402, 407, field);
+            s->Bonn_survey_sequential = atoi(field);
+        }
+
         //  52- 63  F12.8 deg     RAdeg    *? alpha, degrees (ICRS, Epoch=J1991.25)
         read_field_onebased(buffer, 52, 63, field);
         RA = atof(field) * fiftyseventh;
@@ -593,19 +662,36 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
 
         if (RA && Decl)
         {
-            s->right_ascension = RA;
-            s->declination = Decl;
-            s->epoch = 2448349.0625;
+            // 106-111  F6.2  mas   e_RAdeg    *? Standard error in RA*cos(DEdeg)        (H14)
+            read_field_onebased(buffer, 106, 111, field);
+            f = atof(field) / cos(Decl) / 3600 / 1000;
+            // 113-118  F6.2  mas   e_DEdeg    *? Standard error in DE                   (H15)
+            f = fmax(f, atof(field));
+            if (f < s->RA_Dec_accuracy)
+            {
+                s->right_ascension = RA;
+                s->declination = Decl;
+                s->RA_Dec_accuracy = f;
+                s->epoch = 2448349.0625;
+            }
         }
 
         //  80- 86  F7.2  mas     Plx       ? Trigonometric parallax
         read_field_onebased(buffer, 80, 86, field);
         f = atof(field) / 1000 / 3600 * fiftyseventh;
-        if (f)
+        if (f > 0)
         {
-            s->parallax = f;
-            s->distance = (s->parallax > 0) ? (parsec / atof(field) * 1000) : light_year*1e4;
-            s->distance_known = true;
+            // 120-125  F6.2  mas   e_Plx       ? Standard error in Plx                  (H16)
+            read_field_onebased(buffer, 106, 111, field);
+            f1 = fabs(atof(field)) / f;
+
+            if (f1 < s->distance_accuracy)
+            {
+                s->parallax = f;
+                s->distance_accuracy = f1;
+                s->distance = (s->parallax > 0) ? (parsec / atof(field) * 1000) : light_year*1e4;
+                s->distance_known = true;
+            }
         }
 
         //  88- 95  F8.2 mas/yr   pmRA     *? Proper motion mu_alpha.cos(delta), ICRS
@@ -773,6 +859,243 @@ int CatalogReader::read_CCDM_catalog(CelestialObject **cels, int max)
         //  73- 77  I5    mas/yr   pmDE     ? annual proper motion in 0"001
         num_read++;
     }
+    return num_read;
+}
+
+int CatalogReader::read_SB9_catalog(CelestialObject **cels, int max)
+{
+    std::string path = "catalogs/SB9/main.dat";
+    char buffer[1024];
+    char field[32], Bonn, cen[5], comp[5];
+    int num_read = 0;
+    int HD, HIP, SB9, Bonn_decl, Bonn_seq, i, j, l, n, found, offset;
+    Star *s, *A, *B;
+    double f;
+
+    FILE* fp = fopen(path.c_str(), "rb");
+    if (!fp) return 0;
+
+    for (offset=0; cels[offset]; offset++);
+    if (offset >= max) return num_read;
+
+    while (fgets(buffer, 1020, fp))
+    {
+        HD = HIP = Bonn = 0;
+        read_field_onebased(buffer, 104, 132, field);
+        if (field[0] == 'H' && field[1] == 'I' && field[2] == 'P' && field[3] == ' ')
+        {
+            HIP = atoi(&field[4]);
+        }
+        else if (field[0] == 'H' && field[1] == 'D' && field[2] == ' ')
+        {
+            HD = atoi(&field[3]);
+        }
+        else if (field[0] == 'B' && field[1] == 'D')
+        {
+            Bonn = 'B';
+            Bonn_decl = atoi(&field[2]);
+            Bonn_seq = atoi(&field[6]);
+        }
+        else if (field[0] == 'C' && field[1] == 'D')
+        {
+            Bonn = 'C';
+            Bonn_decl = atoi(&field[2]);
+            Bonn_seq = atoi(&field[6]);
+        }
+        else if (field[0] == 'C' && field[1] == 'P')
+        {
+            Bonn = 'P';
+            Bonn_decl = atoi(&field[2]);
+            Bonn_seq = atoi(&field[6]);
+        }
+
+        //  36- 42  A7    ---     Comp    ? Component
+        read_field_onebased(buffer, 36, 42, field);
+        strcpy(field, trim(field).c_str());
+        n = strlen(field);
+        if (n < 2)
+        {
+            strcpy(cen, "A");
+            strcpy(comp, "Ab");
+        }
+        else
+        {
+            cen[0] = field[0];
+            cen[1] = 0;
+            comp[0] = field[n-1];
+            comp[1] = 0;
+            if (comp[0] > 'a') comp[0] = comp[0] & 0x5f;
+            if (!strcmp(field, "Aab")) strcpy(comp, "B");
+        }
+
+        found = -1;
+        for (i=0; cels[i]; i++)
+        {
+            if (cels[i]->type != star) continue;
+            s = (Star*)cels[i];
+
+            n = strlen(s->name);
+            if (s->name[n-2] == ' ' || s->name[n-1] != cen[0]) continue;
+
+            if (HIP && s->HIP == HIP) found = i;
+            else if (HD && s->HD == HD) found = i;
+            else if (Bonn == 'B' && s->Bonn_survey[0] == 'B' && s->Bonn_survey[1] == 'D'
+                && s->Bonn_survey_declination == Bonn_decl
+                && s->Bonn_survey_sequential == Bonn_seq
+                ) found = i;
+            else if (Bonn == 'C' && s->Bonn_survey[0] == 'C' && s->Bonn_survey[1] == 'D'
+                && s->Bonn_survey_declination == Bonn_decl
+                && s->Bonn_survey_sequential == Bonn_seq
+                ) found = i;
+            else if (Bonn == 'P' && s->Bonn_survey[0] == 'C' && s->Bonn_survey[1] == 'P'
+                && s->Bonn_survey_declination == Bonn_decl
+                && s->Bonn_survey_sequential == Bonn_seq
+                ) found = i;
+            if (found >= 0) break;
+        }
+        if (found < 0) continue;
+
+        A = (Star*)cels[found];
+
+        found = -1;
+        if (strlen(comp) == 1 && comp[0] > 'A' && comp[0] <= 'K')
+        {
+            double foundmag[10] = {99,99,99,99,99,99,99,99,99,99};
+            int foundidx[10] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+            for (i=0; cels[i]; i++)
+            {
+                if (!cels[i]->orbit) continue;
+                if (cels[i]->type != star) continue;
+                s = (Star*)cels[i];
+
+                if (s->orbit->center == A)
+                {
+                    for (j=0; j<10; j++) if (s->apparent_magnitude < foundmag[j])
+                    {
+                        for (l=10; l>j; l++)
+                        {
+                            foundmag[l] = foundmag[l-1];
+                            foundidx[l] = foundidx[l-1];
+                        }
+                        foundmag[j] = s->apparent_magnitude;
+                        foundidx[j] = i;
+                        break;      // j
+                    }
+                }
+            }
+
+            found = foundidx[comp[0]-'B'];
+        }
+
+        if (found < 0)
+        {
+            B = new Star();
+            // 104-132  A29   ---     Name    Name of the source (HIP when existing)
+            read_field_onebased(buffer, 104, 132, field);
+            strcpy(B->name, (trim(field) + std::string(" ") + std::string(comp)).c_str());
+            B->orbit = new Orbit();
+            B->orbit->center = A;
+            B->right_ascension = A->right_ascension;
+            B->declination = A->declination;
+            B->distance = A->distance;
+            B->location = A->location;          // Copies local reference planes.
+            B->inclination = A->inclination;
+            B->RA_Dec_accuracy = A->RA_Dec_accuracy;
+            B->distance_accuracy = A->distance_accuracy;
+            B->proper_motion_decl = A->proper_motion_decl;
+            B->proper_motion_RA = A->proper_motion_RA;
+            B->radial_velocity = A->radial_velocity;
+            B->epoch = A->epoch;
+            cels[offset++] = B;
+            cels[offset] = 0;
+        }
+        else
+        {
+            B = (Star*)cels[found];
+            std::cout << B->name << " orbits " << A->name << std::endl;
+        }
+
+        //   1-  4  I4    ---     Seq     System Number (SB8 number when Seq<=1469)
+        read_field_onebased(buffer, 1, 4, field);
+        B->SB9 = atoi(field);
+
+        //  52- 57  F6.3  mag     mag2    ? Magnitude of component 2
+        read_field_onebased(buffer, 52, 57, field);
+        B->apparent_magnitude = atof(field);
+        double intrinsic_brightness = pow(magnbase, -B->apparent_magnitude) * pow(fmax(AU, B->distance) / parsec / 10, 2);
+        B->absolute_magnitude = -log(intrinsic_brightness) * invlogmagnbase;
+
+        //  93-102  A10   ---     Sp2     MK Spectral type component 2
+        read_field_onebased(buffer, 93, 102, field);
+        strcpy(B->spectral_type, trim(field).c_str());
+    }
+
+    path = "catalogs/SB9/orbits.dat";
+    fp = fopen(path.c_str(), "rb");
+    if (!fp) return 0;
+    while (fgets(buffer, 1020, fp))
+    {
+        //   1-  4  I4    ---     Seq     System Number, as in "main.dat"
+        read_field_onebased(buffer, 1, 4, field);
+        SB9 = atoi(field);
+
+        found = -1;
+        for (i=0; cels[i]; i++)
+        {
+            if (cels[i]->type != star) continue;
+            if (!cels[i]->orbit) continue;
+            s = (Star*)cels[i];
+            if (s->SB9 == SB9) found = i;
+            if (found >= 0) break;
+        }
+
+        if (found < 0)
+        {
+            std::cerr << "Something went wrong with SB9 " << SB9 << std::endl;
+            throw 0xbadc0de;
+        }
+
+        //   8- 23  F16.9 d       Per     [0.05,116675] Period
+        read_field_onebased(buffer, 8, 23, field);
+        B->orbit->period = atof(field)*86400;
+
+        //  42- 57  F16.8 d       T0      ? Periastron time (JD)
+        read_field_onebased(buffer, 42, 57, field);
+        B->orbit->epoch = atof(field);
+        B->orbit->ascending_node = B->orbit->mean_anomaly = 0;
+
+        //  79- 89  F11.9 ---     e       Orbital eccentricity
+        read_field_onebased(buffer, 79, 89, field);
+        B->orbit->eccentricity = atof(field);
+
+        // 104-112  F9.4  deg     omega   [-359,360]? Argument of periastron {omega}
+        read_field_onebased(buffer, 104, 112, field);
+        B->orbit->arg_periapsis = atof(field)*fiftyseventh;
+        B->orbit->mean_anomaly -= B->orbit->arg_periapsis;
+
+        // a(*)sin i (expressed in km) can be computed from the Fortran formula
+        // 13751 * sqrt(1-e*e) * K(*) * P
+        // 124-133  F10.5 km/s    K1      ? Velocity amplitude of primary
+        read_field_onebased(buffer, 124, 133, field);
+        f = atof(field);
+        B->orbit->semimajor_axis = (13751000 / 86400)              // convert to m/s
+            * sqrt(1.0 - B->orbit->eccentricity*B->orbit->eccentricity)
+            * f
+            * B->orbit->period;
+
+        // Since we are keeping star A stationary and orbiting star B around it
+        // (an imperfect simulation) we must sum the two semimajor axes in order to
+        // get the distance between stars.
+        // 148-157  E10.5 km/s    K2      ? Velocity amplitude of secondary
+        read_field_onebased(buffer, 148, 157, field);
+        f = atof(field);
+        B->orbit->semimajor_axis += (13751000 / 86400)             // convert to m/s
+            * sqrt(1.0 - B->orbit->eccentricity*B->orbit->eccentricity)
+            * f
+            * B->orbit->period;
+    }
+
+        if (offset >= max) return num_read;
     return num_read;
 }
 

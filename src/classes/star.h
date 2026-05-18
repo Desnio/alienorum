@@ -3,6 +3,7 @@
 #define _Star
 
 #include <cstdint>
+#include <math.h>
 #include "celestial.h"
 
 class Star : public CelestialObject
@@ -13,6 +14,9 @@ class Star : public CelestialObject
     double radial_velocity = 0;             // meters / second
     double apparent_magnitude;              // visual/550nm
     double parallax = 0;                    // radians
+
+    double RA_Dec_accuracy = M_PI;          // radians
+    double distance_accuracy = 1.37e+9;     // value - this*value <= true_value <= value + this*value
 
     char spectral_type[32];
     char Bayer[32];
@@ -26,6 +30,10 @@ class Star : public CelestialObject
     __uint32_t HD = 0;                      // Henry Draper catalog number
     __uint32_t HIP = 0;                     // Hipparcos catalog number
     __uint32_t SAO = 0;                     // USNO/SAO catalog number
+    __uint32_t SB9 = 0;                     // 9th Catalogue of Spectroscopic Binary Orbits designation
+    char Bonn_survey[2] = {0,0};            // BD = Bonn, CD = Cordoba, CP = Cape Town
+    int Bonn_survey_declination = 0;        // Declination category
+    __uint32_t Bonn_survey_sequential = 0;  // Serial number by right ascension.
 
     double estimate_temperature();          // kelvin
     void update_location(double tmnow);     // Apply proper motion and re-derive 3D coordinates from the result.
