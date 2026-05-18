@@ -30,7 +30,7 @@ class Orbit
     double arg_periapsis = 0;                   // RADIANS!
     double mean_anomaly = 0;                    // RADIANS!
     double epoch = J2000;                       // JD
-    double orbit_period = 0;                    // seconds
+    double period = 0;                    // seconds
 
     CelestialLocation compute_3d_location(double epoch);
 };
@@ -56,7 +56,7 @@ class CelestialObject
     double RI_magnitude = 0;
 
     cel_obj_type type = star;
-    std::string name;
+    char name[32];
 
     float drawnx=-1e9, drawny=-1e9;
 
@@ -79,6 +79,7 @@ class CelestialObject
 };
 
 extern CelestialObject **cels;
+extern bool *celskip;
 extern double *vmag_cache, *magrad_cache;
 extern CelestialLocation here;
 

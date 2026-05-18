@@ -18,9 +18,7 @@
 #endif
 #include "classes/misc.h"
 #include "classes/color.h"
-#include "classes/galaxy.h"
-#include "classes/star.h"
-#include "classes/planet.h"
+#include "classes/serial.h"
 #include "classes/cat.h"
 
 // Learn more about ImGui here: https://github.com/ocornut/imgui/blob/master/docs/FAQ.md
@@ -180,10 +178,23 @@ bool look_for_catalogs()
 void load_catalogs()
 {
     int i, n;
+
     // TODO: Read data from more star catalogs.
     CatalogReader cr;
     cr.download_catalogs();
     std::vector<std::string> cats = cr.find_catalogs("catalogs");
+
+    FILE *fp = fopen("universe", "rb");
+    if (fp)
+    {
+        if (Serialization::load_all(fp, cels, MAX_CELOBJS))
+        {
+            fclose(fp);
+            for (i=0; cels[i]; i++) if (!strcmp(cels[i]->name, "Earth")) whereami = iamhome = i;
+            return;
+        }
+        fclose(fp);
+    }
 
     n = cats.size();
     for (i=0; i<n; i++)
@@ -206,6 +217,7 @@ void load_catalogs()
     cout << "Reading local planets..." << endl << flush;
     int npl = cr.read_local_planets(cels, MAX_CELOBJS);                   // Read solar system planets now, before painting the sky with stars
     num_planets += npl;
+    for (i=0; cels[i]; i++) if (!strcmp(cels[i]->name, "Earth")) whereami = iamhome = i;
     cout << "Read " << npl << " objects." << endl << flush;
 
     if (have_BSC)
@@ -231,6 +243,19 @@ void load_catalogs()
     #endif
 
     for (i=0; cels[i]; i++) if (cels[i]->type == star) num_stars++;
+
+    rename_all_from_Bayer_Flamsteed();
+    cr.read_starname_dat(cels);
+    Gliese_doubles_fix();
+    cr.read_star_orbits_dat(cels);
+
+    fp = fopen("universe", "wb");
+    if (fp)
+    {
+        if (!Serialization::save_all(fp, cels)) std::cerr << "FAILED to save state." << std::endl;
+        fclose(fp);
+    }
+    else std::cerr << "FAILED to write save state file." << std::endl;
 }
 
 void read_cons_lines()
@@ -323,9 +348,9 @@ void cache_cons_lines()
             if (founda < 0
                 && 
                 (
-                    !strcmp(s->Bayer.c_str(), consline_a[i].c_str())
+                    !strcmp(s->Bayer, consline_a[i].c_str())
                     ||
-                    !strcmp(s->Flamsteed.c_str(), consline_a[i].c_str())
+                    !strcmp(s->Flamsteed, consline_a[i].c_str())
                     ||
                     (
                         consline_a[i].c_str()[0] == 'H' && consline_a[i].c_str()[1] == 'D'
@@ -340,9 +365,9 @@ void cache_cons_lines()
             else if (foundb < 0
                 &&
                 (
-                    !strcmp(s->Bayer.c_str(), consline_b[i].c_str())
+                    !strcmp(s->Bayer, consline_b[i].c_str())
                     ||
-                    !strcmp(s->Flamsteed.c_str(), consline_b[i].c_str())
+                    !strcmp(s->Flamsteed, consline_b[i].c_str())
                     ||
                     (
                         consline_b[i].c_str()[0] == 'H' && consline_b[i].c_str()[1] == 'D'
@@ -379,6 +404,8 @@ void cache_cons_lines()
             {
                 consaidx[i+nconsln] = founda;
                 consbidx[i+nconsln] = foundb;
+                ((Star*)cels[founda])->make_universally_visible();
+                ((Star*)cels[foundb])->make_universally_visible();
             }
         }
     }
@@ -497,6 +524,7 @@ void draw_objects()
                 }
             }
         }
+        celskip[i] = skip;
         if (skip) continue;
 
         xycoord = ImVec2(cels[i]->drawnx, cels[i]->drawny);
@@ -528,6 +556,7 @@ void draw_objects()
     if (show_labels) for (i=0; cels[i] && i<MAX_CELOBJS; i++)
     {
         if (i == whereami) continue;
+        if (celskip[i]) continue;
         if (cels[i]->type == star && !((Star*)cels[i])->is_in_visible_box(here.system_center)) continue;
         xycoord = ImVec2(cels[i]->drawnx, cels[i]->drawny);
         appmag = vmag_cache[i];
@@ -538,10 +567,10 @@ void draw_objects()
             || (cbolbls_selected_idx == 3 && cels[i]->type == star && ((Star*)cels[i])->is_sunlike())
             || i == selected)
         {
-            ImVec2 sz = ImGui::CalcTextSize(cels[i]->name.c_str());
+            ImVec2 sz = ImGui::CalcTextSize(cels[i]->name);
             ImGui::GetBackgroundDrawList()->AddText(ImVec2(cels[i]->drawnx - sz.x/2, cels[i]->drawny+magrad+1),
                 rgba_apply_redlight(objlbl_color),
-                cels[i]->name.c_str());
+                cels[i]->name);
         }
     }
 }
@@ -560,9 +589,9 @@ void draw_cons_lines()
     n = show_xonsm ? (nconsln+11) : nconsln;
     for (i=0; i<n; i++)
     {
-        int dx1, dx2, dy1, dy2;
-
         if (consaidx[i] < 0 || consbidx[i] < 0) continue;
+
+        int dx1, dx2, dy1, dy2;
         if (i >= nconsln) considx[i] = consname.size()-1;
         l = considx[i];
 
@@ -725,15 +754,15 @@ void identify_object_under_cursor(ImGuiIO& io)
         objinfo = "";
         if (cels[i]->type == star)
         {
-            if (((Star*)cels[i])->Bayer.size() && ((Star*)cels[i])->Flamsteed.size())
+            if (strlen(((Star*)cels[i])->Bayer) && strlen(((Star*)cels[i])->Flamsteed))
             {
-                int Fl = atoi(((Star*)cels[i])->Flamsteed.c_str());
-                objinfo += std::to_string(Fl) + ((Star*)cels[i])->Bayer + (std::string)"\n";
+                int Fl = atoi(((Star*)cels[i])->Flamsteed);
+                objinfo += std::to_string(Fl) + (std::string)((Star*)cels[i])->Bayer + (std::string)"\n";
             }
-            else if (((Star*)cels[i])->Flamsteed.size()) objinfo += ((Star*)cels[i])->Flamsteed + (std::string)"\n";
-            else if (((Star*)cels[i])->Bayer.size()) objinfo += ((Star*)cels[i])->Bayer + (std::string)"\n";
+            else if (strlen(((Star*)cels[i])->Flamsteed)) objinfo += (std::string)((Star*)cels[i])->Flamsteed + (std::string)"\n";
+            else if (strlen(((Star*)cels[i])->Bayer)) objinfo += (std::string)((Star*)cels[i])->Bayer + (std::string)"\n";
 
-            if (((Star*)cels[i])->Gliese.size()) objinfo += ((Star*)cels[i])->Gliese + (std::string)"\n";
+            if (strlen(((Star*)cels[i])->Gliese)) objinfo += (std::string)((Star*)cels[i])->Gliese + (std::string)"\n";
             if (((Star*)cels[i])->HD) objinfo += (std::string)"HD" + std::to_string(((Star*)cels[i])->HD) + (std::string)"\n";
             if (((Star*)cels[i])->HR) objinfo += (std::string)"HR" + std::to_string(((Star*)cels[i])->HR) + (std::string)"\n";
             if (((Star*)cels[i])->HIP) objinfo += (std::string)"HIP" + std::to_string(((Star*)cels[i])->HIP) + (std::string)"\n";
@@ -957,7 +986,7 @@ void lookfor_cb()
     selected = -1;
     for (i=0; cels[i]; i++)
     {
-        if (!strcmp(cels[i]->name.c_str(), lookfor))
+        if (!strcmp(cels[i]->name, lookfor))
         {
             selected = i;
             center_selected();
@@ -972,12 +1001,12 @@ void lookfor_cb()
         std::string lookstr = lookfor;
         for (i=0; cels[i]; i++)
         {
-            int lev = Damerau_Levenshtein(cels[i]->name.c_str(), lookstr);
+            int lev = Damerau_Levenshtein(cels[i]->name, lookstr);
             if (cels[i]->type == star)
             {
-                int lev1 = Damerau_Levenshtein( ((Star*)cels[i])->Bayer.c_str(), lookstr);
+                int lev1 = Damerau_Levenshtein( ((Star*)cels[i])->Bayer, lookstr);
                 if (lev1 < lev) lev = lev1;
-                lev1 = Damerau_Levenshtein( ((Star*)cels[i])->Flamsteed.c_str(), lookstr);
+                lev1 = Damerau_Levenshtein( ((Star*)cels[i])->Flamsteed, lookstr);
                 if (lev1 < lev) lev = lev1;
             }
             if (lev < best_Levenshtein)
@@ -1209,6 +1238,7 @@ int main (int argc, char** argv)
     int i, j, l, n;
     bool magnitude_test = false;
     cels = new CelestialObject*[MAX_CELOBJS];
+    celskip = new bool[MAX_CELOBJS];
     vmag_cache = new double[MAX_CELOBJS];
     magrad_cache = new double[MAX_CELOBJS];
     memset(cels, 0, MAX_CELOBJS*sizeof(CelestialObject*));
@@ -1242,12 +1272,6 @@ int main (int argc, char** argv)
     load_catalogs();
     bv_correction = log(blackbody_flux(5778, 5.4e-7) / blackbody_flux(5778, 4.6e-7)) * invlogmagnbase - cels[0]->BV_color;
     cache_cons_lines();
-    rename_all_from_Bayer_Flamsteed();
-
-    CatalogReader cr;
-    cr.read_starname_dat(cels);
-    Gliese_doubles_fix();
-    cr.read_star_orbits_dat(cels);
 
     if (magnitude_test)
     {
@@ -1255,7 +1279,7 @@ int main (int argc, char** argv)
         {
             double magnitude = -1.0 + 0.1 * i;
             Star* s = new Star();
-            s->name = (std::string)"Test "+std::to_string(magnitude);
+            strcpy(s->name, ((std::string)"Test "+std::to_string(magnitude)).c_str());
             s->right_ascension = fiftyseventh * i;
             s->declination = -2.59 * fiftyseventh;
             s->apparent_magnitude = s->absolute_magnitude = magnitude;

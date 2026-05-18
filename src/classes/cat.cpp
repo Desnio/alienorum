@@ -188,8 +188,8 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
         std::string comp = trim(field);
         if (comp.size()) build_name += (std::string)" " + comp;
 
-        s->name = trim(build_name.c_str());
-        s->Gliese = trim(build_name.c_str());
+        strcpy(s->name, trim(build_name.c_str()).c_str());
+        strcpy(s->Gliese, trim(build_name.c_str()).c_str());
 
         //  13- 14  I2     h       RAh      ? Right Ascension B1950 (hours)
         read_field_onebased(buffer, 13, 14, field);
@@ -243,7 +243,7 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
 
         //  55- 66  A12    ---     Sp       Spectral type or color class
         read_field_onebased(buffer, 55, 66, field);
-        s->spectral_type = trim(field);
+        strcpy(s->spectral_type, trim(field).c_str());
 
         //  68- 73  F6.2   mag     Vmag     Apparent magnitude
         read_field_onebased(buffer, 68, 73, field);
@@ -357,13 +357,14 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
 
         //    5- 14  A10    ---     Name     Name, generally Bayer and/or Flamsteed name
         read_field_onebased(buffer, 5, 14, field);
-        if (strlen(trim(field).c_str())) s->name = trim(field);
+        if (strlen(trim(field).c_str())) strcpy(s->name, trim(field).c_str());
 
         read_field_onebased(buffer, 5, 7, field);
         s->FlamsteedNo = atoi(field);
         read_field_onebased(buffer, 8, 11, field);
         std::string bayer = trim(field);
         if (field[3] < 'A') s->BayerGrkno = Grkno_from_abbrev(field);
+        int BayerXtraNum = atoi(&field[3]);
         read_field_onebased(buffer, 12, 14, field);
         std::string cons = trim(field);
 
@@ -371,23 +372,23 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
         {
             if (bayer.size())
             {
-                s->Bayer = bayer 
+                strcpy(s->Bayer, (bayer
                 + std::string(bayer.size() < 3 ? " " : "")
                 + std::string(bayer.size() < 4 ? " " : "")
-                + cons;
+                + cons).c_str());
 
-                s->constellation = cons;
+                strcpy(s->constellation, cons.c_str());
             }
 
             if (s->FlamsteedNo)
             {
-                s->Flamsteed = std::to_string(s->FlamsteedNo)
+                strcpy(s->Flamsteed, (std::to_string(s->FlamsteedNo)
                 + std::string((s->FlamsteedNo < 10) ? " " : "")
                 + std::string((s->FlamsteedNo < 100) ? " " : "")
                 + std::string((s->FlamsteedNo < 1000) ? " " : "")
-                + cons;
+                + cons).c_str());
 
-                s->constellation = cons;
+                strcpy(s->constellation, cons.c_str());
             }
         }
 
@@ -451,7 +452,7 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
 
         //  128-147  A20    ---     SpType   Spectral type
         read_field_onebased(buffer, 128, 147, field);
-        s->spectral_type = trim(field);
+        strcpy(s->spectral_type, trim(field).c_str());
 
         //  149-154  F6.3 arcsec/yr pmRA    *?Annual proper motion in RA J2000, FK5 system
         read_field_onebased(buffer, 149, 154, field);
@@ -464,7 +465,7 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
         //  162-166  F5.3   arcsec  Parallax ? Trigonometric parallax (unless n_Parallax)
         read_field_onebased(buffer, 162, 166, field);
         s->parallax = atof(field);
-        if (!strcmp(s->name.c_str(), "Sun"))
+        if (!strcmp(s->name, "Sun"))
             s->distance = 0;
         else
             s->distance = (s->parallax > 0) ? (parsec / s->parallax) : light_year*1e4;
@@ -476,9 +477,9 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
         s->radial_velocity = atof(field) * 1000;
 
         // Estimate some more parameters based on the data.
-        if (!s->name.size())
+        if (!strlen(s->name))
         {
-            if (s->HD) s->name = (std::string)"HD" + std::to_string(s->HD);
+            if (s->HD) strcpy(s->name, ((std::string)"HD" + std::to_string(s->HD)).c_str());
         }
 
         s->VR_magnitude = (s->RI_magnitude + s->BV_color*2) / 3;      // VERY rough estimate
@@ -631,7 +632,7 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
 
         // 436-447  A12   ---     SpType    Spectral type
         read_field_onebased(buffer, 436, 447, field);
-        if (trim(field).size()) s->spectral_type = field;
+        if (trim(field).size()) strcpy(s->spectral_type, trim(field).c_str());
 
         s->update_location(J2000_TIME_T);
         if (is_new)
@@ -641,7 +642,7 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         }
         else
         {
-            if (frand(0,1) < 0.003) std::cout << "Updated " << s->name << std::endl << std::flush;
+            if (frand(0,1) < 0.03 && s->name[0]) std::cout << "Updated " << s->name << std::endl << std::flush;
         }
 
         num_read++;
@@ -760,7 +761,7 @@ int CatalogReader::read_CCDM_catalog(CelestialObject **cels, int max)
         double intrinsic_brightness = pow(magnbase, -s->apparent_magnitude) * pow(fmax(AU, s->distance) / parsec / 10, 2);
         s->absolute_magnitude = -log(intrinsic_brightness) * invlogmagnbase;
 
-        std::cout << "Updated " << A->name << ": " << s->name << std::endl << std::flush;
+        if (A->name[0] && s->name[0]) std::cout << "Updated " << A->name << ": " << s->name << std::endl << std::flush;
 
         // TODO: For systems where both members are not already loaded,
         // can load additional members.
@@ -809,9 +810,9 @@ int CatalogReader::read_starname_dat(CelestialObject **cels)
         {
             if (cels[i]->type != star) continue;
             Star* s = (Star*)cels[i];
-            if ((HD && s->HD == HD) || (HIP && s->HIP == HIP) || (Gliese.size() && s->Gliese == Gliese))
+            if ((HD && s->HD == HD) || (HIP && s->HIP == HIP) || (Gliese.size() && !strcmp(s->Gliese, Gliese.c_str())))
             {
-                s->name = trim(field);
+                strcpy(s->name, trim(field).c_str());
                 std::cout << "Named " << s->name << std::endl << std::flush;
                 num_read++;
                 break;
@@ -842,7 +843,7 @@ int CatalogReader::read_star_orbits_dat(CelestialObject **cels)
         read_field_onebased(buffer, 1, 23, field);
         std::string cenname = trim(field);
         A = nullptr;
-        for (i=0; cels[i]; i++) if (!strcmp(cels[i]->name.c_str(), cenname.c_str()))
+        for (i=0; cels[i]; i++) if (!strcmp(cels[i]->name, cenname.c_str()))
         {
             A = (Star*)cels[i];
             break;
@@ -853,7 +854,7 @@ int CatalogReader::read_star_orbits_dat(CelestialObject **cels)
         read_field_onebased(buffer, 25, 47, field);
         std::string bdyname = trim(field);
         s = nullptr;
-        for (i=0; cels[i]; i++) if (!strcmp(cels[i]->name.c_str(), bdyname.c_str()))
+        for (i=0; cels[i]; i++) if (!strcmp(cels[i]->name, bdyname.c_str()))
         {
             s = (Star*)cels[i];
             break;
@@ -865,7 +866,7 @@ int CatalogReader::read_star_orbits_dat(CelestialObject **cels)
         s->orbit->center = A;
 
         read_field_onebased(buffer, 49, 63, field);
-        s->orbit->orbit_period = atof(field);
+        s->orbit->period = atof(field);
 
         read_field_onebased(buffer, 65, 75, field);
         s->orbit->ascending_node = atof(field) * fiftyseventh;
@@ -907,7 +908,9 @@ int CatalogReader::read_star_orbits_dat(CelestialObject **cels)
         s->location = A->location;
         s->orbit->ascending_node = s->orbit->inclination = 0;           // Clear these because we transfered them to the system plane.
 
-        std::cout << "Updated " << A->name << ": " << s->name << std::endl << std::flush;
+        if (A->HD && s->HD)
+            std::cout << "Updated " << (strlen(A->name) ? A->name : (std::string("HD")+std::to_string(A->HD)))
+                << ": " << (strlen(s->name) ? s->name : (std::string("HD")+std::to_string(s->HD))) << std::endl << std::flush;
 
         num_read++;
     }
@@ -938,7 +941,7 @@ int CatalogReader::read_local_planets(CelestialObject **cels, int max)
         std::string cenname = trim(field);
         for (i=0; i<offset; i++)
         {
-            if (!strcmp(cels[i]->name.c_str(), cenname.c_str()))
+            if (!strcmp(cels[i]->name, cenname.c_str()))
             {
                 j = i;
                 break;
@@ -957,8 +960,7 @@ int CatalogReader::read_local_planets(CelestialObject **cels, int max)
         Planet* p = new Planet();
         p->orbit = o;
         read_field_onebased(buffer, 26, 42, field);
-        p->name = trim(field);
-        if (!strcmp(p->name.c_str(), "Earth")) whereami = iamhome = offset;
+        strcpy(p->name, trim(field).c_str());
 
         read_field_onebased(buffer, 44, 58, field);
         o->semimajor_axis = atof(field);
@@ -1000,7 +1002,7 @@ int CatalogReader::read_local_planets(CelestialObject **cels, int max)
         o->eccentricity = atof(field);
 
         read_field_onebased(buffer, 156, 173, field);
-        o->orbit_period = atof(field);
+        o->period = atof(field);
 
         read_field_onebased(buffer, 175, 181, field);
         p->inclination = atof(field) * fiftyseventh;

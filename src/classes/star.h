@@ -14,13 +14,13 @@ class Star : public CelestialObject
     double apparent_magnitude;              // visual/550nm
     double parallax = 0;                    // radians
 
-    std::string spectral_type;
-    std::string Bayer;
-    std::string Flamsteed;
-    std::string Gliese;
+    char spectral_type[32];
+    char Bayer[32];
+    char Flamsteed[32];
+    char Gliese[16];
     int BayerGrkno = -1;
     int FlamsteedNo = -1;
-    std::string constellation;
+    char constellation[32];
 
     __uint32_t HR = 0;                      // Harvard Revised catalog number
     __uint32_t HD = 0;                      // Henry Draper catalog number
@@ -32,6 +32,7 @@ class Star : public CelestialObject
     void rename_from_Bayer_Flamsteed();
     bool is_sunlike();
     bool is_in_visible_box(Point seen_from);
+    void make_universally_visible();
 
     protected:
     Box visible_area;
