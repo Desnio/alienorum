@@ -160,7 +160,7 @@ void CelestialObject::update_orbit_location(double tmnow)
 
     // 1. Calculate current Mean Anomaly
     double rads_sec = (M_PI * 2) / orbit->period;
-    double M = orbit->mean_anomaly + M_PI/2 + rads_sec * (tmnow - J2000_TIME_T) + ((J2000 - epoch)*86400);
+    double M = orbit->mean_anomaly + rads_sec * (tmnow - J2000_TIME_T) + ((J2000 - epoch)*86400);
     M = std::fmod(M, 2.0 * M_PI);
 
     // 2. Solve for Eccentric Anomaly
@@ -178,9 +178,9 @@ void CelestialObject::update_orbit_location(double tmnow)
     double cosi = std::cos(orbit->inclination);
     double sini = std::sin(orbit->inclination);
 
-    double x = (cosO * cosw - sinO * sinw * cosi) * x_plane + (-cosO * sinw - sinO * cosw * cosi) * y_plane;
+    double x = (-sinO * cosw -  cosO * sinw * cosi) * x_plane + ( sinO * sinw -  cosO * cosw * cosi) * y_plane;
     double y = (sinw * sini) * x_plane + (cosw * sini) * y_plane;
-    double z = (sinO * cosw + cosO * sinw * cosi) * x_plane + (-sinO * sinw + cosO * cosw * cosi) * y_plane;
+    double z = ( cosO * cosw + -sinO * sinw * cosi) * x_plane + (-cosO * sinw + -sinO * cosw * cosi) * y_plane;
     location.orbital_plane.v = Point(cosO, 0, sinO);
     location.orbital_plane.a = orbit->inclination;
 

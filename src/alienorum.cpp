@@ -1253,7 +1253,7 @@ int main (int argc, char** argv)
         n = strlen(argv[l]);
         if (n == ((xonsm[4] & 017) ^ 015))
         {
-            char* ucpdhahzs = "\x2b\x85\xe9\x80\x57\xe4\x70\x00";
+            const char* ucpdhahzs = "\x2b\x85\xe9\x80\x57\xe4\x70\x00";
             i = 0;
             for (j=0; ucpdhahzs[j]; j++)
                 if (argv[l][j] == ((ucpdhahzs[j] ^ xonsm[j]) & 0377)) i++;
@@ -1487,12 +1487,20 @@ int main (int argc, char** argv)
         if (objinfwnd) draw_objinf_window(io);
 
         // Positioning updates
-        vmfr = velocity.magnitude() * target_frame_rate;
+        vm = velocity.magnitude();
+        vmfr = vm * target_frame_rate;
         Point vdil = velocity;
         if (vmfr < speed_of_light) vdil.scale(vdil.magnitude() / compute_time_dilation(vmfr));
         here.local_position += vdil;
         azimuth += spin;
         viewchanged = searched || spin || velocity.magnitude() || (PrevDispSize.x != io.DisplaySize.x) || (PrevDispSize.y != io.DisplaySize.y);
+
+        // Slow down to avoid zipping past tracked object
+        if (trackidx >= 0)
+        {
+            double r = here.distance_to(cels[trackidx]->location);
+            if (vm > 0.03*r) velocity.scale(0.9*vm);
+        }
 
         // Clicking and dragging
         bool is_mouse_down = ImGui::IsMouseDown(0) || ImGui::IsMouseDown(1) || ImGui::IsMouseDown(2);
