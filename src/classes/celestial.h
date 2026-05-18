@@ -24,13 +24,18 @@ class Orbit
     CelestialObject* center = nullptr;
     double ascending_node = 0;                  // RADIANS!
     double inclination = 0;                     // RADIANS!
-    double omega = 0;                           // RADIANS!
     double semimajor_axis = 0;
     double eccentricity = 0;
     double arg_periapsis = 0;                   // RADIANS!
+
+    double prec_node = 0;                       // radians/second
+    double proc_argperi = 0;                    // radians/second
+
     double mean_anomaly = 0;                    // RADIANS!
     double epoch = J2000;                       // JD
-    double period = 0;                    // seconds
+    double period = 0;                          // seconds
+
+    Rotation laplace;
 
     CelestialLocation compute_3d_location(double epoch);
 };
@@ -46,6 +51,7 @@ class CelestialObject
     double declination = 0;                     // RADIANS!
     double inclination = 0;                     // Equatorial. RADIANS!
     double equinox = 0;                         // RADIANS!
+    double precession = 0;                      // radians/second
     double distance = 0;                        // meters
     bool distance_known = false;
     double epoch = J2000;                       // JD

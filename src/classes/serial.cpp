@@ -130,7 +130,7 @@ bool Serialization::load_all(FILE *fp, CelestialObject **cels, int max)
 {
     __uint32_t ver;
     fread(&ver, sizeof(__uint32_t), 1, fp);
-    if (ver > _serial_version)
+    if (ver != _serial_version)
     {
         std::cerr << "Cannot restore state: file version too new." << std::endl;
         return false;

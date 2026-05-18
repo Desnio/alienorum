@@ -1022,8 +1022,23 @@ int CatalogReader::read_local_planets(CelestialObject **cels, int max)
         read_field_onebased(buffer, 225, 231, field);
         p->surface_pressure = atof(field);
 
-        read_field_onebased(buffer, 233, 241, field);
+        read_field_onebased(buffer, 233, 243, field);
         p->epoch = J2000 + (atof(field) - 2000)*(year/86400);
+
+        read_field_onebased(buffer, 245, 259, field);
+        float f = atof(field);
+        p->precession = f ? (1.0 / f) : 0;
+
+        read_field_onebased(buffer, 261, 271, field);           // TODO: Laplace planes
+        read_field_onebased(buffer, 273, 287, field);           // TODO: Laplace planes
+
+        read_field_onebased(buffer, 289, 303, field);
+        f = atof(field);
+        o->prec_node = f ? (1.0 / f) : 0;
+
+        read_field_onebased(buffer, 305, 316, field);
+        f = atof(field);
+        o->proc_argperi = f ? (1.0 / f) : 0;
 
         p->color = Color::color_from_magnitude_indices(p->absolute_magnitude, p->BV_color);
         p->distance_known = true;

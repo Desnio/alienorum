@@ -158,23 +158,32 @@ void CelestialObject::update_orbit_location(double tmnow)
 {
     if (!orbit) return;
 
-    // 1. Calculate current Mean Anomaly
+    // Calculate orbit radians per second and seconds since epoch
     double rads_sec = (M_PI * 2) / orbit->period;
-    double M = orbit->mean_anomaly + rads_sec * (tmnow - J2000_TIME_T) + ((J2000 - epoch)*86400);
+    double seconds_since_epoch = (tmnow - J2000_TIME_T) + ((J2000 - epoch)*86400);
+
+    // Precess the ascending node and process the arg peri
+    double node_adjustment = seconds_since_epoch * orbit->prec_node;
+    double peri_adjustment = seconds_since_epoch * orbit->proc_argperi;
+    double node = orbit->ascending_node - node_adjustment;
+    double argperi = orbit->arg_periapsis + peri_adjustment;
+
+    // Calculate current Mean Anomaly
+    double M = orbit->mean_anomaly + rads_sec * seconds_since_epoch + node_adjustment - peri_adjustment;
     M = std::fmod(M, 2.0 * M_PI);
 
-    // 2. Solve for Eccentric Anomaly
+    // Solve for Eccentric Anomaly
     double E = solve_Kepler(M, orbit->eccentricity);
 
-    // 3. Calculate position in orbital plane (x', y')
+    // Calculate position in orbital plane (x', y')
     double x_plane = orbit->semimajor_axis * (std::cos(E) - orbit->eccentricity);
     double y_plane = orbit->semimajor_axis * std::sqrt(1.0 - orbit->eccentricity * orbit->eccentricity) * std::sin(E);
 
-    // 4. Rotate to 3D Heliocentric Coordinates
-    double cosO = std::cos(orbit->ascending_node);
-    double sinO = std::sin(orbit->ascending_node);
-    double cosw = std::cos(orbit->arg_periapsis);
-    double sinw = std::sin(orbit->arg_periapsis);
+    // Rotate to 3D Heliocentric Coordinates
+    double cosO = std::cos(node);
+    double sinO = std::sin(node);
+    double cosw = std::cos(argperi);
+    double sinw = std::sin(argperi);
     double cosi = std::cos(orbit->inclination);
     double sini = std::sin(orbit->inclination);
 

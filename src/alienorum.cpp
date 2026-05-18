@@ -1242,6 +1242,7 @@ int main (int argc, char** argv)
     vmag_cache = new double[MAX_CELOBJS];
     magrad_cache = new double[MAX_CELOBJS];
     memset(cels, 0, MAX_CELOBJS*sizeof(CelestialObject*));
+    memset(celskip, 0, MAX_CELOBJS*sizeof(bool));
     bx_cache = new int[MAX_CELOBJS];
     by_cache = new int[MAX_CELOBJS];
 
