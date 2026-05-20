@@ -23,6 +23,8 @@ class Color
     static Color color_from_magnitude_indices(double Vmag, double BV, double VR);
     static RGB rgb_from_color(Color c, double bloom_radius = 0);                    // Bloom radius = distance in pixels from center.
     static RGB disc_rgb_from_color(Color c, double disc_radius = 1);                // Disc radius = size in pixels of disk drawn on screen.
+
+    static ImU32 black_to_transparent(ImU32 input);
 };
 
 extern double global_brightness;

@@ -63,6 +63,22 @@ RGB Color::rgb_from_color(Color c, double bloom_radius)
     return result;
 }
 
+ImU32 Color::black_to_transparent(ImU32 input)
+{
+    int a = input >> 24;
+    int r = input&0xff, g = (input&0xff00)>>8, b = (input&0xff0000)>>16;
+    double highest = fmax(fmax(r,g),b);
+    if (highest < 255)
+    {
+        double normalize = 255.0 / highest;
+        a *= (highest/255);
+        r *= normalize;
+        g *= normalize;
+        b *= normalize;
+    }
+    return (a<<24) + (b<<16) + (g<<8) + r;
+}
+
 void set_gamma(double new_gamma)
 {
     global_inverse_gamma = 1.0 / new_gamma;

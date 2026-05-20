@@ -571,33 +571,6 @@ void draw_objects()
         if (cels[i]->drawnx < 0 or cels[i]->drawnx >= dispcx*2) continue;
         if (cels[i]->drawny < 0 or cels[i]->drawny >= dispcy*2) continue;
 
-        // Any brighter object within reach, skip this one.
-        bool skip = false;
-        double searchrad;
-        if (bx_cache[i] >= 0 && bx_cache[i] < drawn_cache_split && by_cache[i] >= 0 && by_cache[i] < drawn_cache_split)
-        {
-            n = drawnblocks[bx_cache[i]][by_cache[i]].size();
-            for (l=0; l<n; l++)
-            {
-                j = drawnblocks[bx_cache[i]][by_cache[i]][l];
-                searchrad = fmax(3, (magrad_cache[i]+magrad_cache[j])*0.666);
-                if (j==i) continue;
-                if (fabs(cels[i]->drawnx - cels[j]->drawnx) < searchrad
-                    &&
-                    fabs(cels[i]->drawny - cels[j]->drawny) < searchrad
-                    && vmag_cache[j] < vmag_cache[i]
-                    )
-                {
-                    double dx = cels[i]->drawnx - cels[j]->drawnx, dy = cels[i]->drawny - cels[j]->drawny;
-                    double r = sqrt(dx*dx+dy*dy);
-                    skip = (r < searchrad);
-                    break;
-                }
-            }
-        }
-        celskip[i] = skip;
-        if (skip) continue;
-
         xycoord = ImVec2(cels[i]->drawnx, cels[i]->drawny);
         appmag = vmag_cache[i];
         magrad = magrad_cache[i];
@@ -632,7 +605,7 @@ void draw_objects()
         {
             RGB rgb = Color::rgb_from_color(col, 1);
             if (rgb.r >= 16 || rgb.b >= 16)
-                ImGui::GetBackgroundDrawList()->AddCircleFilled(xycoord, jay, IM_COL32(rgb.r, rgb.g, rgb.b, 255), 0);
+                ImGui::GetBackgroundDrawList()->AddCircleFilled(xycoord, jay, Color::black_to_transparent(IM_COL32(rgb.r, rgb.g, rgb.b, 255)), 0);
             if (rgb.r == 255 && rgb.b == 255) break;
 
             col.red *= bloom_exponent; col.green *= bloom_exponent; col.blue *= bloom_exponent;
