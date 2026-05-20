@@ -620,8 +620,9 @@ void draw_objects()
     if (show_labels) for (i=0; cels[i] && i<MAX_CELOBJS; i++)
     {
         if (i == whereami) continue;
-        if (celskip[i]) continue;
         if (cels[i]->type == star && i!=selected && i!=trackidx && !((Star*)cels[i])->is_in_visible_box(here.system_center)) continue;
+        // if (cels[i]->orbit) std::cout << cels[i]->name << " " << cels[i]->location.distance_to(here) << " " << cels[i]->orbit->semimajor_axis << std::endl;
+        if (cels[i]->orbit && cels[i]->location.distance_to(here) > 1e3*cels[i]->orbit->semimajor_axis) continue;
         xycoord = ImVec2(cels[i]->drawnx, cels[i]->drawny);
         appmag = vmag_cache[i];
         magrad = fmin(15, magrad_cache[i]);
@@ -1339,11 +1340,9 @@ int main (int argc, char** argv)
     int i, j, l, n;
     bool magnitude_test = false;
     cels = new CelestialObject*[MAX_CELOBJS];
-    celskip = new bool[MAX_CELOBJS];
     vmag_cache = new double[MAX_CELOBJS];
     magrad_cache = new double[MAX_CELOBJS];
     memset(cels, 0, MAX_CELOBJS*sizeof(CelestialObject*));
-    memset(celskip, 0, MAX_CELOBJS*sizeof(bool));
     bx_cache = new int[MAX_CELOBJS];
     by_cache = new int[MAX_CELOBJS];
 

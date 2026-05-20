@@ -10,6 +10,14 @@
 #include <string.h>
 #include "cat.h"
 
+// Zeta 1,2 Reticuli make for a good case study in the program correctly identifying binary systems,
+// since they have a decent separation both in actual physical distance and in angular position from the solar system.
+// They are close enough that differences in parallax would not be expected to be within margins of error, allowing a
+// decent estimation of the parallax tolerances for stars in the same system, although the system's inclination is unknown.
+// They also are not identified in the catalogs as stars A and B of a binary, which makes them an even better test 
+// since we can't just lazily require all binary systems to be marked this way.
+#define _debug_sbinaries_zetret 1
+
 namespace fs = std::filesystem;
 
 std::vector<std::string> known_catalog_names =
@@ -36,6 +44,10 @@ std::vector<int> considx, lnpercons;
 std::vector<Cartesian2D> conscen;
 int nconsln = 0;
 int *consaidx, *consbidx;
+
+#if _debug_sbinaries_zetret
+Star *zet1ret = nullptr, *zet2ret = nullptr;
+#endif
 
 std::vector<std::string> CatalogReader::find_catalogs(std::string path)
 {
@@ -314,6 +326,21 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
             s->location.local_system_plane = align_points_3d(cels[0]->location.system_center, Point(0,0,light_year*1e9), s->location.system_center);
         }
 
+        #if _debug_sbinaries_zetret
+        if (s->HD == 20766) zet1ret = s;
+        else if (s->HD == 20807)
+        {
+            zet2ret = s;
+            std::cout << "Gliese Zeta Reticuli separation:"
+                << " RA " << fabs(zet1ret->right_ascension - zet2ret->right_ascension)
+                << " Decl " << fabs(zet1ret->declination - zet2ret->declination)
+                << " plx " << fabs(zet1ret->parallax - zet2ret->parallax)
+                << " pmRA " << fabs(zet1ret->proper_motion_RA - zet2ret->proper_motion_RA)
+                << " pmDE " << fabs(zet1ret->proper_motion_decl - zet2ret->proper_motion_decl)
+                << std::endl;
+        }
+        #endif
+
         if (num_read)
         {
             s->estimate_radius();
@@ -321,6 +348,44 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
         }
 
         cels[offset+num_read] = s;
+
+        for (j=1; j<10; j++)
+        {
+            int i = offset+num_read-j;
+            if (i<=0) break;
+            if (cels[i]->typeclass() == class_star
+                && fabs(cels[i]->right_ascension - s->right_ascension) < 0.002
+                && fabs(cels[i]->declination - s->declination) < 0.0013
+                && fabs(((Star*)cels[i])->parallax - s->parallax) < 3.5e-08
+                && fabs(((Star*)cels[i])->proper_motion_RA - s->proper_motion_RA) < 3e-15
+                && fabs(((Star*)cels[i])->proper_motion_decl - s->proper_motion_decl) < 3e-15
+                )
+            {
+                if (((Star*)cels[i])->apparent_magnitude > s->apparent_magnitude)
+                {
+                    if (!cels[i]->orbit || !cels[i]->orbit->center)
+                    {
+                        if (!cels[i]->orbit) cels[i]->orbit = new Orbit();
+                        cels[i]->orbit->center = s;
+                        cels[i]->orbit->semimajor_axis = s->location.distance_to(cels[i]->location);
+                        std::cout << cels[i]->name << " orbits " << s->name << std::endl;
+                        break;
+                    }
+                }
+                else
+                {
+                    if (!s->orbit || !s->orbit->center)
+                    {
+                        if (!s->orbit) s->orbit = new Orbit();
+                        s->orbit->center = cels[i];
+                        s->orbit->semimajor_axis = s->location.distance_to(cels[i]->location);
+                        std::cout << s->name << " orbits " << cels[i]->name << std::endl;
+                        break;
+                    }
+                }
+            }
+        }
+
         num_read++;
         if ((offset+num_read) >= (max-1)) break;
     }
@@ -534,6 +599,58 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
         // Assumed 90 degree inclination for all extrasolar systems unles sinclination known.
         s->location.local_system_plane = align_points_3d(cels[0]->location.system_center, Point(0,0,light_year*1e9), s->location.system_center);
 
+        #if _debug_sbinaries_zetret
+        if (s->HD == 20766) zet1ret = s;
+        else if (s->HD == 20807)
+        {
+            zet2ret = s;
+            std::cout << "BSC Zeta Reticuli separation:"
+                << " RA " << fabs(zet1ret->right_ascension - zet2ret->right_ascension)
+                << " Decl " << fabs(zet1ret->declination - zet2ret->declination)
+                << " plx " << fabs(zet1ret->parallax - zet2ret->parallax)
+                << " pmRA " << fabs(zet1ret->proper_motion_RA - zet2ret->proper_motion_RA)
+                << " pmDE " << fabs(zet1ret->proper_motion_decl - zet2ret->proper_motion_decl)
+                << std::endl;
+        }
+        #endif
+
+        for (j=1; j<10; j++)
+        {
+            int i = offset+num_read-j;
+            if (i<=0) break;
+            if (cels[i]->typeclass() == class_star
+                && fabs(cels[i]->right_ascension - s->right_ascension) < 0.002
+                && fabs(cels[i]->declination - s->declination) < 0.0013
+                && fabs(((Star*)cels[i])->parallax - s->parallax) < 3.1e-08
+                && fabs(((Star*)cels[i])->proper_motion_RA - s->proper_motion_RA) < 5e-16
+                && fabs(((Star*)cels[i])->proper_motion_decl - s->proper_motion_decl) < 5e-16
+                )
+            {
+                if (((Star*)cels[i])->apparent_magnitude > s->apparent_magnitude)
+                {
+                    if (!cels[i]->orbit || !cels[i]->orbit->center)
+                    {
+                        if (!cels[i]->orbit) cels[i]->orbit = new Orbit();
+                        cels[i]->orbit->center = s;
+                        cels[i]->orbit->semimajor_axis = s->location.distance_to(cels[i]->location);
+                        std::cout << cels[i]->name << " orbits " << s->name << std::endl;
+                        break;
+                    }
+                }
+                else
+                {
+                    if (!s->orbit || !s->orbit->center)
+                    {
+                        if (!s->orbit) s->orbit = new Orbit();
+                        s->orbit->center = cels[i];
+                        s->orbit->semimajor_axis = s->location.distance_to(cels[i]->location);
+                        std::cout << s->name << " orbits " << cels[i]->name << std::endl;
+                        break;
+                    }
+                }
+            }
+        }
+
         if (!HDfound)
         {
             cels[offset+num_read] = s;
@@ -552,7 +669,7 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
     char field[32];
     char Bonn[32], Cordoba[32], Cape[32];
     int num_read = 0;
-    int offset, HD, HIP, j;
+    int offset, HD, HIP, j, cursor;
     double RA, Decl, f, f1;
     Star* s;
 
@@ -588,6 +705,7 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
                 )
             {
                 s = (Star*)cels[j];
+                cursor = j;
                 break;
             }
         }
@@ -725,18 +843,71 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         read_field_onebased(buffer, 436, 447, field);
         if (trim(field).size()) strcpy(s->spectral_type, trim(field).c_str());
 
+        #if _debug_sbinaries_zetret
+        if (s->HD == 20766) zet1ret = s;
+        else if (s->HD == 20807)
+        {
+            zet2ret = s;
+            std::cout << "Hipparcos Zeta Reticuli separation:"
+                << " RA " << fabs(zet1ret->right_ascension - zet2ret->right_ascension)
+                << " Decl " << fabs(zet1ret->declination - zet2ret->declination)
+                << " plx " << fabs(zet1ret->parallax - zet2ret->parallax)
+                << " pmRA " << fabs(zet1ret->proper_motion_RA - zet2ret->proper_motion_RA)
+                << " pmDE " << fabs(zet1ret->proper_motion_decl - zet2ret->proper_motion_decl)
+                << std::endl;
+        }
+        #endif
+
         s->gotta_be_named_something();
         s->estimate_radius();
         s->estimate_mass();
         s->update_location(J2000_TIME_T);
         if (is_new)
         {
+            cursor = offset;
             cels[offset++] = s;
             // std::cout << "Added HIP" << s->HIP << std::endl << std::flush;
         }
         else
         {
             if (frand(0,1) < 0.03 && s->name[0]) std::cout << "HIP: updated " << s->name << std::endl << std::flush;
+        }
+
+        for (j=1; j<10; j++)
+        {
+            int i = cursor-j;
+            if (i<=0) break;
+            if (cels[i]->typeclass() == class_star
+                && fabs(cels[i]->right_ascension - s->right_ascension) < 0.002
+                && fabs(cels[i]->declination - s->declination) < 0.0013
+                && fabs(((Star*)cels[i])->parallax - s->parallax) < 3.1e-09
+                && fabs(((Star*)cels[i])->proper_motion_RA - s->proper_motion_RA) < 1.5e-15
+                && fabs(((Star*)cels[i])->proper_motion_decl - s->proper_motion_decl) < 1.5e-15
+                )
+            {
+                if (((Star*)cels[i])->apparent_magnitude > s->apparent_magnitude)
+                {
+                    if (!cels[i]->orbit || !cels[i]->orbit->center)
+                    {
+                        if (!cels[i]->orbit) cels[i]->orbit = new Orbit();
+                        cels[i]->orbit->center = s;
+                        cels[i]->orbit->semimajor_axis = s->location.distance_to(cels[i]->location);
+                        std::cout << cels[i]->name << " orbits " << s->name << std::endl;
+                        break;
+                    }
+                }
+                else
+                {
+                    if (!s->orbit || !s->orbit->center)
+                    {
+                        if (!s->orbit) s->orbit = new Orbit();
+                        s->orbit->center = cels[i];
+                        s->orbit->semimajor_axis = s->location.distance_to(cels[i]->location);
+                        std::cout << s->name << " orbits " << cels[i]->name << std::endl;
+                        break;
+                    }
+                }
+            }
         }
 
         num_read++;
@@ -867,6 +1038,7 @@ int CatalogReader::read_CCDM_catalog(CelestialObject **cels, int max)
         //  65- 66  A2     ---     Sp       Spectral type
         //  68- 72  I5    mas/yr   pmRA     ? annual proper motion in 0"001
         //  73- 77  I5    mas/yr   pmDE     ? annual proper motion in 0"001
+
         s->gotta_be_named_something();
         num_read++;
     }
