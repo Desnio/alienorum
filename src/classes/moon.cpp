@@ -9,10 +9,6 @@ Rotation Moon::get_Laplace_plane()
     if (!orbit || !orbit->center || !orbit->center->orbit || !orbit->center->orbit->center) return location.orbital_plane;
 
     CelestialObject *myplanet = orbit->center, *mystar = orbit->center->orbit->center;
-    /* double planet_gravitational_pull = myplanet->mass / (orbit->semimajor_axis*orbit->semimajor_axis);
-    double star_gravitational_pull = mystar->mass / (myplanet->orbit->semimajor_axis*myplanet->orbit->semimajor_axis);
-    double planet_influence = (planet_gravitational_pull/(planet_gravitational_pull+star_gravitational_pull*1e4));      // no idea why this 1e4 is necessary
-    double star_influence = 1.0 - planet_influence; */
 
     double pmu = myplanet->mass * G, smu = mystar->mass * G;
     double n = std::sqrt(pmu / std::pow(smu, 3));
@@ -38,6 +34,7 @@ Rotation Moon::get_Laplace_plane()
 
     Point eqaxis(sin(equinox), 0, cos(equinox));
     Point my_eq_pole = rotate3D(yaxis, center, eqaxis, inclination);
+    my_eq_pole = rotate3D(yaxis, center, location.orbital_plane.v, location.orbital_plane.a);
     my_eq_pole = rotate3D(my_eq_pole, center, Laplace_plane.v, -Laplace_plane.a);
     location.equatorial_plane = align_points_3d(my_eq_pole, ecliptic_pole, center);
 
