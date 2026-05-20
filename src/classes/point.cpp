@@ -55,6 +55,19 @@ Point &Point::operator-=(Point other)
     return *this;
 }
 
+Point Point::operator*(double multiplier)
+{
+    return Point(x*multiplier, y*multiplier, z*multiplier);
+}
+
+Point &Point::operator*=(double multiplier)
+{
+    x -= multiplier;
+    y -= multiplier;
+    z -= multiplier;
+    return *this;
+}
+
 double Point::distance_to(Point other)
 {
     Point temp = other - *this;
@@ -328,10 +341,25 @@ std::ostream& operator<<(std::ostream& os, const Point& p)
     return os;
 }
 
-double CelestialLocation::distance_to(CelestialLocation &other)
+double CelestialLocation::distance_to(CelestialLocation other)
 {
     Point relloc = (system_center - other.system_center) + (local_position - other.local_position);
     return relloc.magnitude();
+}
+
+CelestialLocation CelestialLocation::operator-(CelestialLocation other)             // it sure is nice that this fuction does its job!
+{
+    CelestialLocation result = *this;
+    result.system_center -= other.system_center;
+    result.local_position -= other.local_position;
+    return result;
+}
+
+CelestialLocation &CelestialLocation::operator-=(CelestialLocation other)
+{
+    system_center -= other.system_center;
+    local_position -= other.local_position;
+    return *this;
 }
 
 bool Box::point_in_box(Point pt)

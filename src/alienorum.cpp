@@ -387,6 +387,9 @@ void cache_cons_lines()
             }
         }
 
+        if (founda < 0) std::cerr << "Warning: Failed to identify " << consline_a[i] << std::endl;
+        if (foundb < 0) std::cerr << "Warning: Failed to identify " << consline_b[i] << std::endl;
+
         consaidx[i] = founda;
         consbidx[i] = foundb;
     }
@@ -426,9 +429,9 @@ void compute_object_draw_coordinates()
         for (i=0; i<drawn_cache_split; i++) for (j=0; j<drawn_cache_split; j++) drawnblocks[i][j].clear();
         for (i=0; cels[i] && i<MAX_CELOBJS; i++)
         {
-            switch (cels[i]->type)
+            switch (cels[i]->typeclass())
             {
-                case star:
+                case class_star:
                 if (i!=selected && i!=trackidx && !((Star*)cels[i])->is_in_visible_box(here.system_center))
                 {
                     cels[i]->drawnx = cels[i]->drawny = -1e9;
@@ -437,10 +440,12 @@ void compute_object_draw_coordinates()
                 ((Star*)cels[i])->update_location(simnow);
                 break;
 
-                case rocky:
-                case gas_giant:
-                case ice_giant:
+                case class_planet:
                 ((Planet*)cels[i])->update_location(simnow);
+                break;
+
+                case class_moon:
+                ((Moon*)cels[i])->update_location(simnow);
                 break;
 
                 default:
@@ -452,9 +457,9 @@ void compute_object_draw_coordinates()
             Point rel = cels[i]->location;
             rel -= here;
 
-            rel = rotate3D(rel, Point(0,0,0), here.equatorial_plane.v, here.equatorial_plane.a);
-            rel = rotate3D(rel, Point(0,0,0), here.orbital_plane.v, here.orbital_plane.a);
-            rel = rotate3D(rel, Point(0,0,0), here.local_system_plane.v, here.local_system_plane.a);
+            rel = rotate3D(rel, center, here.equatorial_plane.v, here.equatorial_plane.a);
+            rel = rotate3D(rel, center, here.orbital_plane.v, here.orbital_plane.a);
+            rel = rotate3D(rel, center, here.local_system_plane.v, here.local_system_plane.a);
 
             try
             {
@@ -463,7 +468,7 @@ void compute_object_draw_coordinates()
                     : cels[i]->viewer_magnitude(here);
 
                 double v_brightness = global_brightness * pow(magnbase, -vmag_cache[i]);
-                magrad_cache[i] = fmin(15, fmax(1.414, pow(v_brightness, 0.666)));
+                magrad_cache[i] = fmin(15, fmax(1.414, pow(v_brightness, 0.666)*global_brightness));
 
                 Cartesian2D cart(rel, azimuth, altitude, zoom);
                 float dx = (int)(dispcx + cart.x * dispcx), dy = (int)(dispcy + cart.y * dispcx);
@@ -492,9 +497,65 @@ void compute_object_draw_coordinates()
 void draw_objects()
 {
     int i, j, l, n, pass;
-    double jay;
+    double jay, step;
     ImVec2 xycoord;
     double appmag, magrad;
+    double orbseg = 81, smalim = 1e3*sqrt(zoom);
+
+    // Orbits
+    if (show_orbits) for (i=0; cels[i] && i<MAX_CELOBJS; i++)
+    {
+        if (!cels[i]->orbit) continue;
+        if (cels[i]->location.distance_to(here) > cels[i]->orbit->semimajor_axis * smalim) continue;
+        Color col = Color::color_from_magnitude_indices(5, cels[i]->BV_color);
+        RGB rgb = Color::rgb_from_color(col, 1);
+        ImU32 imcol = (i==selected) ? rgba_apply_redlight(selected_orbit_color) : rgba_apply_redlight(IM_COL32(rgb.r, rgb.g, rgb.b, 64));
+        step = cels[i]->orbit->period / orbseg;
+        CelestialLocation was = cels[i]->location;
+        bool is_moon = (cels[i]->typeclass() == class_moon);
+
+        Cartesian2D lastcart;
+        try
+        {
+            lastcart = Cartesian2D(cels[i]->drawnx, cels[i]->drawny);
+        }
+        catch(...)
+        {
+            lastcart.x = lastcart.y = -1e9;
+        }
+        for (j=-4; j<=orbseg; j++)
+        {
+            if (is_moon)
+                ((Moon*)cels[i])->update_location(simnow + step*j);
+            else
+                ((Planet*)cels[i])->update_location(simnow + step*j);
+
+            CelestialLocation tmp = cels[i]->location;
+            tmp.system_center -= here.system_center;                        // so much for operator-()
+            tmp.local_position -= here.local_position;
+            Point rel = Point(tmp);
+
+            rel = rotate3D(rel, center, here.equatorial_plane.v, here.equatorial_plane.a);
+            rel = rotate3D(rel, center, here.orbital_plane.v, here.orbital_plane.a);
+            rel = rotate3D(rel, center, here.local_system_plane.v, here.local_system_plane.a);
+
+            Cartesian2D cart;
+            try
+            {
+                cart = Cartesian2D(rel, azimuth, altitude, zoom);
+                cart.x = dispcx + cart.x * dispcx; cart.y = dispcy + cart.y * dispcx;
+                if (lastcart.x >= -200 && lastcart.y >= -200 && cart.x >= -200 && cart.y >= -200)
+                    ImGui::GetBackgroundDrawList()->AddLine(ImVec2(lastcart.x, lastcart.y), ImVec2(cart.x, cart.y), imcol);
+            }
+            catch (...)
+            {
+                cart.x = cart.y = -1e9;
+            }
+
+            lastcart = cart;
+        }
+        cels[i]->location = was;
+    }
 
     // Dits and doscs
     for (pass=0; pass<=1; pass++) for (i=0; cels[i] && i<MAX_CELOBJS; i++)
@@ -781,7 +842,7 @@ void identify_object_under_cursor(ImGuiIO& io)
             if (s->Bonn_survey[0])
             {
                 char BD[3] = {s->Bonn_survey[0],s->Bonn_survey[1],0};
-                objinfo += std::string(BD) + (s->Bonn_survey_declination > 0 ? std::string("+") : std::string(""))
+                objinfo += std::string(BD) + (s->Bonn_survey_declination > 0 ? std::string(1, s->Bonn_survey_sign) : std::string(""))
                     + std::to_string(s->Bonn_survey_declination) + std::string(" ") + std::to_string(s->Bonn_survey_sequential) + std::string("\n");
             }
         }
@@ -919,17 +980,19 @@ void process_keyboard_commands(ImGuiIO& io)
                 global_brightness = default_brightness;
                 zoom = 1;
             }
-            velocity = Point(0,0,0);
+            velocity = center;
             viewchanged = true;
             break;
 
+            case 'O': show_orbits = !show_orbits; break;
+
             case 'r':
-            velocity = Point(0,0,0);
+            velocity = center;
             zoom = 1;
             spin = 0;
             whereami = iamhome;
             trackidx = -1;
-            here.local_position = here.system_center = Point(0,0,0);
+            here.local_position = here.system_center = center;
             global_brightness = default_brightness;
             case '@':
             viewchanged = true;
@@ -952,19 +1015,26 @@ void process_keyboard_commands(ImGuiIO& io)
             case 'T': trackidx = -1; break;
 
             case 'w':
-            velocity.x =  sin(azimuth) * cos(altitude) * speed_of_light * 1.00001 / target_frame_rate;
-            velocity.z =  cos(azimuth) * cos(altitude) * speed_of_light * 1.00001 / target_frame_rate;
-            velocity.y =  sin(altitude) * speed_of_light * 1.00001 / target_frame_rate;
-            velocity = rotate3D(velocity, Point(0,0,0), here.local_system_plane.v, -here.local_system_plane.a);
-            velocity = rotate3D(velocity, Point(0,0,0), here.orbital_plane.v, -here.orbital_plane.a);
-            velocity = rotate3D(velocity, Point(0,0,0), here.equatorial_plane.v, -here.equatorial_plane.a);
+            if (velocity.magnitude())
+            {
+                velocity.scale(speed_of_light * 1.00001 / target_frame_rate);
+            }
+            else
+            {
+                velocity.x =  sin(azimuth) * cos(altitude) * speed_of_light * 1.00001 / target_frame_rate;
+                velocity.z =  cos(azimuth) * cos(altitude) * speed_of_light * 1.00001 / target_frame_rate;
+                velocity.y =  sin(altitude) * speed_of_light * 1.00001 / target_frame_rate;
+                velocity = rotate3D(velocity, center, here.local_system_plane.v, -here.local_system_plane.a);
+                velocity = rotate3D(velocity, center, here.orbital_plane.v, -here.orbital_plane.a);
+                velocity = rotate3D(velocity, center, here.equatorial_plane.v, -here.equatorial_plane.a);
+            }
             spin = 0;
             viewchanged = true;
             whereami = -1;
             break;
 
             case 'x':
-            velocity = Point(0,0,0);
+            velocity = center;
             viewchanged = true;
             break;
 
@@ -987,15 +1057,15 @@ void process_keyboard_commands(ImGuiIO& io)
                 velocity.x =  sin(azimuth) * cos(altitude) * 1000;
                 velocity.z =  cos(azimuth) * cos(altitude) * 1000;
                 velocity.y =  sin(altitude) * 1000;
-                velocity = rotate3D(velocity, Point(0,0,0), here.local_system_plane.v, -here.local_system_plane.a);
-                velocity = rotate3D(velocity, Point(0,0,0), here.orbital_plane.v, -here.orbital_plane.a);
-                velocity = rotate3D(velocity, Point(0,0,0), here.equatorial_plane.v, -here.equatorial_plane.a);
+                velocity = rotate3D(velocity, center, here.local_system_plane.v, -here.local_system_plane.a);
+                velocity = rotate3D(velocity, center, here.orbital_plane.v, -here.orbital_plane.a);
+                velocity = rotate3D(velocity, center, here.equatorial_plane.v, -here.equatorial_plane.a);
                 whereami = -1;
             }
             viewchanged = true;
             break;
 
-            case '!': show_consln = show_grid = show_labels = false; break;
+            case '!': show_consln = show_grid = show_labels = show_orbits = false; break;
             case '%': zoom = 1; global_brightness = 1; viewchanged = true; break;
 
             case '-':
@@ -1095,6 +1165,11 @@ void draw_status_window(ImGuiIO& io)
 
     flagstr = (std::string)"Labels (L): "
         + std::string(show_labels ? "ON" : "OFF");
+    ImGui::Text(flagstr.c_str());
+    statheight += txtyscale;
+
+    flagstr = (std::string)"Orbits (Sh+O): "
+        + std::string(show_orbits ? "ON" : "OFF");
     ImGui::Text(flagstr.c_str());
     statheight += txtyscale;
 
@@ -1305,6 +1380,8 @@ int main (int argc, char** argv)
     read_cons_lines();
     load_catalogs();
     cache_cons_lines();
+    bv_correction = log(blackbody_flux(sun_temp, V_band) / blackbody_flux(sun_temp, B_band)) * invlogmagnbase - cels[0]->BV_color;
+    std::cout << "B-V correction: " << bv_correction << std::endl;
 
     if (magnitude_test)
     {
@@ -1449,6 +1526,15 @@ int main (int argc, char** argv)
     // Our state
     ImVec4 background = ImVec4(0.0f, 0.0f, 0.0f, 1.00f);
     set_gamma(global_gamma);
+
+    // Pre-position all objects
+    for (i=0; cels[i]; i++)
+    {
+        cel_obj_class c = cels[i]->typeclass();
+        if (c == class_star) ((Star*)cels[i])->update_location(simnow);
+        else if (c == class_planet) ((Planet*)cels[i])->update_location(simnow);
+        else if (c == class_moon) ((Moon*)cels[i])->update_location(simnow);
+    }
 
     // Main loop
     bool done = false;

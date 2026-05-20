@@ -154,9 +154,9 @@ std::string CelestialObject::scaled_distance(CelestialLocation fromwhere)
     return oss.str();
 }
 
-void CelestialObject::update_orbit_location(double tmnow)
+void CelestialObject::update_orbit_location(double tmnow, Rotation* crp)
 {
-    if (!orbit) return;
+    if (!orbit || !orbit->center) return;
 
     // Calculate orbit radians per second and seconds since epoch
     double rads_sec = (M_PI * 2) / orbit->period;
@@ -188,15 +188,24 @@ void CelestialObject::update_orbit_location(double tmnow)
     double sini = std::sin(orbit->inclination);
 
     double x = (-sinO * cosw -  cosO * sinw * cosi) * x_plane + ( sinO * sinw -  cosO * cosw * cosi) * y_plane;
-    double y = (sinw * sini) * x_plane + (cosw * sini) * y_plane;
+    double y = (                       sinw * sini) * x_plane + (                       cosw * sini) * y_plane;
     double z = ( cosO * cosw + -sinO * sinw * cosi) * x_plane + (-cosO * sinw + -sinO * cosw * cosi) * y_plane;
     location.orbital_plane.v = Point(cosO, 0, sinO);
     location.orbital_plane.a = orbit->inclination;
 
-    // TODO: This ecliptic stuff is specific to the solar system.
+    if (type != star && orbit->center->type != star && orbit->center->orbit && orbit->center->orbit->center && !crp)
+    {
+        std::cerr << "CelestialObject::update_orbit_location() called on moon " << name
+            << " of planet " << orbit->center->name
+            << " of star " << orbit->center->orbit->center->name
+            << " without Laplace plane." << std::endl;
+        throw 0xbadc0de;
+    }
+
+    Point result;
+    if (crp) result = rotate3D(Point(x,y,z), center, crp->v, -crp->a);
     // For exoplanets, assume the planetary orbits and stellar equator are in the same plane and set the stellar inclination to zero.
-    // Point result = rotate3D(Point(x,y,z), Point(0,0,0), ICRF_to_ecliptic.v, -ICRF_to_ecliptic.a);
-    Point result = rotate3D(Point(x,y,z), Point(0,0,0), location.local_system_plane.v, -location.local_system_plane.a);
+    else result = rotate3D(Point(x,y,z), center, location.local_system_plane.v, -location.local_system_plane.a);
 
     location.system_center = orbit->center->location.system_center;
     location.local_position = result + orbit->center->location.local_position;

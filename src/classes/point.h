@@ -41,6 +41,8 @@ class Point
     Point& operator+=(Point other);
     Point operator-(Point other);
     Point& operator-=(Point other);
+    Point operator*(double multiplier);
+    Point& operator*=(double multiplier);
     double distance_to(Point other);
     double magnitude() const;
     void scale(double new_magn);
@@ -89,7 +91,9 @@ class CelestialLocation
     Rotation local_system_plane;
     Rotation orbital_plane;
     Rotation equatorial_plane;
-    double distance_to(CelestialLocation& other);
+    double distance_to(CelestialLocation other);
+    CelestialLocation operator-(CelestialLocation other);
+    CelestialLocation& operator-=(CelestialLocation other);
 };
 
 Point compute_normal(Point pt1, Point pt2, Point pt3);

@@ -278,7 +278,7 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
         }
 
         // Sun is distance zero.
-        if (!s->right_ascension && !s->declination)
+        if (!num_read)
         {
             if (!num_read)
             {
@@ -287,7 +287,6 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
                 s->distance_accuracy = 0;
                 s->mass = Msun;
                 s->volumetric_mean_radius = Rsun;
-                bv_correction = log(blackbody_flux(sun_temp, V_band) / blackbody_flux(sun_temp, B_band)) * invlogmagnbase - s->BV_color;
             }
             else continue;
         }
@@ -388,6 +387,7 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
         s->Bonn_survey[0] = field[0];
         s->Bonn_survey[1] = field[1];
         read_field_onebased(buffer, 17, 19, field);
+        s->Bonn_survey_sign = field[0];
         s->Bonn_survey_declination = atoi(field);
         read_field_onebased(buffer, 20, 25, field);
         s->Bonn_survey_sequential = atoi(field);
@@ -432,6 +432,8 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
         //   32- 37  I6     ---     SAO      [1/258997]? SAO Catalog Number
         read_field_onebased(buffer, 32, 37, field);
         s->SAO = atoi(field);
+
+        s->gotta_be_named_something();
 
         if (s->RA_Dec_accuracy > cat_radec_acc)
         {
@@ -632,6 +634,7 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
             s->Bonn_survey[0] = 'C';
             s->Bonn_survey[1] = 'P';
             read_field_onebased(buffer, 421, 423, field);
+            s->Bonn_survey_sign = field[0];
             s->Bonn_survey_declination = atoi(field);
             read_field_onebased(buffer, 424, 429, field);
             s->Bonn_survey_sequential = atoi(field);
@@ -641,6 +644,7 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
             s->Bonn_survey[0] = 'C';
             s->Bonn_survey[1] = 'D';
             read_field_onebased(buffer, 410, 412, field);
+            s->Bonn_survey_sign = field[0];
             s->Bonn_survey_declination = atoi(field);
             read_field_onebased(buffer, 413, 418, field);
             s->Bonn_survey_sequential = atoi(field);
@@ -650,6 +654,7 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
             s->Bonn_survey[0] = 'B';
             s->Bonn_survey[1] = 'D';
             read_field_onebased(buffer, 399, 401, field);
+            s->Bonn_survey_sign = field[0];
             s->Bonn_survey_declination = atoi(field);
             read_field_onebased(buffer, 402, 407, field);
             s->Bonn_survey_sequential = atoi(field);
@@ -720,6 +725,7 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         read_field_onebased(buffer, 436, 447, field);
         if (trim(field).size()) strcpy(s->spectral_type, trim(field).c_str());
 
+        s->gotta_be_named_something();
         s->estimate_radius();
         s->estimate_mass();
         s->update_location(J2000_TIME_T);
@@ -730,7 +736,7 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         }
         else
         {
-            if (frand(0,1) < 0.03 && s->name[0]) std::cout << "Updated " << s->name << std::endl << std::flush;
+            if (frand(0,1) < 0.03 && s->name[0]) std::cout << "HIP: updated " << s->name << std::endl << std::flush;
         }
 
         num_read++;
@@ -850,7 +856,7 @@ int CatalogReader::read_CCDM_catalog(CelestialObject **cels, int max)
         s->absolute_magnitude = -log(intrinsic_brightness) * invlogmagnbase;
 
         if (A->HD && s->HD)
-            std::cout << "Updated " << (strlen(A->name) ? A->name : (std::string("HD")+std::to_string(A->HD)))
+            std::cout << "CCDM: updated " << (strlen(A->name) ? A->name : (std::string("HD")+std::to_string(A->HD)))
                 << ": " << (strlen(s->name) ? s->name : (std::string("HD")+std::to_string(s->HD))) << std::endl << std::flush;
 
         // TODO: For systems where both members are not already loaded,
@@ -861,6 +867,7 @@ int CatalogReader::read_CCDM_catalog(CelestialObject **cels, int max)
         //  65- 66  A2     ---     Sp       Spectral type
         //  68- 72  I5    mas/yr   pmRA     ? annual proper motion in 0"001
         //  73- 77  I5    mas/yr   pmDE     ? annual proper motion in 0"001
+        s->gotta_be_named_something();
         num_read++;
     }
     return num_read;
@@ -870,7 +877,7 @@ int CatalogReader::read_SB9_catalog(CelestialObject **cels, int max)
 {
     std::string path = "catalogs/SB9/main.dat";
     char buffer[1024];
-    char field[32], Bonn, cen[5], comp[5];
+    char field[32], Bonn, Bonn_sign, cen[5], comp[5];
     int num_read = 0;
     int HD, HIP, SB9, Bonn_decl, Bonn_seq, i, j, l, n, found, offset;
     Star *s, *A, *B;
@@ -897,18 +904,21 @@ int CatalogReader::read_SB9_catalog(CelestialObject **cels, int max)
         else if (field[0] == 'B' && field[1] == 'D')
         {
             Bonn = 'B';
+            Bonn_sign = field[2];
             Bonn_decl = atoi(&field[2]);
             Bonn_seq = atoi(&field[6]);
         }
         else if (field[0] == 'C' && field[1] == 'D')
         {
             Bonn = 'C';
+            Bonn_sign = field[2];
             Bonn_decl = atoi(&field[2]);
             Bonn_seq = atoi(&field[6]);
         }
         else if (field[0] == 'C' && field[1] == 'P')
         {
             Bonn = 'P';
+            Bonn_sign = field[2];
             Bonn_decl = atoi(&field[2]);
             Bonn_seq = atoi(&field[6]);
         }
@@ -944,14 +954,17 @@ int CatalogReader::read_SB9_catalog(CelestialObject **cels, int max)
             if (HIP && (s->HIP == HIP)) found = i;
             else if (HD && (s->HD == HD)) found = i;
             else if (Bonn == 'B' && s->Bonn_survey[0] == 'B' && s->Bonn_survey[1] == 'D'
+                && s->Bonn_survey_sign == Bonn_sign
                 && s->Bonn_survey_declination == Bonn_decl
                 && s->Bonn_survey_sequential == Bonn_seq
                 ) found = i;
             else if (Bonn == 'C' && s->Bonn_survey[0] == 'C' && s->Bonn_survey[1] == 'D'
+                && s->Bonn_survey_sign == Bonn_sign
                 && s->Bonn_survey_declination == Bonn_decl
                 && s->Bonn_survey_sequential == Bonn_seq
                 ) found = i;
             else if (Bonn == 'P' && s->Bonn_survey[0] == 'C' && s->Bonn_survey[1] == 'P'
+                && s->Bonn_survey_sign == Bonn_sign
                 && s->Bonn_survey_declination == Bonn_decl
                 && s->Bonn_survey_sequential == Bonn_seq
                 ) found = i;
@@ -968,6 +981,8 @@ int CatalogReader::read_SB9_catalog(CelestialObject **cels, int max)
 
         A = (Star*)cels[found];
         A->is_orbit_multiple = true;
+        A->gotta_be_named_something();
+        if (!A->distance_known) continue;
 
         found = -1;
         if (strlen(comp) == 1 && comp[0] > 'A' && comp[0] <= 'K')
@@ -1026,7 +1041,9 @@ int CatalogReader::read_SB9_catalog(CelestialObject **cels, int max)
         else
         {
             B = (Star*)cels[found];
-            std::cout << B->name << " orbits " << A->name << std::endl;
+            std::cout << B->name << " orbits " 
+                << (strlen(A->name) ? A->name : (std::string("HIP")+std::to_string(A->HIP)).c_str() )
+                << std::endl;
         }
 
         B->SB9 = SB9;
@@ -1043,6 +1060,7 @@ int CatalogReader::read_SB9_catalog(CelestialObject **cels, int max)
         strcpy(B->spectral_type, trim(field).c_str());
         if (found < 0) B->estimate_BV();
 
+        B->gotta_be_named_something();
         B->estimate_radius();
         B->estimate_mass();
     }
@@ -1254,7 +1272,7 @@ int CatalogReader::read_star_orbits_dat(CelestialObject **cels)
         s->orbit->ascending_node = s->orbit->inclination = 0;           // Clear these because we transfered them to the system plane.
 
         if (A->HD && s->HD)
-            std::cout << "Updated " << (strlen(A->name) ? A->name : (std::string("HD")+std::to_string(A->HD)))
+            std::cout << "starorbits: updated " << (strlen(A->name) ? A->name : (std::string("HD")+std::to_string(A->HD)))
                 << ": " << (strlen(s->name) ? s->name : (std::string("HD")+std::to_string(s->HD))) << std::endl << std::flush;
 
         num_read++;
@@ -1302,7 +1320,16 @@ int CatalogReader::read_local_planets(CelestialObject **cels, int max)
 
         Orbit* o = new Orbit();
         o->center = cels[j];
-        Planet* p = new Planet();
+        Planet* p;
+
+        if (o->center->orbit && o->center->orbit->center)
+        {
+            p = (Planet*)new Moon();
+        }
+        else
+        {
+            p = new Planet();
+        }
         p->orbit = o;
         read_field_onebased(buffer, 26, 42, field);
         strcpy(p->name, trim(field).c_str());
@@ -1374,8 +1401,8 @@ int CatalogReader::read_local_planets(CelestialObject **cels, int max)
         float f = atof(field);
         p->precession = f ? (1.0 / f) : 0;
 
-        read_field_onebased(buffer, 261, 271, field);           // TODO: Laplace planes
-        read_field_onebased(buffer, 273, 287, field);           // TODO: Laplace planes
+        read_field_onebased(buffer, 261, 287, field);           // TODO: Laplace planes
+        p->J2 = atof(field);
 
         read_field_onebased(buffer, 289, 303, field);
         f = atof(field);

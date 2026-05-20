@@ -15,6 +15,7 @@
 #define year (365 * 86400 + 5 * 3600 + 48 * 60 + 45)
 #define J2000 2451544.5
 #define speed_of_light 299792458.0
+#define G 6.6743015e-14
 #define kB 1.380649e-23
 #define Planck 6.62607015e-34
 #define earth_mass 5.972e+27
@@ -30,7 +31,7 @@
 #define color_ref_temp 9758.5
 #define sun_temp 5778
 #define Rsun 695700000
-#define Msun 1.988475e+30
+#define Msun 1.988475e+33
 #define U_band 3.6e-7
 #define B_band 4.4e-7
 #define V_band 5.5e-7
@@ -88,10 +89,10 @@ extern double bv_correction;
 // APP STATUS AND SETTINGS
 extern int ncelobjs, selected, trackidx, cursor_size, circle_size, xaorngsim, objinfwnd_hei, timeout_ms, lmx, lmy, whereami, iamhome, is_an_obj_under_cursor;
 extern double azimuth, altitude, spin, global_gamma, zoom, vm, vmfr, obj_magn_under_cursor, velocmag, JDnow;
-extern bool show_grid, show_consln, show_xonsm, show_labels, is_mouse_over_window, dragging, dragged, viewchanged,
+extern bool show_grid, show_consln, show_xonsm, show_labels, show_orbits, is_mouse_over_window, dragging, dragged, viewchanged,
     objinfwnd, statuswnd, hide_mouse, searched;
 extern ImU32 cursor_color, cursor_color1, cursor_color2, cursor_color3, grid_color, grid_color_brighter, ecliptic_color, consline_color,
-    conslbl_color, selected_color, objlbl_color;
+    conslbl_color, selected_color, selected_orbit_color, objlbl_color;
 extern std::string objname, objinfo;
 extern time_t simnow;
 extern double appmagn_lblcut, absmagn_lblcut, distance_lblcut, intrinsic_cutoff;
