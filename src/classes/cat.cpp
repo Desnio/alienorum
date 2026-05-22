@@ -304,7 +304,7 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
         }
 
         // Sun is distance zero.
-        if (!num_read)
+        if (!s->right_ascension && !s->declination)
         {
             if (!num_read)
             {
@@ -313,7 +313,11 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
                 s->mass = Msun;
                 s->volumetric_mean_radius = Rsun;
             }
-            else continue;
+            else
+            {
+                delete s;
+                continue;
+            }
         }
 
         // 147-152  I6     ---     HD       [15/352860]? designation
@@ -1424,6 +1428,7 @@ int CatalogReader::read_star_orbits_dat(CelestialObject **cels)
     char buffer[1024];
     char field[32];
     int i, j, offset, num_read = 0;
+    double f;
 
     FILE* fp = fopen(path.c_str(), "rb");
     if (!fp) return 0;
@@ -1446,6 +1451,11 @@ int CatalogReader::read_star_orbits_dat(CelestialObject **cels)
             A = (Star*)cels[i];
             break;
         }
+        if (!A)
+        {
+            std::cerr << "Warning: " << censtr << " not found in loaded data." << std::endl;
+            continue;
+        }
 
         read_field_onebased(buffer, 65, 75, field);
         double ascending_node = atof(field) * fiftyseventh;
@@ -1453,22 +1463,28 @@ int CatalogReader::read_star_orbits_dat(CelestialObject **cels)
         read_field_onebased(buffer, 77, 87, field);
         double inclination = atof(field) * fiftyseventh;
 
-        // First, solve for inclination
-        Rotation inclined = align_points_3d(cels[0]->location.system_center,
-            Point( 0, cos(inclination) * light_year*1e9, sin(inclination) * light_year*1e9 ),
-            A->location.system_center);
+        bool overwrite_system_plane = false;
+        if (inclination && (ascending_node || (!A->location.local_system_plane.a)))
+        {
+            overwrite_system_plane = true;
 
-        // Then incline the stars' pole
-        Point pole = rotate3D(yaxis, center, inclined.v, -inclined.a);
+            // First, solve for inclination
+            Rotation inclined = align_points_3d(cels[0]->location.system_center,
+                Point( 0, cos(inclination) * light_year*1e9, sin(inclination) * light_year*1e9 ),
+                A->location.system_center);
 
-        // Then rotate along the Sun-star axis
-        Point axis = A->location.system_center - cels[0]->location.system_center;
-        pole = rotate3D(pole, center, axis, (ascending_node + M_PI/2));
+            // Then incline the stars' pole
+            Point pole = rotate3D(yaxis, center, inclined.v, -inclined.a);
 
-        // Then realign the points for the new pole
-        A->location.local_system_plane = align_points_3d(pole, Point(0,light_year*1e9,0), center);
-        A->location.orbital_plane.a = 0;
-        A->location.equatorial_plane.a = 0;
+            // Then rotate along the Sun-star axis
+            Point axis = A->location.system_center - cels[0]->location.system_center;
+            pole = rotate3D(pole, center, axis, (ascending_node + M_PI/2));
+
+            // Then realign the points for the new pole
+            A->location.local_system_plane = align_points_3d(pole, Point(0,light_year*1e9,0), center);
+            A->location.orbital_plane.a = 0;
+            A->location.equatorial_plane.a = 0;
+        }
 
         read_field_onebased(buffer, 25, 47, field);
         std::string bdyname = trim(field);
@@ -1497,34 +1513,43 @@ int CatalogReader::read_star_orbits_dat(CelestialObject **cels)
             continue;
         }
 
-        if (!s->orbit) s->orbit = new Orbit();
         if (A->HD == 20766)
         {
             std::cerr << "BAD! 1061" << std::endl;
             throw 0xbadc0de;
         }
+        if (!s->orbit) s->orbit = new Orbit();
         s->orbit->center = A;
 
         read_field_onebased(buffer, 49, 63, field);
-        s->orbit->period = atof(field);
+        f = atof(field);
+        if (f) s->orbit->period = f;
 
         read_field_onebased(buffer, 89, 99, field);
-        s->orbit->arg_periapsis = atof(field) * fiftyseventh;
+        f = atof(field) * fiftyseventh;
+        if (f) s->orbit->arg_periapsis = f;
 
         read_field_onebased(buffer, 101, 111, field);
-        s->orbit->semimajor_axis = atof(field);
+        f = atof(field);
+        if (f) s->orbit->semimajor_axis = f;
 
         read_field_onebased(buffer, 113, 123, field);
-        s->orbit->eccentricity = atof(field);
+        f = atof(field);
+        if (f) s->orbit->eccentricity = f;
 
         read_field_onebased(buffer, 125, 143, field);
-        s->orbit->mean_anomaly = atof(field) * fiftyseventh;
+        f = atof(field) * fiftyseventh;
+        if (f) s->orbit->mean_anomaly = f;
 
         read_field_onebased(buffer, 145, 155, field);
-        s->orbit->mean_anomaly = atof(field) * fiftyseventh;
+        f = atof(field) * fiftyseventh;
+        if (f) s->orbit->mean_anomaly = f;
 
-        s->location = A->location;
-        s->orbit->ascending_node = s->orbit->inclination = 0;           // Clear these because we transfered them to the system plane.
+        if (overwrite_system_plane)
+        {
+            s->location = A->location;
+            s->orbit->ascending_node = s->orbit->inclination = 0;           // Clear these because we transfered them to the system plane.
+        }
 
         num_read++;
     }

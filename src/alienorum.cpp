@@ -10,6 +10,8 @@
 #include <thread>
 #include <chrono>
 #include <stdio.h>
+#include <chrono>
+#include <format>
 #include <SDL.h>
 #include <SDL_opengl.h>
 #include <SDL_image.h>
@@ -234,6 +236,25 @@ bool look_for_catalogs()
     return catalogs_found;
 }
 
+bool save_universe()
+{
+    fstream fs;
+
+    mtx.lock();
+    loading_msg = std::string("Writing Universe file...");
+    mtx.unlock();
+
+    fs.open("universe.json", std::ios::out);
+    if (fs)
+    {
+        if (!Serialization::save_all(fs, cels)) std::cerr << "FAILED to save universe file." << std::endl;
+        fs.close();
+        return true;
+    }
+    else std::cerr << "FAILED to write universe file." << std::endl;
+    return false;
+}
+
 void load_catalogs()
 {
     int i, n;
@@ -255,6 +276,17 @@ void load_catalogs()
             fs.close();
             for (i=0; cels[i]; i++) if (!strcmp(cels[i]->name, "Earth")) whereami = iamhome = i;
             ncelobjs = i;
+
+            std::filesystem::file_time_type ftime_json = std::filesystem::last_write_time("universe.json");
+            std::filesystem::file_time_type ftime_cat = std::filesystem::last_write_time("catalogs/star_orbits.dat");
+            bool resave_json = false;
+            if (ftime_cat > ftime_json)
+            {
+                cr.read_star_orbits_dat(cels);
+                resave_json = true;
+            }
+            if (resave_json) save_universe();
+
             return;
         }
         fs.close();
@@ -345,16 +377,7 @@ void load_catalogs()
     mtx.unlock();
     cr.read_star_orbits_dat(cels);
 
-    mtx.lock();
-    loading_msg = std::string("Writing Universe file...");
-    mtx.unlock();
-    fs.open("universe.json", std::ios::out);
-    if (fs)
-    {
-        if (!Serialization::save_all(fs, cels)) std::cerr << "FAILED to save state." << std::endl;
-        fs.close();
-    }
-    else std::cerr << "FAILED to write save state file." << std::endl;
+    save_universe();
 }
 
 void read_cons_lines()

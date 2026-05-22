@@ -316,9 +316,11 @@ void CelestialObject::update_orbit_location(double tmnow, Rotation* crp)
 
 json Orbit::to_json()
 {
+    std::string cenname;
+    if (center) cenname = center->name;
     return
     {
-        {"center_name", center->name},
+        {"center_name", cenname},
         {"ascending_node", ascending_node*fiftyseven},
         {"inclination", inclination*fiftyseven},
         {"semimajor_axis", semimajor_axis},
