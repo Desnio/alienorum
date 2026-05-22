@@ -7,6 +7,12 @@
 Star::Star()
 {
     _class = class_star;
+    memset(spectral_type, 0, 32*sizeof(char));
+    memset(Bayer, 0, 32*sizeof(char));
+    memset(Flamsteed, 0, 32*sizeof(char));
+    memset(constellation, 0, 32*sizeof(char));
+    memset(Gliese, 0, 16*sizeof(char));
+    memset(CCDM, 0, 16*sizeof(char));
 }
 
 void Star::update_location(double tmnow)
@@ -38,6 +44,15 @@ void Star::rename_from_Bayer_Flamsteed()
 {
     if (!strlen(constellation)) return;
     if (BayerGrkno < 0 && !FlamsteedNo) return;
+    if (orbit && orbit->center && orbit->center->typeclass() == class_star
+        && !BayerGrkno && !FlamsteedNo
+        )
+    {
+        std::string buildname = lop_component(orbit->center->name);
+        buildname += std::string("B");
+        strcpy(name, buildname.c_str());
+        return;
+    }
 
     if (!consabbrev.size() || !consgen.size())
     {
@@ -66,12 +81,21 @@ void Star::rename_from_Bayer_Flamsteed()
     if (BayerGrkno >= 0)
     {
         int number = atoi(std::string(Bayer).substr(3, 1).c_str());
-        if (number) strcpy(name, (Greek_letter[BayerGrkno] + std::string(" ") + std::to_string(number) + std::string(" ") + consgen[j]).c_str());
+        if (number)
+        {
+            if (!strcmp(consabbrev[j].c_str(), "Ori") && BayerGrkno == 7)
+                strcpy(name, (std::string("HD" + std::to_string(HD)).c_str()));
+            if (!strcmp(consabbrev[j].c_str(), "UMa") && BayerGrkno == 13)
+                strcpy(name, Gliese);
+            else strcpy(name, (Greek_letter[BayerGrkno] + std::string(" ") + std::to_string(number) + std::string(" ") + consgen[j]).c_str());
+        }
         else strcpy(name, (Greek_letter[BayerGrkno] + std::string(" ") + consgen[j]).c_str());
     }
     else if (FlamsteedNo)
     {
-        strcpy(name, (std::to_string(FlamsteedNo) + std::string(" ") + consgen[j]).c_str());
+        if (!strcmp(consabbrev[j].c_str(), "UMa") && FlamsteedNo == 53)
+            strcpy(name, Gliese);
+        else strcpy(name, (std::to_string(FlamsteedNo) + std::string(" ") + consgen[j]).c_str());
     }
 }
 
@@ -215,6 +239,93 @@ void Star::gotta_be_named_something()
         << " distance " << (distance/light_year) << std::endl;
 }
 
+json Star::to_json()
+{
+    json towrite = CelestialObject::to_json();
+
+    towrite["proper_motion_RA"] = proper_motion_RA*fiftyseven*year;
+    towrite["proper_motion_decl"] = proper_motion_decl*fiftyseven*year;
+    towrite["radial_velocity"] = radial_velocity;
+    towrite["apparent_magnitude"] = apparent_magnitude;
+    towrite["parallax"] = parallax*fiftyseven*3600*1000;
+    towrite["spectral_type"] = spectral_type;
+    towrite["Bayer"] = Bayer;
+    towrite["Flamsteed"] = Flamsteed;
+    towrite["Gliese"] = Gliese;
+    towrite["BayerGrkno"] = BayerGrkno;
+    towrite["FlamsteedNo"] = FlamsteedNo;
+    towrite["constellation"] = constellation;
+    towrite["HR"] = HR;
+    towrite["HD"] = HD;
+    towrite["HIP"] = HIP;
+    towrite["SAO"] = SAO;
+    towrite["SB9"] = SB9;
+    towrite["CCDM"] = CCDM;
+    towrite["Bonn_survey"] = Bonn_survey;
+    towrite["Bonn_survey_sign"] = std::string(1, Bonn_survey_sign);
+    towrite["Bonn_survey_declination"] = Bonn_survey_declination;
+    towrite["Bonn_survey_sequential"] = Bonn_survey_sequential;
+    towrite["is_orbit_multiple"] = is_orbit_multiple;
+
+    return towrite;
+}
+
+bool Star::from_json(json j)
+{
+    CelestialObject::from_json(j);
+    try { j.at("proper_motion_RA").get_to(proper_motion_RA); proper_motion_RA *= fiftyseventh/year; } catch (...) { ; }
+    try { j.at("proper_motion_decl").get_to(proper_motion_decl); proper_motion_decl *= fiftyseventh/year; } catch (...) { ; }
+    try { j.at("radial_velocity").get_to(radial_velocity); } catch (...) { ; }
+    try { j.at("apparent_magnitude").get_to(apparent_magnitude); } catch (...) { ; }
+    try { j.at("parallax").get_to(parallax); parallax *= fiftyseventh / 3600000; } catch (...) { ; }
+    try
+    {
+        std::string str;
+        j.at("spectral_type").get_to(str);
+        strcpy(spectral_type, str.c_str());
+    } catch (...) { ; }
+    try
+    {
+        std::string str;
+        j.at("Bayer").get_to(str);
+        strcpy(Bayer, str.c_str());
+    } catch (...) { ; }
+    try
+    {
+        std::string str;
+        j.at("Flamsteed").get_to(str);
+        strcpy(Flamsteed, str.c_str());
+    } catch (...) { ; }
+    try
+    {
+        std::string str;
+        j.at("Gliese").get_to(str);
+        strcpy(Gliese, str.c_str());
+    } catch (...) { ; }
+    try { j.at("HR").get_to(HR); } catch (...) { ; }
+    try { j.at("HD").get_to(HD); } catch (...) { ; }
+    try { j.at("HIP").get_to(HIP); } catch (...) { ; }
+    try { j.at("SAO").get_to(SAO); } catch (...) { ; }
+    try { j.at("SB9").get_to(SB9); } catch (...) { ; }
+    try { j.at("CCDM").get_to(CCDM); } catch (...) { ; }
+    try
+    {
+        std::string str;
+        j.at("Bonn_survey").get_to(str);
+        strcpy(Bonn_survey, str.c_str());
+    } catch (...) { ; }
+    try
+    {
+        std::string str;
+        j.at("Bonn_survey_sign").get_to(str);
+        Bonn_survey_sign = str.c_str()[0];
+    } catch (...) { ; }
+    try { j.at("Bonn_survey_declination").get_to(Bonn_survey_declination); } catch (...) { ; }
+    try { j.at("Bonn_survey_sequential").get_to(Bonn_survey_sequential); } catch (...) { ; }
+    try { j.at("is_orbit_multiple").get_to(is_orbit_multiple); } catch (...) { ; }
+    return true;
+}
+
 double Star::estimate_mass()
 {
     if (!cels[0])
@@ -313,7 +424,7 @@ void Gliese_doubles_fix()
 
                 strcpy(name2, s2->Gliese);
                 name2[n] = 0;
-                if (!strcmp(name1, name2))
+                if (!strcmp(name1, name2) || lop_component(s1->Gliese) == lop_component(s2->Gliese))
                 {
                     s2->right_ascension = s1->right_ascension;
                     s2->declination = s1->declination;

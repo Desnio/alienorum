@@ -15,9 +15,6 @@ class Star : public CelestialObject
     double apparent_magnitude;              // visual/550nm
     double parallax = 0;                    // radians
 
-    double RA_Dec_accuracy = M_PI;          // radians
-    double distance_accuracy = 1.37e+9;     // value - this*value <= true_value <= value + this*value
-
     char spectral_type[32];
     char Bayer[32];
     char Flamsteed[32];
@@ -25,13 +22,15 @@ class Star : public CelestialObject
     int BayerGrkno = -1;
     int FlamsteedNo = -1;
     char constellation[32];
+    char CCDM[16];
+    char component = 0;
 
     __uint32_t HR = 0;                      // Harvard Revised catalog number
     __uint32_t HD = 0;                      // Henry Draper catalog number
     __uint32_t HIP = 0;                     // Hipparcos catalog number
     __uint32_t SAO = 0;                     // USNO/SAO catalog number
     __uint32_t SB9 = 0;                     // 9th Catalogue of Spectroscopic Binary Orbits designation
-    char Bonn_survey[2] = {0,0};            // BD = Bonn, CD = Cordoba, CP = Cape Town
+    char Bonn_survey[3] = {0,0,0};          // BD = Bonn, CD = Cordoba, CP = Cape Town
     char Bonn_survey_sign = '+';
     int Bonn_survey_declination = 0;        // Declination category
     __uint32_t Bonn_survey_sequential = 0;  // Serial number by right ascension.
@@ -53,6 +52,8 @@ class Star : public CelestialObject
 
     double estimate_radius();
     void gotta_be_named_something();
+    json to_json();
+    bool from_json(json j);
 
 protected:
     Box visible_area;

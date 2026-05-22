@@ -5,7 +5,12 @@
 #include <string>
 #include <vector>
 #include <ctime>
+#include <thread>
+#include <mutex>
 #include "../imgui/imgui.h"
+#include "../include/nlohmann/json.hpp"
+
+using json = nlohmann::json;
 
 #define light_year 9460730472580800.0
 #define parsec 3.08567758128E+16
@@ -50,6 +55,9 @@
 #define ecliptic_north_Decl_J2000 ((66.0 + 33.0 / 60 + 38.55 / 3600) * fiftyseventh)
 
 #define MAX_CELOBJS 1048576
+#define MAX_SPLASH_STARS 5381
+#define MAX_HD 359083
+#define MAX_HIP 120416
 #define its_behind_you 0xbe419d10
 #define default_brightness 1.0
 #define default_gamma 1.0
@@ -75,6 +83,7 @@ std::string Greek_from_abbrev(char* abbrev);
 std::string Greek_from_abbrev(std::string abbrev);
 double blackbody_flux(double temperature, double wavelength);               // Kelvins and meters.
 int Damerau_Levenshtein(const std::string &s1, const std::string &s2);
+std::string lop_component(const char* name);
 
 // Takes velocity in m/s and computes the ratio of Δt(moving)/Δt(stationary). The result will always be <= 1.
 double compute_time_dilation(double velocity);
@@ -87,6 +96,8 @@ extern int cbolbls_selected_idx;
 extern double bv_correction;
 
 // APP STATUS AND SETTINGS
+extern std::string loading_msg;
+extern std::mutex mtx;
 extern int ncelobjs, selected, trackidx, cursor_size, circle_size, xaorngsim, objinfwnd_hei, timeout_ms, lmx, lmy, whereami, iamhome, is_an_obj_under_cursor;
 extern double azimuth, altitude, spin, global_gamma, zoom, vm, vmfr, obj_magn_under_cursor, velocmag, JDnow;
 extern bool show_grid, show_consln, show_xonsm, show_labels, show_orbits, is_mouse_over_window, dragging, dragged, viewchanged,

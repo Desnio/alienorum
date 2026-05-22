@@ -12,11 +12,11 @@
 
 // Zeta 1,2 Reticuli make for a good case study in the program correctly identifying binary systems,
 // since they have a decent separation both in actual physical distance and in angular position from the solar system.
-// They are close enough that differences in parallax would not be expected to be within margins of error, allowing a
-// decent estimation of the parallax tolerances for stars in the same system, although the system's inclination is unknown.
-// They also are not identified in the catalogs as stars A and B of a binary, which makes them an even better test 
+// They are close enough to Earth that differences in parallax might not be within margins of error, allowing a
+// decent estimation of the parallax tolerances for stars in the same system, and the system's inclination is likely to be near edge-on.
+// They also are not identified in the catalogs as stars A and B of a binary, which also makes them a great test
 // since we can't just lazily require all binary systems to be marked this way.
-#define _debug_sbinaries_zetret 1
+#define _debug_sbinaries_zetret 0
 
 namespace fs = std::filesystem;
 
@@ -116,7 +116,11 @@ void CatalogReader::download_catalogs()
             if (!fs::exists(p))
             {
                 // TODO: Add compatibility for Windows and Mac.
-                if (frist) std::cout << "Downloading catalogs..." << std::endl;
+                if (frist)
+                {
+                    loading_msg = "Downloading catalogs...";
+                    std::cout << loading_msg << std::endl;
+                }
                 std::string cmd = (std::string)"wget -O " + destfname + (std::string)" " + (std::string)url;
                 std::cout << cmd << std::endl;
                 std::system(cmd.c_str());
@@ -153,12 +157,13 @@ void CatalogReader::download_catalogs()
 int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
 {
     std::string path = "catalogs/Gliese/catalog.dat";
-    char buffer[65536];
+    char buffer[300];
     char field[32];
     int num_read = 0;
     int offset, j;
     double deg, mnt, sec, pm, pmtheta, absmagn;
     std::string build_name;
+    Star *s, *A = nullptr;
 
     for (offset=0; offset<max && cels[offset]; offset++);
     if (offset >= (max-1)) return 0;
@@ -167,7 +172,7 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
 
     while (fgets(buffer, 65520, fp))
     {
-        Star* s = new Star();
+        s = new Star();
         s->type = star;
 
         //    1-  8  A8     ---     Name    *Identifier ; see remarks.
@@ -198,7 +203,18 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
         //   9- 10  A2     ---     Comp     Components (A,B,C,... )
         read_field_onebased(buffer, 9, 10, field);
         std::string comp = trim(field);
-        if (comp.size()) build_name += (std::string)" " + comp;
+        if (comp.size())
+        {
+            build_name += (std::string)" " + comp;
+            s->component = field[0];
+
+            if (A && s->component > 'A' && !s->orbit)
+            {
+                s->orbit = new Orbit();
+                s->orbit->center = A;
+            }
+        }
+        else A = nullptr;
 
         strcpy(s->name, trim(build_name.c_str()).c_str());
         strcpy(s->Gliese, trim(build_name.c_str()).c_str());
@@ -232,7 +248,6 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
 
         s->declination = (deg + mnt/60 + sec/3600) * fiftyseventh * sgndecl;
         s->epoch = 2433282.42345905;
-        s->RA_Dec_accuracy = fiftyseventh * 2.5;
 
         // TODO: Keep the epoch but translate the coordinates to the J2000 system.
         // Have to apply precession of the equinoxes; this is the major component.
@@ -272,7 +287,7 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
 
         //  90- 94  F5.2   mag     R-I      ? color
         read_field_onebased(buffer, 90, 94, field);
-        s->RI_magnitude = atof(field);
+        s->RI_color = atof(field);
 
         // 109-114  F6.1   mas     plx      ? Resulting parallax
         read_field_onebased(buffer, 109, 114, field);
@@ -286,7 +301,6 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
         if (absmagn && s->apparent_magnitude)
         {
             s->distance_known = true;
-            s->distance_accuracy = (s->parallax+0.5)/(s->parallax-0.5)-1;
         }
 
         // Sun is distance zero.
@@ -296,7 +310,6 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
             {
                 s->distance = 0;
                 s->distance_known = true;
-                s->distance_accuracy = 0;
                 s->mass = Msun;
                 s->volumetric_mean_radius = Rsun;
             }
@@ -348,46 +361,12 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
         }
 
         cels[offset+num_read] = s;
-
-        for (j=1; j<10; j++)
-        {
-            int i = offset+num_read-j;
-            if (i<=0) break;
-            if (cels[i]->typeclass() == class_star
-                && fabs(cels[i]->right_ascension - s->right_ascension) < 0.002
-                && fabs(cels[i]->declination - s->declination) < 0.0013
-                && fabs(((Star*)cels[i])->parallax - s->parallax) < 3.5e-08
-                && fabs(((Star*)cels[i])->proper_motion_RA - s->proper_motion_RA) < 3e-15
-                && fabs(((Star*)cels[i])->proper_motion_decl - s->proper_motion_decl) < 3e-15
-                )
-            {
-                if (((Star*)cels[i])->apparent_magnitude > s->apparent_magnitude)
-                {
-                    if (!cels[i]->orbit || !cels[i]->orbit->center)
-                    {
-                        if (!cels[i]->orbit) cels[i]->orbit = new Orbit();
-                        cels[i]->orbit->center = s;
-                        cels[i]->orbit->semimajor_axis = s->location.distance_to(cels[i]->location);
-                        std::cout << cels[i]->name << " orbits " << s->name << std::endl;
-                        break;
-                    }
-                }
-                else
-                {
-                    if (!s->orbit || !s->orbit->center)
-                    {
-                        if (!s->orbit) s->orbit = new Orbit();
-                        s->orbit->center = cels[i];
-                        s->orbit->semimajor_axis = s->location.distance_to(cels[i]->location);
-                        std::cout << s->name << " orbits " << cels[i]->name << std::endl;
-                        break;
-                    }
-                }
-            }
-        }
+        if (s->component == 'A') A = s;
 
         num_read++;
         if ((offset+num_read) >= (max-1)) break;
+
+        if (!(num_read % 123)) loading_msg = std::string("Loaded ") + std::to_string(num_read) + std::string(" objects from Gliese's Third Catalogue of Nearby Stars...");
     }
 
     fclose(fp);
@@ -403,7 +382,7 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
     int offset, HDno, j;
     double deg, mnt, sec;
     bool HDfound;
-    double f, paralacc, cat_radec_acc = fiftyseventh / 3600;                 // one arc second
+    double f;
 
     for (offset=0; offset<max && cels[offset]; offset++);
     if (offset >= (max-1)) return 0;
@@ -500,43 +479,41 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
 
         s->gotta_be_named_something();
 
-        if (s->RA_Dec_accuracy > cat_radec_acc)
-        {
-            //   76- 77  I2     h       RAh      ?Hours RA, equinox J2000, epoch 2000.0 (1)
-            read_field_onebased(buffer, 76, 77, field);
-            deg = atof(field) * 15;
+        if (!s->component && buffer[49] > ' ' && strcmp(s->name, "41The1Ori")) s->component = buffer[49];
 
-            //   78- 79  I2     min     RAm      ?Minutes RA, equinox J2000, epoch 2000.0 (1)
-            read_field_onebased(buffer, 78, 79, field);
-            mnt = atof(field) * 15;
+        //   76- 77  I2     h       RAh      ?Hours RA, equinox J2000, epoch 2000.0 (1)
+        read_field_onebased(buffer, 76, 77, field);
+        deg = atof(field) * 15;
 
-            //   80- 83  F4.1   s       RAs      ?Seconds RA, equinox J2000, epoch 2000.0 (1)
-            read_field_onebased(buffer, 80, 83, field);
-            sec = atof(field) * 15;
+        //   78- 79  I2     min     RAm      ?Minutes RA, equinox J2000, epoch 2000.0 (1)
+        read_field_onebased(buffer, 78, 79, field);
+        mnt = atof(field) * 15;
 
-            s->right_ascension = (deg + mnt/60 + sec/3600) * fiftyseventh;
+        //   80- 83  F4.1   s       RAs      ?Seconds RA, equinox J2000, epoch 2000.0 (1)
+        read_field_onebased(buffer, 80, 83, field);
+        sec = atof(field) * 15;
 
-            //       84  A1     ---     DE-      ?Sign Dec, equinox J2000, epoch 2000.0 (1)
-            read_field_onebased(buffer, 84, 84, field);
-            int sgndecl = (field[0] == '-') ? -1 : 1;
+        s->right_ascension = (deg + mnt/60 + sec/3600) * fiftyseventh;
 
-            //   85- 86  I2     deg     DEd      ?Degrees Dec, equinox J2000, epoch 2000.0 (1)
-            read_field_onebased(buffer, 85, 86, field);
-            deg = atof(field);
+        //       84  A1     ---     DE-      ?Sign Dec, equinox J2000, epoch 2000.0 (1)
+        read_field_onebased(buffer, 84, 84, field);
+        int sgndecl = (field[0] == '-') ? -1 : 1;
 
-            //   87- 88  I2     arcmin  DEm      ?Minutes Dec, equinox J2000, epoch 2000.0 (1)
-            read_field_onebased(buffer, 87, 88, field);
-            mnt = atof(field);
+        //   85- 86  I2     deg     DEd      ?Degrees Dec, equinox J2000, epoch 2000.0 (1)
+        read_field_onebased(buffer, 85, 86, field);
+        deg = atof(field);
 
-            //   89- 90  I2     arcsec  DEs      ?Seconds Dec, equinox J2000, epoch 2000.0 (1)
-            read_field_onebased(buffer, 89, 90, field);
-            sec = atof(field);
+        //   87- 88  I2     arcmin  DEm      ?Minutes Dec, equinox J2000, epoch 2000.0 (1)
+        read_field_onebased(buffer, 87, 88, field);
+        mnt = atof(field);
 
-            s->declination = (deg + mnt/60 + sec/3600) * fiftyseventh * sgndecl;
-            if (!s->right_ascension && !s->declination) continue;
-            s->epoch = J2000;
-            s->RA_Dec_accuracy = cat_radec_acc;
-        }
+        //   89- 90  I2     arcsec  DEs      ?Seconds Dec, equinox J2000, epoch 2000.0 (1)
+        read_field_onebased(buffer, 89, 90, field);
+        sec = atof(field);
+
+        s->declination = (deg + mnt/60 + sec/3600) * fiftyseventh * sgndecl;
+        if (!s->right_ascension && !s->declination) continue;
+        s->epoch = J2000;
 
         //  103-107  F5.2   mag     Vmag     ?Visual magnitude (1)
         read_field_onebased(buffer, 103, 107, field);
@@ -552,7 +529,7 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
 
         //  122-126  F5.2   mag     R-I      ? R-I   in system specified by n_R-I
         read_field_onebased(buffer, 122, 126, field);
-        s->RI_magnitude = atof(field);
+        s->RI_color = atof(field);
 
         //  128-147  A20    ---     SpType   Spectral type
         read_field_onebased(buffer, 128, 147, field);
@@ -588,7 +565,7 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
             if (s->HD) strcpy(s->name, ((std::string)"HD" + std::to_string(s->HD)).c_str());
         }
 
-        s->VR_magnitude = (s->RI_magnitude + s->BV_color*2) / 3;      // VERY rough estimate
+        s->VR_color = (s->RI_color + s->BV_color*2) / 3;      // VERY rough estimate
         double intrinsic_brightness = pow(magnbase, -s->apparent_magnitude) * pow(fmax(AU, s->distance) / parsec / 10, 2);
         s->absolute_magnitude = -log(intrinsic_brightness) * invlogmagnbase;
 
@@ -614,11 +591,13 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
         }
         #endif
 
-        for (j=1; j<10; j++)
+        #if auto_match_multiples
+        if (!s->orbit && (s->BayerGrkno != 7 || strcmp(s->constellation, "Ori"))) for (j=1; j<10; j++)
         {
             int i = offset+num_read-j;
             if (i<=0) break;
             if (cels[i]->typeclass() == class_star
+                && (((Star*)cels[i])->BayerGrkno != 7 || strcmp(((Star*)cels[i])->constellation, "Ori"))
                 && fabs(cels[i]->right_ascension - s->right_ascension) < 0.002
                 && fabs(cels[i]->declination - s->declination) < 0.0013
                 && fabs(((Star*)cels[i])->parallax - s->parallax) < 3.1e-08
@@ -626,6 +605,7 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
                 && fabs(((Star*)cels[i])->proper_motion_decl - s->proper_motion_decl) < 5e-16
                 )
             {
+                if (cels[i]->orbit) continue;
                 if (((Star*)cels[i])->apparent_magnitude > s->apparent_magnitude)
                 {
                     if (!cels[i]->orbit || !cels[i]->orbit->center)
@@ -650,6 +630,7 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
                 }
             }
         }
+        #endif
 
         if (!HDfound)
         {
@@ -657,6 +638,8 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
             num_read++;
             if ((offset+num_read) >= (max-1)) break;
         }
+
+        if (!(num_read % 123)) loading_msg = std::string("Loaded ") + std::to_string(num_read) + std::string(" objects from Bright Star Catalogue...");
     }
     fclose(fp);
     return num_read;
@@ -670,11 +653,22 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
     char Bonn[32], Cordoba[32], Cape[32];
     int num_read = 0;
     int offset, HD, HIP, j, cursor;
-    double RA, Decl, f, f1;
+    double deg, mnt, sec, RA, Decl, f, f1;
     Star* s;
 
     for (offset=0; offset<max && cels[offset]; offset++);
     if (offset >= (max-1)) return 0;
+
+    CelestialObject **hdcache = new CelestialObject*[MAX_HD+1], **hipcache = new CelestialObject*[MAX_HIP+1];
+    memset(hdcache, 0, sizeof(CelestialObject*)*(MAX_HD+1));
+    memset(hipcache, 0, sizeof(CelestialObject*)*(MAX_HIP+1));
+
+    for (j=0; j<offset; j++)
+    {
+        if (cels[j]->type != star) continue;
+        if (((Star*)cels[j])->HD) hdcache[((Star*)cels[j])->HD] = cels[j];
+        if (((Star*)cels[j])->HIP) hipcache[((Star*)cels[j])->HIP] = cels[j];
+    }
 
     FILE* fp = fopen(path.c_str(), "rb");
     while (fgets(buffer, 1020, fp))
@@ -687,16 +681,9 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         read_field_onebased(buffer, 391, 396, field);
         HD = atoi(field);
 
-        // For now, do not load Hipparcos stars.
-        // Only use this catalog to refine positional data of already loaded stars.
-        // Later, we can expand program functionality to filter by absolute magnitude
-        // and by distance to the user's current POV.
-        // Note Hipparcos RA/Decl coordinates are in J1991.25 epoch.
-        // Even if the star already has coordinates in J2000,
-        // use the Hipparcos coordinates because they are high accuracy.
         s = nullptr;
         bool is_new = false;
-        for (j=0; j<offset; j++)
+        /* for (j=0; j<offset; j++)
         {
             if (cels[j]->type != star) continue;
             if ((HD && ((Star*)cels[j])->HD == HD)
@@ -708,7 +695,9 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
                 cursor = j;
                 break;
             }
-        }
+        }*/
+        if (HD && hdcache[HD]) s = (Star*)hdcache[HD];
+        else if (HIP && hipcache[HIP]) s = (Star*)hipcache[HIP];
         if (!s)
         {
             // There are only a handful with no V magnitude; omit them.
@@ -737,6 +726,10 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
 
         s->HD = HD;
         s->HIP = HIP;
+
+        // 328-337  A10   ---     CCDM      CCDM identifier                          (H55)
+        read_field_onebased(buffer, 328, 337, field);
+        strcpy(s->CCDM, trim(field).c_str());
 
         // 398-407  A10   ---     BD        Bonner DM <I/119>, <I/122>               (H72)
         read_field_onebased(buffer, 398, 407, Bonn);
@@ -778,33 +771,46 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
             s->Bonn_survey_sequential = atoi(field);
         }
 
-        //  52- 63  F12.8 deg     RAdeg    *? alpha, degrees (ICRS, Epoch=J1991.25)
-        read_field_onebased(buffer, 52, 63, field);
-        RA = atof(field) * fiftyseventh;
+        //  18- 28  A11   ---     RAhms     Right ascension in h m s, ICRS (J1991.25) (H3)
+        read_field_onebased(buffer, 18, 19, field);
+        deg = atof(field) * 15;
 
-        //  65- 76  F12.8 deg     DEdeg    *? delta, degrees (ICRS, Epoch=J1991.25)
-        read_field_onebased(buffer, 65, 76, field);
-        Decl = atof(field) * fiftyseventh;
+        read_field_onebased(buffer, 21, 22, field);
+        mnt = atof(field) * 15;
+
+        read_field_onebased(buffer, 24, 28, field);
+        sec = atof(field) * 15;
+
+        RA = (deg + mnt/60 + sec/3600) * fiftyseventh;
+
+        //  30- 40  A11   ---     DEdms     Declination in deg ' ", ICRS (J1991.25)   (H4)
+        read_field_onebased(buffer, 30, 30, field);
+        int sgndecl = (field[0] == '-') ? -1 : 1;
+
+        read_field_onebased(buffer, 31, 32, field);
+        deg = atof(field);
+
+        read_field_onebased(buffer, 34, 35, field);
+        mnt = atof(field);
+
+        read_field_onebased(buffer, 37, 40, field);
+        sec = atof(field);
+
+        Decl = (deg + mnt/60 + sec/3600) * fiftyseventh * sgndecl;
+        s->epoch = 1991.25;
 
         if (RA && Decl)
         {
-            // 106-111  F6.2  mas   e_RAdeg    *? Standard error in RA*cos(DEdeg)        (H14)
-            read_field_onebased(buffer, 106, 111, field);
-            f = atof(field) / cos(Decl) / 3600 / 1000;
-            // 113-118  F6.2  mas   e_DEdeg    *? Standard error in DE                   (H15)
-            f = fmax(f, atof(field));
-            if (f < s->RA_Dec_accuracy)
-            {
-                s->right_ascension = RA;
-                s->declination = Decl;
-                s->RA_Dec_accuracy = f;
-                s->epoch = 2448349.0625;
-            }
+            s->right_ascension = RA;
+            s->declination = Decl;
+            s->epoch = 2448349.0625;
         }
-
-        // 120-125  F6.2  mas   e_Plx       ? Standard error in Plx                  (H16)
-        read_field_onebased(buffer, 106, 111, field);
-        f1 = fabs(atof(field)) / f;
+        else
+        {
+            std::cout << "ERROR: HIP" << HIP << " has no RA/Decl" << std::endl;
+            throw 0xbadc0de;
+            continue;
+        }
 
         //  80- 86  F7.2  mas     Plx       ? Trigonometric parallax
         read_field_onebased(buffer, 80, 86, field);
@@ -812,10 +818,10 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         if (f > 0)
         {
             s->parallax = f;
-            s->distance_accuracy = f1;
             s->distance = (s->parallax > 0) ? (parsec / atof(field) * 1000) : light_year*1e4;
             s->distance_known = true;
         }
+        else if (!s->distance_known) s->distance = light_year*1e4;
 
         //  88- 95  F8.2 mas/yr   pmRA     *? Proper motion mu_alpha.cos(delta), ICRS
         read_field_onebased(buffer, 88, 95, field);
@@ -866,18 +872,20 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         {
             cursor = offset;
             cels[offset++] = s;
-            // std::cout << "Added HIP" << s->HIP << std::endl << std::flush;
+            loading_msg = std::string("Loading Hipparcos Catalog... Added HIP") + std::to_string(s->HIP);
         }
         else
         {
-            if (frand(0,1) < 0.03 && s->name[0]) std::cout << "HIP: updated " << s->name << std::endl << std::flush;
+            loading_msg = std::string("Loading Hipparcos Catalog... Updated HIP") + std::to_string(s->HIP);
         }
 
-        for (j=1; j<10; j++)
+        #if auto_match_multiples
+        if (!s->orbit && (s->BayerGrkno != 7 || strcmp(s->constellation, "Ori"))) for (j=1; j<10; j++)
         {
             int i = cursor-j;
             if (i<=0) break;
             if (cels[i]->typeclass() == class_star
+                && (((Star*)cels[i])->BayerGrkno != 7 || strcmp(((Star*)cels[i])->constellation, "Ori"))
                 && fabs(cels[i]->right_ascension - s->right_ascension) < 0.002
                 && fabs(cels[i]->declination - s->declination) < 0.0013
                 && fabs(((Star*)cels[i])->parallax - s->parallax) < 3.1e-09
@@ -885,6 +893,7 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
                 && fabs(((Star*)cels[i])->proper_motion_decl - s->proper_motion_decl) < 1.5e-15
                 )
             {
+                if (cels[i]->orbit) continue;
                 if (((Star*)cels[i])->apparent_magnitude > s->apparent_magnitude)
                 {
                     if (!cels[i]->orbit || !cels[i]->orbit->center)
@@ -892,7 +901,8 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
                         if (!cels[i]->orbit) cels[i]->orbit = new Orbit();
                         cels[i]->orbit->center = s;
                         cels[i]->orbit->semimajor_axis = s->location.distance_to(cels[i]->location);
-                        std::cout << cels[i]->name << " orbits " << s->name << std::endl;
+                        std::cout << cels[i]->name << "/HIP" << ((Star*)cels[i])->HIP
+                            << " orbits " << s->name << "/HIP" << s->HIP << std::endl;
                         break;
                     }
                 }
@@ -903,18 +913,24 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
                         if (!s->orbit) s->orbit = new Orbit();
                         s->orbit->center = cels[i];
                         s->orbit->semimajor_axis = s->location.distance_to(cels[i]->location);
-                        std::cout << s->name << " orbits " << cels[i]->name << std::endl;
+                        std::cout << cels[i]->name << "/HIP" << ((Star*)cels[i])->HIP
+                            << " orbits " << s->name << "/HIP" << s->HIP << std::endl;
                         break;
                     }
                 }
             }
         }
+        #endif
 
         num_read++;
         if (num_read >= max-4) break;
+
+        if (!(num_read % 123)) loading_msg = std::string("Loaded ") + std::to_string(num_read) + std::string(" objects from The Hipparcos Catalogue...");
     }
 
     fclose(fp);
+    delete[] hdcache;
+    delete[] hipcache;
     return num_read;
 }
 
@@ -926,6 +942,7 @@ int CatalogReader::read_CCDM_catalog(CelestialObject **cels, int max)
     int num_read = 0;
     int offset, HD, HIP, i;
     Star *s, *A = nullptr;
+    std::string CCDM;
 
     for (offset=0; offset<max && cels[offset]; offset++);
     if (offset >= (max-1)) return 0;
@@ -933,11 +950,41 @@ int CatalogReader::read_CCDM_catalog(CelestialObject **cels, int max)
     bool already[max];
     memset(already, 0, max*sizeof(bool));
 
+    CelestialObject **hdcache = new CelestialObject*[MAX_HD+1], **hipcache = new CelestialObject*[MAX_HIP+1];
+    memset(hdcache, 0, sizeof(CelestialObject*)*(MAX_HD+1));
+    memset(hipcache, 0, sizeof(CelestialObject*)*(MAX_HIP+1));
+
+    for (i=0; i<offset; i++)
+    {
+        if (cels[i]->type != star) continue;
+        if (((Star*)cels[i])->HD) hdcache[((Star*)cels[i])->HD] = cels[i];
+        if (((Star*)cels[i])->HIP) hipcache[((Star*)cels[i])->HIP] = cels[i];
+    }
+
     FILE* fp = fopen(path.c_str(), "rb");
     if (!fp) return 0;
 
     while (fgets(buffer, 1020, fp))
     {
+        //   2- 11  A10    ---     CCDM     (Catalogue of the Components of the Double and Multiple stars) identifier (1)
+        read_field_onebased(buffer, 2, 11, field);
+        CCDM = trim(field);
+        const char* cCCDM = CCDM.c_str();
+        bool found = false;
+        for (i=0; i<offset; i++)
+        {
+            if (already[i]) continue;
+            if (cels[i] == A) continue;
+            if (cels[i]->type != star) continue;
+            s = (Star*)cels[i];
+
+            if (!strcmp(cCCDM, s->CCDM))
+            {
+                found = true;
+                break;
+            }
+        }
+
         //  99-104  A6     ---     HD       HD identifier
         read_field_onebased(buffer, 99, 104, field);
         HD = atoi(field);
@@ -946,25 +993,24 @@ int CatalogReader::read_CCDM_catalog(CelestialObject **cels, int max)
         read_field_onebased(buffer, 127, 132, field);
         HIP = atoi(field);
 
-        bool found = false;
-        for (i=0; i<offset; i++)
+        if (!found)
         {
-            if (already[i]) continue;
-            if (cels[i]->type != star) continue;
-            s = (Star*)cels[i];
-
-            if ((HD && s->HD == HD) || (HIP && s->HIP == HIP))
-            {
-                found = true;
-                break;
-            }
+            s = nullptr;
+            if (HD && hdcache[HD]) s = (Star*)hdcache[HD];
+            else if (HIP && hipcache[HIP]) s = (Star*)hipcache[HIP];
+            if (s) found = true;
         }
 
-        if (already[i]) continue;
+        if (found && already[i]) continue;
 
         // TODO: For systems where both members are not already loaded,
         // can load additional members.
         if (!found) continue;
+        if (A && A->BayerGrkno == 7 && !strcmp(A->constellation, "Ori"))
+        {
+            A = nullptr;
+            continue;
+        }
         already[i] = true;
 
         //      13  A1     ---     Comp     [A-Z?] Concerned component (6)
@@ -976,6 +1022,9 @@ int CatalogReader::read_CCDM_catalog(CelestialObject **cels, int max)
             A = s;
             continue;
         }
+        else if (!A) continue;
+
+        if (A->HD == 20766) continue;               // Zeta 1 Reticuli orbits Zeta 2, not the other way around.
 
         //  47- 49  A3     deg     theta    Position angle (degrees) (4)
         read_field_onebased(buffer, 47, 49, field);
@@ -1009,6 +1058,11 @@ int CatalogReader::read_CCDM_catalog(CelestialObject **cels, int max)
         s->proper_motion_decl = A->proper_motion_decl;
         s->radial_velocity = A->radial_velocity;
         s->orbit = new Orbit();
+        if (A->HD == 20766)
+        {
+            std::cerr << "BAD! 1061" << std::endl;
+            throw 0xbadc0de;
+        }
         s->orbit->center = A;
 
         // The inclination is unknown, but let's assume zero degrees
@@ -1026,10 +1080,6 @@ int CatalogReader::read_CCDM_catalog(CelestialObject **cels, int max)
         double intrinsic_brightness = pow(magnbase, -s->apparent_magnitude) * pow(fmax(AU, s->distance) / parsec / 10, 2);
         s->absolute_magnitude = -log(intrinsic_brightness) * invlogmagnbase;
 
-        if (A->HD && s->HD)
-            std::cout << "CCDM: updated " << (strlen(A->name) ? A->name : (std::string("HD")+std::to_string(A->HD)))
-                << ": " << (strlen(s->name) ? s->name : (std::string("HD")+std::to_string(s->HD))) << std::endl << std::flush;
-
         // TODO: For systems where both members are not already loaded,
         // can load additional members.
 
@@ -1041,6 +1091,8 @@ int CatalogReader::read_CCDM_catalog(CelestialObject **cels, int max)
 
         s->gotta_be_named_something();
         num_read++;
+
+        loading_msg = std::string("Loaded ") + std::to_string(num_read) + std::string(" objects from Catalogue of the Components of Double and Multiple Stars...");
     }
     return num_read;
 }
@@ -1157,7 +1209,13 @@ int CatalogReader::read_SB9_catalog(CelestialObject **cels, int max)
         if (!A->distance_known) continue;
 
         found = -1;
-        if (strlen(comp) == 1 && comp[0] > 'A' && comp[0] <= 'K')
+        if ((A->BayerGrkno == 7 && !strcmp(A->constellation, "Ori")))
+        {
+            found = -2;
+        }
+        if ((A->BayerGrkno != 7 || strcmp(A->constellation, "Ori"))
+            && (strlen(comp) == 1 && comp[0] > 'A' && comp[0] <= 'K')
+            )
         {
             double foundmag[10] = {99,99,99,99,99,99,99,99,99,99};
             int foundidx[10] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
@@ -1194,6 +1252,11 @@ int CatalogReader::read_SB9_catalog(CelestialObject **cels, int max)
             strcpy(B->name, (trim(field) + std::string(" ") + std::string(comp)).c_str());
             B->type = star;
             B->orbit = new Orbit();
+            if (A->HD == 20766)
+            {
+                std::cerr << "BAD! 1061" << std::endl;
+                throw 0xbadc0de;
+            }
             B->orbit->center = A;
             B->right_ascension = A->right_ascension;
             B->declination = A->declination;
@@ -1201,8 +1264,6 @@ int CatalogReader::read_SB9_catalog(CelestialObject **cels, int max)
             B->distance_known = A->distance_known;
             B->location = A->location;          // Copies local reference planes.
             B->inclination = A->inclination;
-            B->RA_Dec_accuracy = A->RA_Dec_accuracy;
-            B->distance_accuracy = A->distance_accuracy;
             B->proper_motion_decl = A->proper_motion_decl;
             B->proper_motion_RA = A->proper_motion_RA;
             B->radial_velocity = A->radial_velocity;
@@ -1213,9 +1274,6 @@ int CatalogReader::read_SB9_catalog(CelestialObject **cels, int max)
         else
         {
             B = (Star*)cels[found];
-            std::cout << B->name << " orbits " 
-                << (strlen(A->name) ? A->name : (std::string("HIP")+std::to_string(A->HIP)).c_str() )
-                << std::endl;
         }
 
         B->SB9 = SB9;
@@ -1305,6 +1363,8 @@ int CatalogReader::read_SB9_catalog(CelestialObject **cels, int max)
             fclose(fp);
             return num_read;
         }
+
+        if (!(num_read % 123)) loading_msg = std::string("Loaded ") + std::to_string(num_read) + std::string(" objects from Stellar Binaries Catalogue...");
     }
     fclose(fp);
 
@@ -1348,7 +1408,7 @@ int CatalogReader::read_starname_dat(CelestialObject **cels)
             if ((HD && s->HD == HD) || (HIP && s->HIP == HIP) || (Gliese.size() && !strcmp(s->Gliese, Gliese.c_str())))
             {
                 strcpy(s->name, trim(field).c_str());
-                std::cout << "Named " << s->name << std::endl << std::flush;
+                // std::cout << "Named " << s->name << std::endl << std::flush;
                 num_read++;
                 break;
             }
@@ -1377,37 +1437,76 @@ int CatalogReader::read_star_orbits_dat(CelestialObject **cels)
 
         read_field_onebased(buffer, 1, 23, field);
         std::string cenname = trim(field);
+        const char* censtr = cenname.c_str();
         A = nullptr;
-        for (i=0; cels[i]; i++) if (!strcmp(cels[i]->name, cenname.c_str()))
+        for (i=0; cels[i]; i++) if (!strcmp(cels[i]->name, censtr)
+            || (cels[i]->typeclass() == class_star && censtr[0] == 'H' && censtr[1] == 'D' && atoi(&censtr[2]) == ((Star*)cels[i])->HD)
+            )
         {
             A = (Star*)cels[i];
             break;
         }
 
-        if (!A) continue;
+        read_field_onebased(buffer, 65, 75, field);
+        double ascending_node = atof(field) * fiftyseventh;
+
+        read_field_onebased(buffer, 77, 87, field);
+        double inclination = atof(field) * fiftyseventh;
+
+        // First, solve for inclination
+        Rotation inclined = align_points_3d(cels[0]->location.system_center,
+            Point( 0, cos(inclination) * light_year*1e9, sin(inclination) * light_year*1e9 ),
+            A->location.system_center);
+
+        // Then incline the stars' pole
+        Point pole = rotate3D(yaxis, center, inclined.v, -inclined.a);
+
+        // Then rotate along the Sun-star axis
+        Point axis = A->location.system_center - cels[0]->location.system_center;
+        pole = rotate3D(pole, center, axis, (ascending_node + M_PI/2));
+
+        // Then realign the points for the new pole
+        A->location.local_system_plane = align_points_3d(pole, Point(0,light_year*1e9,0), center);
+        A->location.orbital_plane.a = 0;
+        A->location.equatorial_plane.a = 0;
 
         read_field_onebased(buffer, 25, 47, field);
         std::string bdyname = trim(field);
+        const char* bdystr = bdyname.c_str();
+
+        if (bdystr[0] == '(') continue;
+
+        if (!A)
+        {
+            std::cerr << "FAILED to orbit " << bdyname << " around " << cenname << std::endl;
+            continue;
+        }
+
         s = nullptr;
-        for (i=0; cels[i]; i++) if (!strcmp(cels[i]->name, bdyname.c_str()))
+        for (i=0; cels[i]; i++) if (!strcmp(cels[i]->name, bdystr)
+            || (cels[i]->typeclass() == class_star && bdystr[0] == 'H' && bdystr[1] == 'D' && atoi(&bdystr[2]) == ((Star*)cels[i])->HD)
+            )
         {
             s = (Star*)cels[i];
             break;
         }
 
-        if (!s) continue;
+        if (!s)
+        {
+            std::cerr << "FAILED to orbit " << bdyname << " around " << cenname << std::endl;
+            continue;
+        }
 
         if (!s->orbit) s->orbit = new Orbit();
+        if (A->HD == 20766)
+        {
+            std::cerr << "BAD! 1061" << std::endl;
+            throw 0xbadc0de;
+        }
         s->orbit->center = A;
 
         read_field_onebased(buffer, 49, 63, field);
         s->orbit->period = atof(field);
-
-        read_field_onebased(buffer, 65, 75, field);
-        s->orbit->ascending_node = atof(field) * fiftyseventh;
-
-        read_field_onebased(buffer, 77, 87, field);
-        s->orbit->inclination = atof(field) * fiftyseventh;
 
         read_field_onebased(buffer, 89, 99, field);
         s->orbit->arg_periapsis = atof(field) * fiftyseventh;
@@ -1424,28 +1523,8 @@ int CatalogReader::read_star_orbits_dat(CelestialObject **cels)
         read_field_onebased(buffer, 145, 155, field);
         s->orbit->mean_anomaly = atof(field) * fiftyseventh;
 
-        // First, solve for inclination
-        Rotation inclined = align_points_3d(cels[0]->location.system_center,
-            Point( 0, cos(s->orbit->inclination) * light_year*1e9, sin(s->orbit->inclination) * light_year*1e9 ),
-            A->location.system_center);
-
-        // Then incline the stars' pole
-        Point pole = rotate3D(yaxis, center, inclined.v, -inclined.a);
-
-        // Then rotate along the Sun-star axis
-        Point axis = A->location.system_center - cels[0]->location.system_center;
-        pole = rotate3D(pole, center, axis, -(s->orbit->ascending_node - M_PI/2));
-
-        // Then realign the points for the new pole
-        A->location.local_system_plane = align_points_3d(pole, Point(0,light_year*1e9,0), center);
-        A->location.orbital_plane.a = 0;
-        A->location.equatorial_plane.a = 0;
         s->location = A->location;
         s->orbit->ascending_node = s->orbit->inclination = 0;           // Clear these because we transfered them to the system plane.
-
-        if (A->HD && s->HD)
-            std::cout << "starorbits: updated " << (strlen(A->name) ? A->name : (std::string("HD")+std::to_string(A->HD)))
-                << ": " << (strlen(s->name) ? s->name : (std::string("HD")+std::to_string(s->HD))) << std::endl << std::flush;
 
         num_read++;
     }
@@ -1583,8 +1662,6 @@ int CatalogReader::read_local_planets(CelestialObject **cels, int max)
         read_field_onebased(buffer, 305, 316, field);
         f = atof(field);
         o->proc_argperi = f ? (1.0 / f) : 0;
-
-        p->color = Color::color_from_magnitude_indices(p->absolute_magnitude, p->BV_color);
         p->distance_known = true;
 
         p->location = o->center->location;          // Copy the system center and local plane. The local position will auto-fill later.

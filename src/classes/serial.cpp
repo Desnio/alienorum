@@ -20,158 +20,129 @@ std::string Serialization::load_string(FILE *in)
     return std::string(buffer);
 }
 
-bool Serialization::save_object(FILE *of, CelestialObject *cel)
+bool Serialization::save_all(std::fstream& fs, CelestialObject **cels)
 {
-    cel_obj_class _class = cel->typeclass();
-    fwrite(&_class, sizeof(cel_obj_class), 1, of);
-    switch (cel->typeclass())
+    try
     {
-        case class_galaxy:
-        fwrite(cel, sizeof(Galaxy), 1, of);
-        break;
-
-        case class_star:
-        ((Star*)cel)->gotta_be_named_something();                                   // I am sick of these massive-flaring stars with no massive-flaring names!
-        fwrite(cel, sizeof(Star), 1, of);
-        break;
-
-        case class_planet:
-        fwrite(cel, sizeof(Planet), 1, of);
-        break;
-
-        case class_moon:
-        fwrite(cel, sizeof(Moon), 1, of);
-        break;
-
-        default:
-        std::cerr << "Attempted to write CelestialObject of unknown class." << std::endl;
-        throw 0xbadc0de;
-    }
-    if (cel->orbit)
-    {
-        std::string cenname = cel->orbit->center->name;
-        save_string(of, cenname);
-        fwrite(cel->orbit, sizeof(Orbit), 1, of);
-    }
-    return true;
-}
-
-bool Serialization::save_all(FILE *of, CelestialObject **cels)
-{
-    __uint32_t ver = _serial_version, n;
-    fwrite(&ver, sizeof(__uint32_t), 1, of);
-    int i, pass;
-
-    for (n=0; cels[n]; n++);
-    fwrite(&n, sizeof(__uint32_t), 1, of);
-
-    for (pass=0; pass<2; pass++) for (i=0; i<n; i++)
-    {
-        if (!pass && cels[i]->orbit) continue;
-        if (pass && !cels[i]->orbit) continue;
-        if (!save_object(of, cels[i])) return false;
-    }
-    return true;
-}
-
-CelestialObject* Serialization::load_object(FILE *in, CelestialObject **cfocl)
-{
-    cel_obj_class typeclass;
-    fread(&typeclass, sizeof(cel_obj_class), 1, in);
-    CelestialObject *cel = nullptr;
-
-    std::string cenname;
-    Galaxy *g;
-    Star *s;
-    Planet *p;
-    switch (typeclass)
-    {
-        case class_galaxy:
-        g = new Galaxy();
-        cel = g;
-        fread(g, sizeof(Galaxy), 1, in);
-        // std::cout << cel->name << " is a galaxy." << std::endl;
-        break;
-
-        case class_star:
-        s = new Star();
-        cel = s;
-        fread(s, sizeof(Star), 1, in);
-        s->gotta_be_named_something();
-        // std::cout << cel->name << " is a star." << std::endl;
-        break;
-
-        case class_planet:
-        p = new Planet();
-        cel = p;
-        fread(p, sizeof(Planet), 1, in);
-        // std::cout << cel->name << " is a planet." << std::endl;
-        break;
-
-        case class_moon:
-        p = new Moon();
-        cel = p;
-        fread(p, sizeof(Moon), 1, in);
-        // std::cout << cel->name << " is a moon." << std::endl;
-        break;
-
-        default:
-        std::cerr << "Attempted to read CelestialObject of unknown class." << std::endl;
-        throw 0xbadc0de;
-    }
-
-    // Pointer loaded from file is bad, just check that it's nonzero.
-    if (cel->orbit)
-    {
-        // Ignore loaded pointer and make a new one.
-        cel->orbit = new Orbit();
-        cenname = load_string(in);
-        fread(cel->orbit, sizeof(Orbit), 1, in);
-        cel->orbit->center = nullptr;
         int i;
-        for (i=0; cfocl[i]; i++)
+        json allobjs;
+        for (i=0; cels[i]; i++)
         {
-            if (!strcmp(cenname.c_str(), cfocl[i]->name))
+            switch (cels[i]->typeclass())
             {
-                cel->orbit->center = cfocl[i];
+                case class_galaxy:
+                allobjs[i] = ((Galaxy*)cels[i])->to_json();
                 break;
+
+                case class_star:
+                ((Star*)cels[i])->gotta_be_named_something();                            // I am sick of these massive-flaring stars with no massive-flaring names!
+                allobjs[i] = ((Star*)cels[i])->to_json();
+                break;
+
+                case class_planet:
+                allobjs[i] = ((Planet*)cels[i])->to_json();
+                break;
+
+                case class_moon:
+                allobjs[i] = ((Moon*)cels[i])->to_json();
+                break;
+
+                default:
+                std::cerr << "Attempted to save CelestialObject of blank or unknown type class." << std::endl;
             }
         }
-        if (!cel->orbit->center)
-        {
-            std::cerr << "FAILED to place " << cel->name << " in orbit around " << cenname << std::endl;
-            delete cel->orbit;
-            delete cel;
-            return nullptr;
-        }
+
+        fs << allobjs.dump(4);
+        return true;
     }
-
-    return cel;
-}
-
-bool Serialization::load_all(FILE *fp, CelestialObject **cels, int max)
-{
-    __uint32_t ver, n;
-    fread(&ver, sizeof(__uint32_t), 1, fp);
-    if (ver != _serial_version)
+    catch (...)
     {
-        std::cerr << "Cannot restore state: file version mismatch." << std::endl;
+        std::cerr << "FAILED to save universe file." << std::endl;
         return false;
     }
-    int i=0;
-    fread(&n, sizeof(__uint32_t), 1, fp);
-    if (n >= max)
+}
+
+bool Serialization::load_all(std::fstream& fs, CelestialObject **cels, int max)
+{
+    try
     {
-        std::cerr << "Cannot restore state: too many objects." << std::endl;
-        throw 0xbadda7a;
+        json allobj;
+        allobj << fs;
+        int i, j, n = allobj.size();
+        for (i=0; i<n; i++)
+        {
+            json j = allobj.at(i);
+            cel_obj_class c;
+            j.at("typeclass").get_to(c);
+
+            switch (c)
+            {
+                case class_galaxy:
+                cels[i] = new Galaxy();
+                ((Galaxy*)cels[i])->from_json(j);
+                break;
+
+                case class_star:
+                cels[i] = new Star();
+                ((Star*)cels[i])->from_json(j);
+                break;
+
+                case class_planet:
+                cels[i] = new Planet();
+                ((Planet*)cels[i])->from_json(j);
+                break;
+
+                case class_moon:
+                cels[i] = new Moon();
+                ((Moon*)cels[i])->from_json(j);
+                break;
+
+                default:
+                std::cerr << "Attempted to load celestial object of blank or unknown type class." << std::endl;
+                return false;
+            }
+
+            mtx.lock();
+            loading_msg = std::string("Loaded ") + std::to_string(i+1) + std::string(" of ") + std::to_string(n) + std::string(" objects...");
+            mtx.unlock();
+        }
+        allobj[i] = nullptr;
+
+        // Assign orbiting objects to their orbit centers.
+        mtx.lock();
+        loading_msg = std::string("Assigning orbiting bodies to primary...");
+        mtx.unlock();
+        for (i=0; cels[i]; i++)
+        {
+            if (!cels[i]->orbit) continue;
+            const char* cenname = cels[i]->orbit->center_name.c_str();
+            cels[i]->orbit->center = nullptr;
+            for (j=0; cels[j]; j++)
+            {
+                if (j==i) continue;
+                if (cels[i]->type < cels[j]->type) continue;                    // There are two objects named Atlas, and one of them has a companion.
+                if (!strcmp(cenname, cels[j]->name))
+                {
+                    cels[i]->orbit->center = cels[j];
+                    break;
+                }
+            }
+            if (!cels[i]->orbit->center) std::cout << "FAILED to place " << cels[i]->name << " in orbit around " << cenname << std::endl;
+        }
+
+        for (i=0; cels[i]; i++)
+        {
+            cel_obj_class c = cels[i]->typeclass();
+            if (c == class_moon) ((Moon*)cels[i])->update_location(J2000_TIME_T);
+            else if (c == class_planet) ((Planet*)cels[i])->update_location(J2000_TIME_T);
+            else if (c == class_star) ((Star*)cels[i])->update_location(J2000_TIME_T);
+        }
+
+        return true;
     }
-    while (i<n && !feof(fp))
+    catch (...)
     {
-        CelestialObject* cel = load_object(fp, cels);
-        if (feof(fp)) break;
-        if (!(cels[i] = cel)) return false;
-        i++;
+        std::cerr << "FAILED to load universe: incorrectly formatted JSON." << std::endl;
+        return false;
     }
-    cels[i] = nullptr;
-    return true;
 }

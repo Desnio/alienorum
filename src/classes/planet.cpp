@@ -58,3 +58,27 @@ Planet::Planet()
     BV_color = 1;
     UB_color = 0.5;
 }
+
+json Planet::to_json()
+{
+    json towrite = CelestialObject::to_json();
+
+    if (albedo) towrite["albedo"] = albedo;
+    towrite["period"] = period/86400;
+    towrite["surface_pressure"] = surface_pressure;
+    towrite["opposition_surge"] = opposition_surge;
+    towrite["J2"] = J2;
+
+    return towrite;
+}
+
+bool Planet::from_json(json j)
+{
+    CelestialObject::from_json(j);
+    try { j.at("albedo").get_to(albedo); } catch (...) { ; }
+    try { j.at("period").get_to(period); period *= 86400; } catch (...) { ; }
+    try { j.at("surface_pressure").get_to(surface_pressure); } catch (...) { ; }
+    try { j.at("opposition_surge").get_to(opposition_surge); } catch (...) { ; }
+    try { j.at("J2").get_to(J2); } catch (...) { ; }
+    return true;
+}

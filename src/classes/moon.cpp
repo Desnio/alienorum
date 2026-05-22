@@ -56,3 +56,26 @@ void Moon::update_location(double tmnow)
 {
     update_orbit_location(tmnow);
 }
+
+json Moon::to_json()
+{
+    json towrite = Planet::to_json();
+
+    // These are calculated on the fly; we don't have to write them.
+    // towrite["Laplace_plane"] = Laplace_plane.to_json();
+    // towrite["Laplace_set"] = Laplace_set;
+
+    return towrite;
+}
+
+bool Moon::from_json(json j)
+{
+    Planet::from_json(j);
+    try
+    {
+        json j1 = j.at("Laplace_plane");
+        Laplace_plane.from_json(j1);
+    } catch (...) { ; }
+    try { j.at("Laplace_set").get_to(Laplace_set); } catch (...) { ; }
+    return true;
+}
