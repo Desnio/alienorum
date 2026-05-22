@@ -109,10 +109,10 @@ void draw_ra_dec_lines()
         prev_valid = false;
         for (j=-80; j<=80; j+=10)
         {
-            Point noreallyicantkeeplivinginthisplace = Point::from_ra_dec(fiftyseventh * i * 15, fiftyseventh * j, 5);
+            Point jadolzhnaperejexatdoma = Point::from_ra_dec(fiftyseventh * i * 15, fiftyseventh * j, 5);
             try
             {
-                zdes = Cartesian2D(noreallyicantkeeplivinginthisplace, azimuth, altitude, zoom);
+                zdes = Cartesian2D(jadolzhnaperejexatdoma, azimuth, altitude, zoom);
             }
             catch (...)
             {
@@ -142,10 +142,10 @@ void draw_ra_dec_lines()
         prev_valid = false;
         for (i=0; i<=24; i++)
         {
-            Point noreallyicantkeeplivinginthisplace = Point::from_ra_dec(fiftyseventh * i * 15, fiftyseventh * j, 5);
+            Point jadolzhnaperejexatdoma = Point::from_ra_dec(fiftyseventh * i * 15, fiftyseventh * j, 5);
             try
             {
-                zdes = Cartesian2D(noreallyicantkeeplivinginthisplace, azimuth, altitude, zoom);
+                zdes = Cartesian2D(jadolzhnaperejexatdoma, azimuth, altitude, zoom);
             }
             catch (...)
             {
