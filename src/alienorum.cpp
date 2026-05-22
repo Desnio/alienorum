@@ -1669,7 +1669,7 @@ int main (int argc, char** argv)
     while (!done)
     {
         auto frame_began = std::chrono::high_resolution_clock::now();
-        if (hide_mouse && !is_mouse_over_window) SDL_ShowCursor(SDL_DISABLE);
+        if (hide_mouse && !is_mouse_over_window && !splash) SDL_ShowCursor(SDL_DISABLE);
 
         // Poll and handle events (inputs, window resize, etc.)
         // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if imgui wants to use your inputs.
@@ -1754,7 +1754,7 @@ int main (int argc, char** argv)
         }
         else
         {
-            if (hide_mouse && !is_mouse_over_window) SDL_ShowCursor(SDL_DISABLE);
+            if (hide_mouse && !is_mouse_over_window && !splash) SDL_ShowCursor(SDL_DISABLE);
             dispcx = (int)io.DisplaySize.x/2;
             dispcy = (int)io.DisplaySize.y / 2;
             drawblxscalex = drawn_cache_split / io.DisplaySize.x;
@@ -1853,7 +1853,7 @@ int main (int argc, char** argv)
 
             std::this_thread::sleep_for(std::chrono::milliseconds(timeout_ms));
 
-            hide_mouse = frame_dur < 0.1 || abs(lmx - io.MousePos.x) <= 4 || abs(lmy - io.MousePos.y) <= 4;
+            hide_mouse = !splash && (frame_dur < 0.1 || abs(lmx - io.MousePos.x) <= 4 || abs(lmy - io.MousePos.y) <= 4);
 
             lmx = io.MousePos.x;
             lmy = io.MousePos.y;
