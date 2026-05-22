@@ -127,7 +127,7 @@ Shift+T     Clear tracking
 ### Image Elements
 
 ```
-C           Show/hide constellation lines
+C           Show/hide constellation lines (only within 10 l.y. of Sun)
 G           Show/hide RA/Dec lines
 L           Show/hide labels
 Shift+O     Show/hide orbits

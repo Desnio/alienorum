@@ -762,6 +762,9 @@ void draw_cons_lines()
 {
     int i, l, n;
 
+    // Hide lines if more than 10 l.y. from Sun.
+    draw_actual_conslines = here.distance_to(cels[0]->location) < light_year*10;
+
     conscen.clear();
     n = consname.size();
     for (l=0; l<n; l++)
@@ -788,9 +791,10 @@ void draw_cons_lines()
         if (dx2 < -1e3) continue;
         if (dy2 < -1e3) continue;
 
-        ImGui::GetBackgroundDrawList()->AddLine(
-            ImVec2(dx1, dy1), ImVec2(dx2, dy2),
-            rgba_apply_redlight((i<nconsln) ? consline_color : IM_COL32(255, 64, 0, 128)), 1);
+        if (draw_actual_conslines)
+            ImGui::GetBackgroundDrawList()->AddLine(
+                ImVec2(dx1, dy1), ImVec2(dx2, dy2),
+                rgba_apply_redlight((i<nconsln) ? consline_color : IM_COL32(255, 64, 0, 128)), 1);
 
         assert (l < conscen.size());
         conscen[l] += Cartesian2D((dx1+dx2)/2, (dy1+dy2)/2);
@@ -1277,7 +1281,7 @@ void draw_status_window(ImGuiIO& io)
     statheight += txtyscale;
 
     flagstr = (std::string)"Cons ln (C): "
-        + std::string(show_consln ? "ON" : "OFF");
+        + std::string(show_consln ? (draw_actual_conslines ? "ON" : "(hidden)") : "OFF");
     ImGui::Text(flagstr.c_str());
     statheight += txtyscale;
 
