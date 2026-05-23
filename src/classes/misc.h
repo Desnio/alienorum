@@ -83,6 +83,9 @@ std::string Greek_from_abbrev(char* abbrev);
 std::string Greek_from_abbrev(std::string abbrev);
 double blackbody_flux(double temperature, double wavelength);               // Kelvins and meters.
 int Damerau_Levenshtein(const std::string &s1, const std::string &s2);
+bool is_digit_or_dot(char);
+bool contains_digits_or_dots(const char*);
+bool has_same_numbers(const char*, const char*);
 std::string lop_component(const char* name);
 
 // Takes velocity in m/s and computes the ratio of Δt(moving)/Δt(stationary). The result will always be <= 1.

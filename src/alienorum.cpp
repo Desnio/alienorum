@@ -1208,6 +1208,13 @@ void process_keyboard_commands(ImGuiIO& io)
 void lookfor_cb()
 {
     int i;
+    int is_hd  = ((lookfor[0]&0x5f) == 'H' && (lookfor[1]&0x5f) == 'D') ? atoi(&lookfor[2]) : 0,
+        is_hip = ((lookfor[0]&0x5f) == 'H' && (lookfor[1]&0x5f) == 'I' && (lookfor[2]&0x5f) == 'P') ? atoi(&lookfor[3]) : 0;
+    bool is_gliese = (((lookfor[0]&0x5f) == 'G' && (lookfor[1]&0x5f) == 'L')
+        || ((lookfor[0]&0x5f) == 'G' && (lookfor[1]&0x5f) == 'J')
+        || ((lookfor[0]&0x5f) == 'W' && (lookfor[1]&0x5f) == 'O')
+        || ((lookfor[0]&0x5f) == 'N' && (lookfor[1]&0x5f) == 'N')
+        ) && contains_digits_or_dots(lookfor);
     selected = -1;
     for (i=0; cels[i]; i++)
     {
@@ -1218,6 +1225,24 @@ void lookfor_cb()
             searched = true;
             break;
         }
+        if (cels[i]->typeclass() == class_star)
+        {
+            if ((is_hd && is_hd == ((Star*)cels[i])->HD)
+                || (is_hip && is_hip == ((Star*)cels[i])->HIP))
+            {
+                selected = i;
+                center_selected();
+                searched = true;
+                break;
+            }
+            if (is_gliese && has_same_numbers(((Star*)cels[i])->Gliese, lookfor))
+            {
+                selected = i;
+                center_selected();
+                searched = true;
+                break;
+            }
+        }
     }
 
     if (selected < 0)
@@ -1227,11 +1252,14 @@ void lookfor_cb()
         for (i=0; cels[i]; i++)
         {
             int lev = Damerau_Levenshtein(cels[i]->name, lookstr);
+            if (!has_same_numbers(cels[i]->name, lookstr.c_str())) lev = 1e9;
             if (cels[i]->type == star)
             {
                 int lev1 = Damerau_Levenshtein( ((Star*)cels[i])->Bayer, lookstr);
+                if (!has_same_numbers(((Star*)cels[i])->Bayer, lookstr.c_str())) lev1 = 1e9;
                 if (lev1 < lev) lev = lev1;
                 lev1 = Damerau_Levenshtein( ((Star*)cels[i])->Flamsteed, lookstr);
+                if (!has_same_numbers(((Star*)cels[i])->Flamsteed, lookstr.c_str())) lev1 = 1e9;
                 if (lev1 < lev) lev = lev1;
             }
             if (lev < best_Levenshtein)
@@ -1497,6 +1525,21 @@ int main (int argc, char** argv)
     by_cache = new int[MAX_CELOBJS];
 
     memset(lookfor, 0, 256);
+
+    /*
+    std::cout << has_same_numbers("123", "a1b2c3") << std::endl << std::flush;
+    std::cout << has_same_numbers("a1b2c3", "123") << std::endl << std::flush;
+    std::cout << has_same_numbers("123", "a1b2c3d4") << std::endl << std::flush;
+    std::cout << has_same_numbers("1234", "a1b2c3") << std::endl << std::flush;
+    std::cout << has_same_numbers("1234", "a1b2c3d4") << std::endl << std::flush;
+    std::cout << has_same_numbers("1234", "1324") << std::endl << std::flush;
+    std::cout << has_same_numbers("123", "1.23") << std::endl << std::flush;
+    std::cout << has_same_numbers("123", "123.4") << std::endl << std::flush;
+    std::cout << has_same_numbers("123.4", "123") << std::endl << std::flush;
+    std::cout << has_same_numbers("abc", "def") << std::endl << std::flush;
+
+    return 0;
+    */
 
     for (l=1; l<argc; l++)
     {

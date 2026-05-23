@@ -194,6 +194,40 @@ int Damerau_Levenshtein(const std::string& s1, const std::string& s2)
     return dp[m][n];
 }
 
+bool is_digit_or_dot(char c)
+{
+    return ((c >= '0' && c <= '9') || c == '.');
+}
+
+bool contains_digits_or_dots(const char *s)
+{
+    int i;
+    for (i=0; s[i]; i++) if (is_digit_or_dot(s[i])) return true;
+    return false;
+}
+
+bool has_same_numbers(const char *s1, const char *s2)
+{
+    int i, j, m, n;
+    m = strlen(s1);
+    n = strlen(s2);
+
+    j=0;
+    for (i=0; i<m; i++)
+    {
+        if (is_digit_or_dot(s1[i]))
+        {
+            while (j<n && !is_digit_or_dot(s2[j])) j++;
+            if (s2[j] != s1[i]) return false;
+            j++;
+        }
+    }
+
+    for (; j<n; j++) if (is_digit_or_dot(s2[j])) return false;
+
+    return true;
+}
+
 std::string lop_component(const char *name)
 {
     std::string result = name;
