@@ -395,8 +395,6 @@ void load_catalogs()
     {
         if (cels[i]->type == star) num_stars++;
         if (!cels[i]->cenobj) cels[i]->cenobj = cels[i];
-        while (cels[i]->cenobj->orbit && cels[i]->cenobj->orbit->center && cels[i]->cenobj->orbit->center->typeclass() != class_galaxy)
-            cels[i]->cenobj = cels[i]->cenobj->orbit->center;
     }
 
     mtx.lock();
@@ -408,6 +406,12 @@ void load_catalogs()
     loading_msg = std::string("Orbiting stars...");
     mtx.unlock();
     cr.read_star_orbits_dat(cels);
+
+    for (i=0; cels[i]; i++)
+    {
+        while (cels[i]->cenobj->orbit && cels[i]->cenobj->orbit->center && cels[i]->cenobj->orbit->center->typeclass() != class_galaxy)
+            cels[i]->cenobj = cels[i]->cenobj->orbit->center;
+    }
 
     refresh_star_visibilities();
 }
@@ -688,7 +692,7 @@ void draw_objects()
     double jay, step, dispw = dispcx*2, disph = dispcy*2;
     ImVec2 xycoord;
     double appmag, magrad, flare, theta;
-    double orbseg = 81, smalim = 1e3*sqrt(zoom);
+    double orbseg = 81;
 
     Point viewer_pole = rotate3D(yaxis, center, here.equatorial_plane.v, here.equatorial_plane.a);
     viewer_pole = rotate3D(viewer_pole, center, here.orbital_plane.v, here.orbital_plane.a);
@@ -699,8 +703,7 @@ void draw_objects()
     if (show_orbits) for (i=0; cels[i] && i<MAX_CELOBJS; i++)
     {
         if (!cels[i]->orbit) continue;
-        //if (cels[i]->location.distance_to(here) > cels[i]->orbit->semimajor_axis * smalim) continue;
-        if (cels[i]->cenobj != mycenobj) continue;
+        if (cels[i]->cenobj != mycenobj && (whereami<0 || cels[i]->orbit->center != cels[whereami])) continue;
 
         Color col = Color::color_from_magnitude_indices(5, cels[i]->BV_color);
         RGB rgb = Color::rgb_from_color(col, 1);
