@@ -16,7 +16,7 @@ extern std::vector<int> considx, lnpercons;
 extern std::vector<Cartesian2D> conscen;
 extern int nconsln;
 extern int *consaidx, *consbidx;
-extern bool have_Gliese, have_BSC, have_HIP, have_CCDM, have_SB9;
+extern bool have_Gliese, have_BSC, have_HIP, have_CCDM, have_SB9, have_astorb;
 extern Star **hdcache, **hipcache;
 extern std::map<int,std::map<char,Star* > > hipcomps;
 
@@ -36,6 +36,9 @@ class CatalogReader
     // Binary and Multiple Systems
     int read_CCDM_catalog(CelestialObject** cels, int max);
     int read_SB9_catalog(CelestialObject** cels, int max);
+
+    // Planets, Minor Planets, Comets
+    int read_astorb_catalog(CelestialObject** cels, int max);
 
     // Internal Catalogs
     int read_starname_dat(CelestialObject** cels);                  // No max because we are not adding stars, only setting names.

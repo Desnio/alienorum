@@ -326,6 +326,7 @@ void load_catalogs()
         if (!strcmp(cats[i].c_str(), "catalogs/Hipparcos")) have_HIP = true;
         if (!strcmp(cats[i].c_str(), "catalogs/CCDM")) have_CCDM = true;
         if (!strcmp(cats[i].c_str(), "catalogs/SB9")) have_SB9 = true;
+        if (!strcmp(cats[i].c_str(), "catalogs/astorb")) have_astorb = true;
     }
 
     if (have_Gliese)
@@ -337,6 +338,15 @@ void load_catalogs()
         int nGliese = cr.read_Gliese_catalog(cels, MAX_CELOBJS);
         cout << "Read " << nGliese << " objects." << endl << flush;
         ncelobjs += nGliese;
+    }
+    if (have_astorb)
+    {
+        mtx.lock();
+        loading_msg = std::string("Loading asteroid catalog...");
+        mtx.unlock();
+        cout << "Reading astorb catalog..." << endl << flush;
+        int nastorb = cr.read_astorb_catalog(cels, MAX_CELOBJS);
+        cout << "Read " << nastorb << " objects." << endl << flush;
     }
 
     mtx.lock();

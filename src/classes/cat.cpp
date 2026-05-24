@@ -7,6 +7,8 @@
 #include <cstdlib>
 #include <stdio.h>
 #include <math.h>
+#include <time.h>
+#include <ctime>
 #include <map>
 #include <string.h>
 #include "cat.h"
@@ -38,7 +40,8 @@ std::vector<std::string> known_catalog_names =
     // TODO: Add hundreds more...
 };
 
-bool have_Gliese = false, have_BSC = false, have_HIP = false, have_CCDM = false, have_SB9 = false;
+bool have_Gliese = false, have_BSC = false, have_HIP = false, have_CCDM = false, have_SB9 = false,
+    have_astorb = false;
 
 std::vector<std::string> consline_a, consline_b;
 std::vector<int> considx, lnpercons;
@@ -1416,6 +1419,119 @@ int CatalogReader::read_SB9_catalog(CelestialObject **cels, int max)
     }
     fclose(fp);
 
+    return num_read;
+}
+
+int CatalogReader::read_astorb_catalog(CelestialObject **cels, int max)
+{
+    std::string path = "catalogs/astorb/astorb.dat";
+    char buffer[1024];
+    char field[32];
+    int asno, num_read = 0, offset, _year, _month, _day;
+    std::string name;
+    double absmagn, sma;
+
+    FILE* fp = fopen(path.c_str(), "rb");
+    if (!fp) return 0;
+
+    for (offset=0; offset<max && cels[offset]; offset++);
+    if (offset >= (max-1)) return 0;
+
+    while (fgets(buffer, 1020, fp))
+    {
+        //   8- 25  A18   ---     Name      Name or preliminary designation.
+        read_field_onebased(buffer, 8, 25, field);
+        name = trim(field);
+
+        //  43- 47  F5.2  mag     H         Absolute magnitude H parameter (1)
+        read_field_onebased(buffer, 43, 47, field);
+        absmagn = atof(field);
+
+        //   1-  6  I6    ---     Planet    [1,]?+ Asteroid number (blank if unnumbered)
+        read_field_onebased(buffer, 1, 6, field);
+
+        if (!(asno = atoi(field))) continue;
+        if ((asno > 4 || absmagn >= 8)
+            && strcmp(name.c_str(), "Pluto")
+            && strcmp(name.c_str(), "Enya")
+            )
+            continue;
+
+        Planet *p = new Planet();
+        p->type = rocky;
+        p->asteroid_no = asno;
+        p->location = cels[0]->location;
+        p->cenobj = cels[0];
+        p->orbit = new Orbit();
+        p->orbit->center = cels[0];
+        strcpy(p->name, name.c_str());
+        p->absolute_magnitude = absmagn;
+
+        //  55- 58  F4.2  mag     B-V       ? Color index (see E.F.Tedesco, pp.1090-1138)
+        read_field_onebased(buffer, 55, 58, field);
+        p->BV_color = atof(field);
+
+        //  60- 64  F5.1  km      Diam      ? IRAS diameter (see E.F.Tedesco, pp.1151-1161; catalog <II/190>)
+        read_field_onebased(buffer, 60, 64, field);
+        p->volumetric_mean_radius = atof(field) * 500;
+        if (!p->volumetric_mean_radius && !strcmp(name.c_str(), "Pluto")) p->volumetric_mean_radius = 1188300;
+        p->mass = p->volumetric_mean_radius * p->volumetric_mean_radius * p->volumetric_mean_radius * 4.0/3 * M_PI * 1853;  // Pluto density.
+
+        // 107-114  A8 "YYYYMMDD" Epoch     Epoch of osculation, yyyymmdd (TDT) (2)
+        read_field_onebased(buffer, 107, 110, field);
+        _year = atoi(field);
+        read_field_onebased(buffer, 111, 112, field);
+        _month = atoi(field);
+        read_field_onebased(buffer, 113, 114, field);
+        _day = atoi(field);
+
+        tm epoch;
+        epoch.tm_year = _year-1900;
+        epoch.tm_mon = _month-1;
+        epoch.tm_mday = _day;
+        time_t t = mktime(&epoch);
+        p->epoch = (t/86400) + 2440587.5;
+
+        // 116-125  F10.6 deg     M         Mean anomaly (3)
+        read_field_onebased(buffer, 116, 125, field);
+        p->orbit->mean_anomaly = atof(field) * fiftyseventh;
+
+        // 127-136  F10.6 deg     omega     Argument of perihelion (3)
+        read_field_onebased(buffer, 127, 136, field);
+        p->orbit->arg_periapsis = atof(field) * fiftyseventh;
+
+        // 138-147  F10.6 deg     Omega     Longitude of ascending node (3)
+        read_field_onebased(buffer, 138, 147, field);
+        p->orbit->ascending_node = atof(field) * fiftyseventh;
+
+        // 148-157  F10.6 deg     i         Inclination (3)
+        read_field_onebased(buffer, 148, 157, field);
+        p->orbit->inclination = atof(field) * fiftyseventh;
+
+        // 159-168  F10.8 ---     e         Eccentricity (3)
+        read_field_onebased(buffer, 159, 168, field);
+        p->orbit->eccentricity = atof(field);
+
+        // 169-181  F13.8 AU      a         ? Semimajor axis (3)
+        read_field_onebased(buffer, 169, 181, field);
+        sma = atof(field);
+        p->orbit->semimajor_axis = sma * AU;
+        p->orbit->period = sqrt(sma*sma*sma) * year;
+
+        if (!strcmp(name.c_str(), "Pluto"))
+        {
+            _day = 0;
+        }
+
+        cels[offset++] = p;
+        if (offset >= (max-1))
+        {
+            fclose(fp);
+            return num_read;
+        }
+    }
+
+    fclose(fp);
     return num_read;
 }
 
