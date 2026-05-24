@@ -591,7 +591,7 @@ void compute_object_draw_coordinates()
             switch (cels[i]->typeclass())
             {
                 case class_star:
-                if (star_in_box = ((Star*)cels[i])->is_in_visible_box(Point(here))) num_stars_in_box++;              // ANC
+                if (star_in_box = (i ? ((Star*)cels[i])->is_in_visible_box(Point(here)) : true)) num_stars_in_box++;              // ANC
                 ((Star*)cels[i])->tmp_vis_flag = star_in_box;
                 if (i!=selected && i!=trackidx && i!=whereami && cels[i]->cenobj!=mycenobj && !star_in_box)
                 {
@@ -1539,7 +1539,7 @@ void draw_status_window(ImGuiIO& io)
         ImGui::Text(numobjs.c_str());
         statheight += txtyscale;
     }
-    if (num_stars_in_box)
+    if (num_stars_in_box>1)             // There will always be at least one.
     {
         numobjs = std::to_string(num_stars_in_box) + " stars in range";
         ImGui::Text(numobjs.c_str());
