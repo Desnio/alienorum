@@ -12,7 +12,6 @@ Star::Star()
     memset(Flamsteed, 0, 32*sizeof(char));
     memset(constellation, 0, 32*sizeof(char));
     memset(Gliese, 0, 16*sizeof(char));
-    memset(CCDM, 0, 16*sizeof(char));
 }
 
 void Star::update_location(double tmnow)
@@ -49,7 +48,7 @@ void Star::rename_from_Bayer_Flamsteed()
         )
     {
         std::string buildname = lop_component(orbit->center->name);
-        buildname += std::string("B");
+        buildname += std::string(" B");
         strcpy(name, buildname.c_str());
         return;
     }
@@ -131,17 +130,21 @@ bool Star::is_sunlike()
 
 bool Star::is_in_visible_box(Point seen_from)
 {
+    if (frand(0,1) > 0.03) return _is_in_visible_range;
+    return is_really_truly_in_visible_box(seen_from);
+}
+
+bool Star::is_really_truly_in_visible_box(Point seen_from)
+{
     if (!visible_area_set)
     {
-        double intrinsic = pow(magnbase, -absolute_magnitude);
-        double ratio = intrinsic / intrinsic_cutoff;
-        double cutoff_dist = sqrt(ratio) * parsec * 10;
+        double cutoff_dist = pow(10.0, 0.2*(6.5-apparent_magnitude)) * distance;
         visible_area.corner1 = Point(-cutoff_dist, -cutoff_dist, -cutoff_dist) + location.system_center;
         visible_area.corner2 = Point( cutoff_dist,  cutoff_dist,  cutoff_dist) + location.system_center;
         visible_area_set = true;
     }
 
-    return visible_area.point_in_box(seen_from);
+    return _is_in_visible_range = visible_area.point_in_box(seen_from);
 }
 
 void Star::make_universally_visible()
@@ -324,6 +327,30 @@ bool Star::from_json(json j)
     try { j.at("Bonn_survey_sequential").get_to(Bonn_survey_sequential); } catch (...) { ; }
     try { j.at("is_orbit_multiple").get_to(is_orbit_multiple); } catch (...) { ; }
     return true;
+}
+
+void Star::make_companion_of(Star *A, char comp)
+{
+    right_ascension = A->right_ascension;
+    declination = A->declination;
+    parallax = A->parallax;
+    distance = A->distance;
+    location = A->location;
+    strcpy(name, (std::string(lop_component(A->name)) + std::string(" ") + std::string(1, comp)).c_str());
+    CCDM = A->CCDM;
+    proper_motion_RA = A->proper_motion_RA;
+    proper_motion_decl = A->proper_motion_decl;
+    visible_area = A->visible_area;
+    type = star;
+
+    if (A->orbit && A->orbit->center == this)
+    {
+        orbit = A->orbit;
+        A->orbit = nullptr;
+    }
+    else
+        orbit = new Orbit();
+    orbit->center = A;
 }
 
 double Star::estimate_mass()

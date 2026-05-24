@@ -22,7 +22,8 @@ class Star : public CelestialObject
     int BayerGrkno = -1;
     int FlamsteedNo = -1;
     char constellation[32];
-    char CCDM[16];
+    std::string CCDM;
+    char ccdm_compseq = 0;
     char component = 0;
 
     __uint32_t HR = 0;                      // Harvard Revised catalog number
@@ -36,6 +37,7 @@ class Star : public CelestialObject
     __uint32_t Bonn_survey_sequential = 0;  // Serial number by right ascension.
 
     bool is_orbit_multiple = false;
+    bool tmp_vis_flag;                      // Used only for rendering.
 
     Star();
 
@@ -43,6 +45,7 @@ class Star : public CelestialObject
     void rename_from_Bayer_Flamsteed();
     bool is_sunlike();
     bool is_in_visible_box(Point seen_from);
+    bool is_really_truly_in_visible_box(Point seen_from);
     void make_universally_visible();
 
     double estimate_temperature();          // Based on MK spectral type code
@@ -54,10 +57,12 @@ class Star : public CelestialObject
     void gotta_be_named_something();
     json to_json();
     bool from_json(json j);
+    void make_companion_of(Star* primary, char comp = 'B');
 
 protected:
     Box visible_area;
     bool visible_area_set = false;
+    bool _is_in_visible_range = true;
 };
 
 void rename_all_from_Bayer_Flamsteed();
