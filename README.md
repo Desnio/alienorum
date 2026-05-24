@@ -38,7 +38,7 @@ so just hold the + key down until you get very very close to the speed of light.
 status pane speeds up.
 
 As you're speeding up, you can use the mouse to have a look around. Once you press the + key the first time,
-it sets your direction of travel and any use of + or - will affect only your speed and not your direction.
+it sets your direction of travel and any further use of + or - will affect only your speed and not your direction.
 You can see the Sun and inner planets zooming away behind you as you keep accelerating.
 
 Notice that due to time dilation, it takes a long time to get up to interstellar speeds. A really really long
