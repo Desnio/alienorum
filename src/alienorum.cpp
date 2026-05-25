@@ -1101,15 +1101,21 @@ void identify_object_under_cursor(ImGuiIO& io)
             if (cels[i]->type == star) 
                 ; // oss << "Mass:  " << std::setprecision(2) << (cels[i]->mass / Msun) << " M(sun)\n" << std::endl;       // TODO: Fix Star::estimate_mass()
             else if (cels[i]->type == rocky || cels[i]->type == gas_giant || cels[i]->type == ice_giant)
+            {
                 oss << "Mass:   " << std::setprecision(2) << (cels[i]->mass / cels[iamhome]->mass) << " M(earth)" << std::endl;
+                oss << "Mass:   " << std::scientific << std::setprecision(2) << (cels[i]->mass / 1000) << " kg" << std::endl;
+            }
         }
         if (cels[i]->volumetric_mean_radius)
         {
             if (cels[i]->type == star)
                 ; // oss << "Radius: " << std::setprecision(2) << (cels[i]->volumetric_mean_radius / Rsun) << " R(sun)" << std::endl;       // TODO: Fix Star::estimate_radius()
             else if (cels[i]->type == rocky || cels[i]->type == gas_giant || cels[i]->type == ice_giant)
+            {
                 oss << "Radius:  " << std::setprecision(2) << (cels[i]->volumetric_mean_radius / cels[iamhome]->volumetric_mean_radius)
                     << " R(earth)" << std::endl;
+                oss << "Radius:  " << std::scientific << std::setprecision(2) << (cels[i]->volumetric_mean_radius / 1000) << " km" << std::endl;
+            }
         }
         objinfo += oss.str();
         oss.clear();
@@ -1630,7 +1636,7 @@ void draw_objinf_window(ImGuiIO& io)
 {
     // TODO: If redlight_mode, set all window and text colors accordingly.
     ImGui::Begin("Object", &objinfwnd, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings);
-    int objinftop = 0, objinfleft = (int)io.DisplaySize.x - 211, objinfwidth = 211, objinfheight = txtyscale*2;
+    int objinfwidth = 225, objinfheight = txtyscale*2, objinftop = 0, objinfleft = (int)io.DisplaySize.x - objinfwidth;
 
     ImGui::Text(objname.c_str());
     objinfheight += txtyscale;
@@ -1687,10 +1693,10 @@ void draw_addcel_window(ImGuiIO& io)
 
             switch (cboceltyp_selected_idx)
             {
-                case 0: cels[ncelobjs] = new Galaxy(); break;
-                case 1: cels[ncelobjs] = new Star(); break;
-                case 2: cels[ncelobjs] = new Planet(); break;
-                case 3: cels[ncelobjs] = new Moon(); break;
+                case 0: cels[ncelobjs] = new Galaxy(); cels[ncelobjs]->type = galaxy; break;
+                case 1: cels[ncelobjs] = new Star(); cels[ncelobjs]->type = star; break;
+                case 2: cels[ncelobjs] = new Planet(); cels[ncelobjs]->type = rocky; break;
+                case 3: cels[ncelobjs] = new Moon(); cels[ncelobjs]->type = rocky; break;
 
                 default:
                 std::cerr << "Unimplemented object type" << std::endl;
@@ -1703,11 +1709,15 @@ void draw_addcel_window(ImGuiIO& io)
                 cels[ncelobjs]->user_added = true;
                 cels[addcenidx]->distance_known = true;
                 cels[ncelobjs]->distance_known = true;
-                cels[ncelobjs]->orbit = new Orbit();
-                cels[ncelobjs]->orbit->center = cels[addcenidx];
-                cels[ncelobjs]->orbit->semimajor_axis = 1e6;
-                cels[ncelobjs]->orbit->period = oneday;
-                cels[ncelobjs]->orbit->epoch = JDnow;
+                if (cels[ncelobjs]->type >= cels[addcenidx]->type)
+                {
+                    cels[ncelobjs]->orbit = new Orbit();
+                    cels[ncelobjs]->orbit->center = cels[addcenidx];
+                    cels[ncelobjs]->orbit->semimajor_axis = 1e6;
+                    cels[ncelobjs]->orbit->period = oneday;
+                    cels[ncelobjs]->orbit->epoch = JDnow;
+                    cels[ncelobjs]->cenobj = cels[addcenidx]->cenobj;
+                }
                 editidx = ncelobjs;
                 objedtwnd = true;
                 addcelwnd = false;
@@ -1812,13 +1822,12 @@ void draw_objedit_window(ImGuiIO& io)
         ImGui::SetNextItemWidth(txtwid);
         if (ImGui::InputDouble("##edtalbdo", &edit_albedo, 0, 0, "%.3f"))
         {
-            double albrat = edit_albedo / p->albedo;
             p->albedo = edit_albedo;
-            if (fabs(albrat-1) >= 1e-6)
-            {
-                double magshift = -log(albrat) / log(magnbase);
-                p->absolute_magnitude += magshift;
-            }
+
+            double disc_area = pow(p->volumetric_mean_radius / earth_radius, 2);
+            double absmag = earth_absmag - log(disc_area * p->albedo / earth_albedo) / log(magnbase);
+            if (!isnan(absmag)) p->absolute_magnitude = absmag;
+
             cel->user_edited = true;
         }
     }
@@ -1831,6 +1840,14 @@ void draw_objedit_window(ImGuiIO& io)
         std::string orbcen = "Center of Orbit: ";
         orbcen += std::string(cel->orbit->center->name);
         ImGui::Text(orbcen.c_str());
+        if (orb->center && orb->center->type == star)
+        {
+            ImGui::SameLine(col2);
+            stringstream oss;
+            double star_appmag = orb->center->viewer_magnitude(cel->location);
+            oss << "Star apparent mag. " << (star_appmag > 0 ? "+" : "") << std::setprecision(2) << star_appmag;
+            ImGui::Text(oss.str().c_str());
+        }
         objedtheight += txtyscale;
 
         edit_sma = cel->orbit->semimajor_axis / AU;

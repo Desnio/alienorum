@@ -72,10 +72,12 @@ bool Serialization::load_all(std::fstream& fs, CelestialObject **cels, int max)
         json allobj;
         allobj << fs;
         int i, j, n = allobj.size();
+        for (ncelobjs=0; cels[ncelobjs]; ncelobjs++);
         for (auto it = allobj.begin(); it != allobj.end(); ++it)
         {
             std::string key = it.key();
             i = atoi(key.c_str());
+            if (i>ncelobjs) i = ncelobjs;
             json js = it.value();
             cel_obj_class c;
             js.at("typeclass").get_to(c);
@@ -108,6 +110,8 @@ bool Serialization::load_all(std::fstream& fs, CelestialObject **cels, int max)
                 return false;
             }
 
+            cels[i]->user_edited = true;
+
             mtx.lock();
             loading_msg = std::string("Loaded ") + std::to_string(i+1) + std::string(" of ") + std::to_string(n) + std::string(" objects...");
             mtx.unlock();
@@ -126,6 +130,8 @@ bool Serialization::load_all(std::fstream& fs, CelestialObject **cels, int max)
                 }
             }
             if (!cels[i]->orbit->center) std::cout << "FAILED to place " << cels[i]->name << " in orbit around " << cenname << std::endl;
+
+            if (i==ncelobjs) ncelobjs++;
         }
 
         for (i=0; cels[i]; i++)

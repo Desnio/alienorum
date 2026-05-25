@@ -58,7 +58,8 @@ void Planet::estimate_albedo()
     double rearths = volumetric_mean_radius / earth_radius;
     double disc_area = rearths * rearths;
     double brightness = pow(magnbase, earth_absmag-absolute_magnitude);
-    albedo = brightness / disc_area * earth_albedo;
+    double a = fmin(1, brightness / disc_area * earth_albedo);
+    if (!isnan(a)) albedo = a;
 }
 
 void Planet::update_location(double tmnow)
