@@ -23,7 +23,7 @@ void Star::update_location(double tmnow)
     }
 
     // How many seconds since star's epoch
-    double elapsed = tmnow - J2000_TIME_T + 86400 * (J2000 - epoch);
+    double elapsed = tmnow - J2000_TIME_T + oneday * (J2000 - epoch);
 
     // Estimate RA and Decl using proper motion
     double l_RA = right_ascension + proper_motion_RA * elapsed;
@@ -37,6 +37,10 @@ void Star::update_location(double tmnow)
 
     // Set system location
     location.system_center = newloc;
+
+    location.local_system_plane = system_plane_from_incl_and_node(known_poles ? inclination : (M_PI/2), equinox,
+        Point::from_ra_dec(right_ascension, declination, distance));
+    location.orbital_plane = location.equatorial_plane = location.local_system_plane;
 }
 
 void Star::rename_from_Bayer_Flamsteed()
@@ -238,7 +242,7 @@ void Star::gotta_be_named_something()
             + std::to_string(Bonn_survey_sequential) ).c_str() );
     }
     else if (SB9) strcpy(name, (std::string("SB9-")+std::to_string(SB9)).c_str() );
-    else std::cerr << "Failed to name star @ RA: " << RA_as_hms() << " decl " << Decl_as_degms() << " magnitude " << apparent_magnitude
+    else std::cerr << "Failed to name star @ RA: " << RA_as_hms(0) << " decl " << Decl_as_degms() << " magnitude " << apparent_magnitude
         << " distance " << (distance/light_year) << std::endl;
 }
 
@@ -246,8 +250,8 @@ json Star::to_json()
 {
     json towrite = CelestialObject::to_json();
 
-    towrite["proper_motion_RA"] = proper_motion_RA*fiftyseven*year;
-    towrite["proper_motion_decl"] = proper_motion_decl*fiftyseven*year;
+    towrite["proper_motion_RA"] = proper_motion_RA*fiftyseven*oneyear;
+    towrite["proper_motion_decl"] = proper_motion_decl*fiftyseven*oneyear;
     towrite["radial_velocity"] = radial_velocity;
     towrite["apparent_magnitude"] = apparent_magnitude;
     towrite["parallax"] = parallax*fiftyseven*3600*1000;
@@ -276,8 +280,8 @@ json Star::to_json()
 bool Star::from_json(json j)
 {
     CelestialObject::from_json(j);
-    try { j.at("proper_motion_RA").get_to(proper_motion_RA); proper_motion_RA *= fiftyseventh/year; } catch (...) { ; }
-    try { j.at("proper_motion_decl").get_to(proper_motion_decl); proper_motion_decl *= fiftyseventh/year; } catch (...) { ; }
+    try { j.at("proper_motion_RA").get_to(proper_motion_RA); proper_motion_RA *= fiftyseventh/oneyear; } catch (...) { ; }
+    try { j.at("proper_motion_decl").get_to(proper_motion_decl); proper_motion_decl *= fiftyseventh/oneyear; } catch (...) { ; }
     try { j.at("radial_velocity").get_to(radial_velocity); } catch (...) { ; }
     try { j.at("apparent_magnitude").get_to(apparent_magnitude); } catch (...) { ; }
     try { j.at("parallax").get_to(parallax); parallax *= fiftyseventh / 3600000; } catch (...) { ; }
@@ -348,8 +352,7 @@ void Star::make_companion_of(Star *A, char comp)
         orbit = A->orbit;
         A->orbit = nullptr;
     }
-    else
-        orbit = new Orbit();
+    else if (!orbit) orbit = new Orbit();
     orbit->center = A;
 }
 

@@ -30,14 +30,17 @@
 
 using namespace std;
 
-char lookfor[256];
+char lookfor[256], edit_name[256];
+bool edtname_dirty=false;
 std::vector<int> drawnblocks[drawn_cache_split][drawn_cache_split];
 std::filesystem::path p = "catalogs";
+std::string load_univ = "";
 bool catalogs_found = false;
 int num_galaxies=0, num_stars=0, num_planets=0, num_moons=0, num_asteroids=0, num_comets=0, num_sat=0;
 float dispcx, dispcy;
-int frames_without_mousemove = 0, num_stars_in_box;
-double txtyscale, txtycompact;
+int frames_without_mousemove = 0, num_stars_in_box, editidx=-1, addcenidx=-1;
+double txtyscale, txtycompact, edit_sma, edit_incl, edit_eccn, edit_argperi, edit_epoch,
+    edit_node, edit_manom, edit_period, edit_eqincl, edit_equinox, edit_precnode, edit_procargperi;
 bool is_click;
 double frame_dur = 0, best_frame_dur = 1e9;
 bool splash = true, magnitude_test = false;
@@ -111,6 +114,7 @@ void draw_ra_dec_lines()
     ImU32 gc = rgba_apply_redlight(grid_color);
     ImU32 gcb = rgba_apply_redlight(grid_color_brighter);
     ImU32 ec = rgba_apply_redlight(ecliptic_color);
+    double node = (whereami >= 0) ? cels[whereami]->equinox_eff : 0;
     bool prev_valid = false;
     // RA and Dec lines.
     for (i=0; i<24; i++)
@@ -118,7 +122,7 @@ void draw_ra_dec_lines()
         prev_valid = false;
         for (j=-80; j<=80; j+=10)
         {
-            Point jadolzhnaperejexatdoma = Point::from_ra_dec(fiftyseventh * i * 15, fiftyseventh * j, 5);
+            Point jadolzhnaperejexatdoma = Point::from_ra_dec(fiftyseventh * i * 15, fiftyseventh * j, 5, node);
             try
             {
                 zdes = Cartesian2D(jadolzhnaperejexatdoma, azimuth, altitude, zoom);
@@ -151,7 +155,7 @@ void draw_ra_dec_lines()
         prev_valid = false;
         for (i=0; i<=24; i++)
         {
-            Point jadolzhnaperejexatdoma = Point::from_ra_dec(fiftyseventh * i * 15, fiftyseventh * j, 5);
+            Point jadolzhnaperejexatdoma = Point::from_ra_dec(fiftyseventh * i * 15, fiftyseventh * j, 5, node);
             try
             {
                 zdes = Cartesian2D(jadolzhnaperejexatdoma, azimuth, altitude, zoom);
@@ -179,14 +183,14 @@ void draw_ra_dec_lines()
         }
     }
 
-    // TODO: Fix the ecliptic line for planets other than Earth.
-    // if (whereami >= 0 && (cels[whereami]->type == rocky || cels[whereami]->type == ice_giant || cels[whereami]->type == gas_giant))
-    if (whereami == iamhome)
+    // Ecliptic
+    if (whereami >= 0 && (cels[whereami]->typeclass() == class_planet))
     {
         prev_valid = false;
         for (i=0; i<=360; i++)
         {
             Point pt = Point::from_ra_dec(fiftyseventh * i, 0, AU);
+            pt = rotate3D(pt, center, here.orbital_plane.v, -here.orbital_plane.a);
             pt = rotate3D(pt, center, here.equatorial_plane.v, here.equatorial_plane.a);
             try
             {
@@ -253,7 +257,7 @@ bool save_universe()
     fs.open("universe.json", std::ios::out);
     if (fs)
     {
-        if (!Serialization::save_all(fs, cels)) std::cerr << "FAILED to save universe file." << std::endl;
+        if (!Serialization::save_all(fs, cels, true)) std::cerr << "FAILED to save universe file." << std::endl;
         fs.close();
         return true;
     }
@@ -261,7 +265,7 @@ bool save_universe()
     return false;
 }
 
-bool load_universe(std::string universe_fname)
+bool load_universe(std::string universe_fname = "universe.json")
 {
     int i;
     fstream fs;
@@ -417,8 +421,11 @@ void load_catalogs()
     mtx.unlock();
     cr.read_star_orbits_dat(cels);
 
+    if (load_univ.size()) load_universe(load_univ);
+
     for (i=0; cels[i]; i++)
     {
+        if (!cels[i]->cenobj) cels[i]->cenobj = cels[i];
         while (cels[i]->cenobj->orbit && cels[i]->cenobj->orbit->center && cels[i]->cenobj->orbit->center->typeclass() != class_galaxy)
             cels[i]->cenobj = cels[i]->cenobj->orbit->center;
     }
@@ -643,13 +650,11 @@ void compute_object_draw_coordinates()
                 default:
                 ;
             }
-
-            if (whereami == i) here = cels[i]->location;
         }
 
+        if (whereami >= 0) here = cels[whereami]->location;
+
         Point viewer_pole = rotate3D(yaxis, center, here.equatorial_plane.v, here.equatorial_plane.a);
-        viewer_pole = rotate3D(viewer_pole, center, here.orbital_plane.v, here.orbital_plane.a);
-        viewer_pole = rotate3D(viewer_pole, center, here.local_system_plane.v, here.local_system_plane.a);
         Rotation viewer_plane = align_points_3d(viewer_pole, yaxis, center);
 
         for (i=0; cels[i] && i<MAX_CELOBJS; i++)
@@ -705,8 +710,6 @@ void draw_objects()
     double orbseg = 81;
 
     Point viewer_pole = rotate3D(yaxis, center, here.equatorial_plane.v, here.equatorial_plane.a);
-    viewer_pole = rotate3D(viewer_pole, center, here.orbital_plane.v, here.orbital_plane.a);
-    viewer_pole = rotate3D(viewer_pole, center, here.local_system_plane.v, here.local_system_plane.a);
     Rotation viewer_plane = align_points_3d(viewer_pole, yaxis, center);
 
     // Orbits
@@ -1002,13 +1005,14 @@ void draw_mouse_cursor(ImGuiIO& io)
 void identify_object_under_cursor(ImGuiIO& io)
 {
     int i;
+    double myeq = (whereami >= 0) ? cels[whereami]->equinox_eff : 0;
 
     is_an_obj_under_cursor = -1;
     obj_magn_under_cursor = 1e9;
     if (trackidx >= 0)
     {
         is_an_obj_under_cursor = trackidx;
-        azimuth = -cels[trackidx]->RA_as_radians(here);
+        azimuth = -cels[trackidx]->RA_as_radians(here, myeq);
         altitude = cels[trackidx]->Decl_as_radians(here);
     }
     else for (i=0; cels[i] && i<MAX_CELOBJS; i++)
@@ -1063,7 +1067,7 @@ void identify_object_under_cursor(ImGuiIO& io)
             }
         }
 
-        objinfo += (std::string)"RA:    " + cels[i]->RA_as_hms(here) + (std::string)"\n"
+        objinfo += (std::string)"RA:    " + cels[i]->RA_as_hms(here, myeq) + (std::string)"\n"
                 + (std::string)"Decl:  " + cels[i]->Decl_as_degms(here) + (std::string)"\n";
         oss << "Mag:    " << std::setprecision(2) << lmag << std::endl;
         objinfo += oss.str();
@@ -1166,10 +1170,166 @@ void pan_with_crosshairs(ImGuiIO& io)
 
 void center_selected()
 {
+    double myeq = (whereami >= 0) ? cels[whereami]->equinox_eff : 0;
     if (selected >= 0)
     {
-        azimuth = -cels[selected]->RA_as_radians(here);
+        azimuth = -cels[selected]->RA_as_radians(here, 0);
         altitude = cels[selected]->Decl_as_radians(here);
+    }
+}
+
+void process_key_cmd_char(char c)
+{
+    switch (c)
+    {
+        case 'A':
+        if (selected >= 0) addcenidx = selected;
+        else if (trackidx >= 0) addcenidx = trackidx;
+        else if (whereami >= 0) addcenidx = whereami;
+        addcelwnd = true;
+        break;
+
+        case 'b': global_brightness *= 1.1; viewchanged = true; break;
+        case 'B': global_brightness *= 0.9; viewchanged = true; break;
+        case 'c': show_consln = !show_consln; break;
+        case 'd': JDnow += 1; viewchanged = true; compute_object_draw_coordinates(); break;
+        case 'D': JDnow -= 1; viewchanged = true; compute_object_draw_coordinates(); break;
+
+        case 'e':
+        // TODO: Solar system explorer, or local system if outside solar system.
+        break;
+
+        case 'E':
+        if (selected >= 0) editidx = selected;
+        else if (trackidx >= 0) editidx = trackidx;
+        else if (whereami >= 0) editidx = whereami;
+        objedtwnd = (editidx >= 0);
+        break;
+
+        case 'g': show_grid = !show_grid; break;
+        case 'h': JDnow += 1.0/24; viewchanged = true; compute_object_draw_coordinates(); break;
+        case 'H': JDnow -= 1.0/24; viewchanged = true; compute_object_draw_coordinates(); break;
+        case 'i': JDnow += 1.0/1440; viewchanged = true; compute_object_draw_coordinates(); break;
+        case 'I': JDnow -= 1.0/1440; viewchanged = true; compute_object_draw_coordinates(); break;
+        case 'l': show_labels = !show_labels; break;
+        case 'm': JDnow += 30; viewchanged = true; compute_object_draw_coordinates(); break;
+        case 'M': JDnow -= 30; viewchanged = true; compute_object_draw_coordinates(); break;
+        case 'n': objinfwnd = !objinfwnd; break;
+
+        case 'o':
+        if (selected >= 0)
+        {
+            here = cels[selected]->location;
+            whereami = selected;
+            selected = trackidx = -1;
+            global_brightness = default_brightness;
+            zoom = 1;
+        }
+        velocity = center;
+        viewchanged = true;
+        refresh_star_visibilities();
+        break;
+
+        case 'O': show_orbits = !show_orbits; break;
+
+        case 'r':
+        velocity = center;
+        zoom = 1;
+        spin = 0;
+        whereami = iamhome;
+        trackidx = -1;
+        here = cels[whereami]->location;
+        global_brightness = default_brightness;
+        case '@':
+        viewchanged = true;
+        simnow = std::time(nullptr);
+        JDnow = ((double)simnow - J2000_TIME_T)/oneday + J2000;
+        refresh_star_visibilities();
+        compute_object_draw_coordinates();
+        break;
+
+        case 'R': redlight_mode = !redlight_mode; break;
+        case 's': statuswnd = !statuswnd; break;
+        case 'S': selected = -1; break;
+
+        case 't':
+        center_selected();
+        trackidx = selected;
+        selected = -1;
+        viewchanged = true;
+        break;
+
+        case 'T': trackidx = -1; break;
+        case 'u': save_universe(); break;
+
+        case 'w':
+        if (velocity.magnitude())
+        {
+            velocity.scale(speed_of_light * 1.00001 / target_frame_rate);
+        }
+        else
+        {
+            velocity.x =  sin(azimuth) * cos(altitude) * speed_of_light * 1.00001 / target_frame_rate;
+            velocity.z =  cos(azimuth) * cos(altitude) * speed_of_light * 1.00001 / target_frame_rate;
+            velocity.y =  sin(altitude) * speed_of_light * 1.00001 / target_frame_rate;
+            velocity = rotate3D(velocity, center, here.equatorial_plane.v, -here.equatorial_plane.a);
+        }
+        spin = 0;
+        viewchanged = true;
+        whereami = -1;
+        break;
+
+        case 'x':
+        velocity = center;
+        viewchanged = true;
+        break;
+
+        case 'y': JDnow += (oneyear/oneday); viewchanged = true; compute_object_draw_coordinates(); break;
+        case 'Y': JDnow -= (oneyear/oneday); viewchanged = true; compute_object_draw_coordinates(); break;
+        case 'z': JDnow += (oneyear/864); viewchanged = true; compute_object_draw_coordinates(); break;
+        case 'Z': JDnow -= (oneyear/864); viewchanged = true; compute_object_draw_coordinates(); break;
+
+        case '+':
+        vm = velocity.magnitude();
+        vmfr = vm * target_frame_rate;
+        if (vmfr > 1e100)
+        {
+            // In Trek, the fastest possible warp is warp 10. But that doesn't make for impressive spaceflights.
+            // How about we set the limit to warp 1 googol?
+            // Besides, go much faster than that and the app crashes.
+            velocity.scale(speed_of_light * 1e100 / target_frame_rate);
+        }
+        else if (vm)
+        {
+            if (vmfr < 0.1 * speed_of_light) velocity.scale(vm + 0.5 * vm * compute_time_dilation(vmfr));
+            else if (vmfr < speed_of_light) velocity.scale(vm + 0.5 * (speed_of_light - vmfr) / target_frame_rate * compute_time_dilation(vmfr));
+            else velocity.scale(vm * 1.5);
+        }
+        else
+        {
+            velocity.x =  sin(azimuth) * cos(altitude) * 1000;
+            velocity.z =  cos(azimuth) * cos(altitude) * 1000;
+            velocity.y =  sin(altitude) * 1000;
+            velocity = rotate3D(velocity, center, here.equatorial_plane.v, -here.equatorial_plane.a);
+            whereami = -1;
+        }
+        viewchanged = true;
+        break;
+
+        case '!': show_consln = show_grid = show_labels = show_orbits = false; break;
+        case '%': zoom = 1; global_brightness = 1; viewchanged = true; break;
+
+        case '-':
+        vm = velocity.magnitude();
+        velocity.scale(vm * 0.666);
+        viewchanged = true;
+        break;
+
+        case '`': global_gamma += 0.2; set_gamma(global_gamma); break;
+        case '~': global_gamma -= 0.2; set_gamma(global_gamma); break;
+
+        default:
+        ;
     }
 }
 
@@ -1180,163 +1340,26 @@ void process_keyboard_commands(ImGuiIO& io)
     {
         timeout_ms = 5;
         ImWchar c = io.InputQueueCharacters[i];
-        switch (c)
-        {
-            case 'b': global_brightness *= 1.1; viewchanged = true; break;
-            case 'B': global_brightness *= 0.9; viewchanged = true; break;
-            case 'c': show_consln = !show_consln; break;
-            case 'd': JDnow += 1; viewchanged = true; compute_object_draw_coordinates(); break;
-            case 'D': JDnow -= 1; viewchanged = true; compute_object_draw_coordinates(); break;
-            case 'g': show_grid = !show_grid; break;
-            case 'h': JDnow += 1.0/24; viewchanged = true; compute_object_draw_coordinates(); break;
-            case 'H': JDnow -= 1.0/24; viewchanged = true; compute_object_draw_coordinates(); break;
-            case 'i': JDnow += 1.0/1440; viewchanged = true; compute_object_draw_coordinates(); break;
-            case 'I': JDnow -= 1.0/1440; viewchanged = true; compute_object_draw_coordinates(); break;
-            case 'l': show_labels = !show_labels; break;
-            case 'm': JDnow += 30; viewchanged = true; compute_object_draw_coordinates(); break;
-            case 'M': JDnow -= 30; viewchanged = true; compute_object_draw_coordinates(); break;
-            case 'n': objinfwnd = !objinfwnd; break;
-
-            case 'o':
-            if (selected >= 0)
-            {
-                here = cels[selected]->location;
-                whereami = selected;
-                selected = trackidx = -1;
-                global_brightness = default_brightness;
-                zoom = 1;
-            }
-            velocity = center;
-            viewchanged = true;
-            refresh_star_visibilities();
-            break;
-
-            case 'O': show_orbits = !show_orbits; break;
-
-            case 'r':
-            velocity = center;
-            zoom = 1;
-            spin = 0;
-            whereami = iamhome;
-            trackidx = -1;
-            here = cels[whereami]->location;
-            global_brightness = default_brightness;
-            case '@':
-            viewchanged = true;
-            simnow = std::time(nullptr);
-            JDnow = ((double)simnow - J2000_TIME_T)/86400 + J2000;
-            refresh_star_visibilities();
-            compute_object_draw_coordinates();
-            break;
-
-            case 'R': redlight_mode = !redlight_mode; break;
-            case 's': statuswnd = !statuswnd; break;
-            case 'S': selected = -1; break;
-
-            case 't':
-            center_selected();
-            trackidx = selected;
-            selected = -1;
-            viewchanged = true;
-            break;
-
-            case 'T': trackidx = -1; break;
-            case 'u': save_universe(); break;
-
-            case 'w':
-            if (velocity.magnitude())
-            {
-                velocity.scale(speed_of_light * 1.00001 / target_frame_rate);
-            }
-            else
-            {
-                velocity.x =  sin(azimuth) * cos(altitude) * speed_of_light * 1.00001 / target_frame_rate;
-                velocity.z =  cos(azimuth) * cos(altitude) * speed_of_light * 1.00001 / target_frame_rate;
-                velocity.y =  sin(altitude) * speed_of_light * 1.00001 / target_frame_rate;
-                velocity = rotate3D(velocity, center, here.local_system_plane.v, -here.local_system_plane.a);
-                velocity = rotate3D(velocity, center, here.orbital_plane.v, -here.orbital_plane.a);
-                velocity = rotate3D(velocity, center, here.equatorial_plane.v, -here.equatorial_plane.a);
-            }
-            spin = 0;
-            viewchanged = true;
-            whereami = -1;
-            break;
-
-            case 'x':
-            velocity = center;
-            viewchanged = true;
-            break;
-
-            case 'y': JDnow += (year/86400); viewchanged = true; compute_object_draw_coordinates(); break;
-            case 'Y': JDnow -= (year/86400); viewchanged = true; compute_object_draw_coordinates(); break;
-            case 'z': JDnow += (year/864); viewchanged = true; compute_object_draw_coordinates(); break;
-            case 'Z': JDnow -= (year/864); viewchanged = true; compute_object_draw_coordinates(); break;
-
-            case '+':
-            vm = velocity.magnitude();
-            vmfr = vm * target_frame_rate;
-            if (vmfr > 1e100)
-            {
-                // In Trek, the fastest possible warp is warp 10. But that doesn't make for impressive spaceflights.
-                // How about we set the limit to warp 1 googol?
-                // Besides, go much faster than that and the app crashes.
-                velocity.scale(speed_of_light * 1e100 / target_frame_rate);
-            }
-            else if (vm)
-            {
-                if (vmfr < 0.1 * speed_of_light) velocity.scale(vm + 0.5 * vm * compute_time_dilation(vmfr));
-                else if (vmfr < speed_of_light) velocity.scale(vm + 0.5 * (speed_of_light - vmfr) / target_frame_rate * compute_time_dilation(vmfr));
-                else velocity.scale(vm * 1.5);
-            }
-            else
-            {
-                velocity.x =  sin(azimuth) * cos(altitude) * 1000;
-                velocity.z =  cos(azimuth) * cos(altitude) * 1000;
-                velocity.y =  sin(altitude) * 1000;
-                velocity = rotate3D(velocity, center, here.local_system_plane.v, -here.local_system_plane.a);
-                velocity = rotate3D(velocity, center, here.orbital_plane.v, -here.orbital_plane.a);
-                velocity = rotate3D(velocity, center, here.equatorial_plane.v, -here.equatorial_plane.a);
-                whereami = -1;
-            }
-            viewchanged = true;
-            break;
-
-            case '!': show_consln = show_grid = show_labels = show_orbits = false; break;
-            case '%': zoom = 1; global_brightness = 1; viewchanged = true; break;
-
-            case '-':
-            vm = velocity.magnitude();
-            velocity.scale(vm * 0.666);
-            viewchanged = true;
-            break;
-
-            case '`': global_gamma += 0.2; set_gamma(global_gamma); break;
-            case '~': global_gamma -= 0.2; set_gamma(global_gamma); break;
-
-            default:
-            ;
-        }
+        process_key_cmd_char(c);
     }
 }
 
-void lookfor_cb()
+int find_object(const char* search_term)
 {
     int i;
-    int is_hd  = ((lookfor[0]&0x5f) == 'H' && (lookfor[1]&0x5f) == 'D') ? atoi(&lookfor[2]) : 0,
-        is_hip = ((lookfor[0]&0x5f) == 'H' && (lookfor[1]&0x5f) == 'I' && (lookfor[2]&0x5f) == 'P') ? atoi(&lookfor[3]) : 0;
-    bool is_gliese = (((lookfor[0]&0x5f) == 'G' && (lookfor[1]&0x5f) == 'L')
-        || ((lookfor[0]&0x5f) == 'G' && (lookfor[1]&0x5f) == 'J')
-        || ((lookfor[0]&0x5f) == 'W' && (lookfor[1]&0x5f) == 'O')
-        || ((lookfor[0]&0x5f) == 'N' && (lookfor[1]&0x5f) == 'N')
-        ) && contains_digits_or_dots(lookfor);
-    selected = -1;
+    int is_hd  = ((search_term[0]&0x5f) == 'H' && (search_term[1]&0x5f) == 'D') ? atoi(&search_term[2]) : 0,
+        is_hip = ((search_term[0]&0x5f) == 'H' && (search_term[1]&0x5f) == 'I' && (search_term[2]&0x5f) == 'P') ? atoi(&search_term[3]) : 0;
+    bool is_gliese = (((search_term[0]&0x5f) == 'G' && (search_term[1]&0x5f) == 'L')
+        || ((search_term[0]&0x5f) == 'G' && (search_term[1]&0x5f) == 'J')
+        || ((search_term[0]&0x5f) == 'W' && (search_term[1]&0x5f) == 'O')
+        || ((search_term[0]&0x5f) == 'N' && (search_term[1]&0x5f) == 'N')
+        ) && contains_digits_or_dots(search_term);
+    int result = -1;
     for (i=0; cels[i]; i++)
     {
-        if (!strcmp(cels[i]->name, lookfor))
+        if (!strcmp(cels[i]->name, search_term))
         {
-            selected = i;
-            center_selected();
-            searched = true;
+            result = i;
             break;
         }
         if (cels[i]->typeclass() == class_star)
@@ -1344,25 +1367,21 @@ void lookfor_cb()
             if ((is_hd && is_hd == ((Star*)cels[i])->HD)
                 || (is_hip && is_hip == ((Star*)cels[i])->HIP))
             {
-                selected = i;
-                center_selected();
-                searched = true;
+                result = i;
                 break;
             }
-            if (is_gliese && has_same_numbers(((Star*)cels[i])->Gliese, lookfor))
+            if (is_gliese && has_same_numbers(((Star*)cels[i])->Gliese, search_term))
             {
-                selected = i;
-                center_selected();
-                searched = true;
+                result = i;
                 break;
             }
         }
     }
 
-    if (selected < 0)
+    if (result < 0)
     {
         int best_Levenshtein = 1e6;
-        std::string lookstr = lookfor;
+        std::string lookstr = search_term;
         for (i=0; cels[i]; i++)
         {
             int lev = Damerau_Levenshtein(cels[i]->name, lookstr);
@@ -1379,13 +1398,23 @@ void lookfor_cb()
             if (lev < best_Levenshtein)
             {
                 best_Levenshtein = lev;
-                selected = i;
-                center_selected();
-                trackidx = -1;
-                searched = true;
+                result = i;
                 if (!lev) break;
             }
         }
+    }
+
+    return result;
+}
+
+void lookfor_cb()
+{
+    int i = find_object(lookfor);
+    if (i>=0)
+    {
+        selected = i;
+        center_selected();
+        searched = true;
     }
 }
 
@@ -1394,7 +1423,7 @@ void draw_status_window(ImGuiIO& io)
     // TODO: If redlight_mode, set all window and text colors accordingly.
     int stattop = 0, statleft = 0, statwidth = 225, statheight = txtyscale*2.3;
     int i;
-    ImGui::Begin("Status", &statuswnd, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar);
+    ImGui::Begin("Status", &statuswnd, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings);
 
     /////////////////////////////////////////////////////
 
@@ -1600,7 +1629,7 @@ void draw_status_window(ImGuiIO& io)
 void draw_objinf_window(ImGuiIO& io)
 {
     // TODO: If redlight_mode, set all window and text colors accordingly.
-    ImGui::Begin("Object", &objinfwnd, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar);
+    ImGui::Begin("Object", &objinfwnd, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings);
     int objinftop = 0, objinfleft = (int)io.DisplaySize.x - 211, objinfwidth = 211, objinfheight = txtyscale*2;
 
     ImGui::Text(objname.c_str());
@@ -1616,6 +1645,282 @@ void draw_objinf_window(ImGuiIO& io)
 
     if (io.MousePos.x >= objinfleft && io.MousePos.y >= objinftop
         && io.MousePos.x < objinfleft+objinfwidth && io.MousePos.y < objinftop+objinfheight)
+        is_mouse_over_window = true;
+}
+
+void draw_addcel_window(ImGuiIO& io)
+{
+    ImGui::Begin("Add Object", &addcelwnd);
+    ImGui::SetWindowSize(ImVec2(193, 81));
+
+    ImGui::Text("Type");
+    ImGui::SameLine();
+    ImGuiComboFlags cboceltyp_flags = 0;
+    const char* combo_preview_value = celtypes[cboceltyp_selected_idx];
+    if (ImGui::BeginCombo("##cboceltyp", combo_preview_value, cboceltyp_flags))
+    {
+        for (int n = 0; n < nceltyp; n++)
+        {
+            const bool is_selected = (cboceltyp_selected_idx == n);
+            if (ImGui::Selectable(celtypes[n], is_selected))
+            {
+                cboceltyp_selected_idx = n;
+                show_labels = true;
+            }
+
+            // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+            if (is_selected)
+                ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+    }
+
+    if (ImGui::Button("Go"))
+    {
+        for (ncelobjs=0; cels[ncelobjs]; ncelobjs++);
+        if (ncelobjs < (MAX_CELOBJS-1))
+        {
+            bool is_cen_planet = (cels[addcenidx]->type == rocky | cels[addcenidx]->type == ice_giant || cels[addcenidx]->type == gas_giant);
+
+            if (cboceltyp_selected_idx == 2 && is_cen_planet) cboceltyp_selected_idx = 3;
+            else if (cboceltyp_selected_idx == 3 && !is_cen_planet) cboceltyp_selected_idx = 2;
+
+            switch (cboceltyp_selected_idx)
+            {
+                case 0: cels[ncelobjs] = new Galaxy(); break;
+                case 1: cels[ncelobjs] = new Star(); break;
+                case 2: cels[ncelobjs] = new Planet(); break;
+                case 3: cels[ncelobjs] = new Moon(); break;
+
+                default:
+                std::cerr << "Unimplemented object type" << std::endl;
+                break;
+            }
+
+            if (cels[ncelobjs])
+            {
+                strcpy(cels[ncelobjs]->name, "new");
+                cels[ncelobjs]->user_added = true;
+                cels[addcenidx]->distance_known = true;
+                cels[ncelobjs]->distance_known = true;
+                cels[ncelobjs]->orbit = new Orbit();
+                cels[ncelobjs]->orbit->center = cels[addcenidx];
+                cels[ncelobjs]->orbit->semimajor_axis = 1e6;
+                cels[ncelobjs]->orbit->period = oneday;
+                cels[ncelobjs]->orbit->epoch = JDnow;
+                editidx = ncelobjs;
+                objedtwnd = true;
+                addcelwnd = false;
+                ncelobjs++;
+            }
+        }
+    }
+
+    ImVec2 pos = ImGui::GetWindowPos(), siz = ImGui::GetWindowSize();
+    ImGui::End();
+
+    if (io.MousePos.x >= pos.x && io.MousePos.y >= pos.y
+        && io.MousePos.x < pos.x+siz.x && io.MousePos.y < pos.y+siz.y)
+        is_mouse_over_window = true;
+}
+
+void draw_objedit_window(ImGuiIO& io)
+{
+    if (editidx < 0)
+    {
+        objedtwnd = false;
+        return;
+    }
+
+    CelestialObject *cel = cels[editidx];
+    Orbit *orb = cel->orbit;
+
+    // TODO: If redlight_mode, set all window and text colors accordingly.
+    ImGui::Begin("Edit Object", &objedtwnd, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings);
+    int cx = (int)io.DisplaySize.x/2, cy = (int)io.DisplaySize.y / 2;
+    int objedtwidth = 717, objedtheight = 137;
+
+    double col1 = 123, col2 = 359, col3 = 503, txtwid = 167;
+
+    strcpy(edit_name, cel->name);
+    ImGui::Text("Name");
+    ImGui::SameLine(col1);
+    ImGui::SetNextItemWidth(txtwid*2);
+    if (ImGui::InputText("##edtname", edit_name, 255, 0)) cel->user_edited = true;
+    ImGui::SameLine(col3);
+    if (ImGui::Button("Select"))
+    {
+        selected = editidx;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Focus"))
+    {
+        selected = editidx;
+        center_selected();
+        searched = true;
+    }
+
+    edit_eqincl = cel->inclination * fiftyseven;
+    ImGui::Text("Inclination");
+    ImGui::SameLine(col1);
+    ImGui::SetNextItemWidth(txtwid);
+    if (ImGui::InputDouble("##edteqinc", &edit_eqincl, 0, 0, "%.9f")) cel->user_edited = true;
+    ImGui::SameLine(col2);
+    edit_equinox = cel->equinox * fiftyseven;
+    ImGui::Text("Equinox");
+    ImGui::SameLine(col3);
+    ImGui::SetNextItemWidth(txtwid);
+    if (ImGui::InputDouble("##edteqnox", &edit_equinox, 0, 0, "%.9f")) cel->user_edited = true;
+
+    double edit_mass = cel->mass / 1000;
+    ImGui::Text("Mass, kg");
+    ImGui::SameLine(col1);
+    ImGui::SetNextItemWidth(txtwid);
+    if (ImGui::InputDouble("##edtmass", &edit_mass, 0, 0, "%.9e"))
+    {
+        cel->mass = edit_mass * 1000;
+        cel->user_edited = true;
+    }
+    ImGui::SameLine(col2);
+    double edit_radius = cel->volumetric_mean_radius / 1000;
+    ImGui::Text("Radius, km");
+    ImGui::SameLine(col3);
+    ImGui::SetNextItemWidth(txtwid);
+    if (ImGui::InputDouble("##edtvmrad", &edit_radius, 0, 0, "%.6f"))
+    {
+        cel->volumetric_mean_radius = edit_radius * 1000;
+        cel->user_edited = true;
+    }
+
+    double edit_absmag = cel->absolute_magnitude;
+    ImGui::Text("Abs. Magn.");
+    ImGui::SameLine(col1);
+    ImGui::SetNextItemWidth(txtwid);
+    if (ImGui::InputDouble("##edtabsmag", &edit_absmag, 0, 0, "%.3f"))
+    {
+        cel->absolute_magnitude = edit_absmag;
+        cel->user_edited = true;
+    }
+    if (cel->typeclass() == class_planet || cel->typeclass() == class_moon)
+    {
+        Planet* p = (Planet*)cel;
+        p->estimate_albedo();
+        ImGui::SameLine(col2);
+        ImGui::Text("Albedo");
+        double edit_albedo = p->albedo;
+        ImGui::SameLine(col3);
+        ImGui::SetNextItemWidth(txtwid);
+        if (ImGui::InputDouble("##edtalbdo", &edit_albedo, 0, 0, "%.3f"))
+        {
+            double albrat = edit_albedo / p->albedo;
+            p->albedo = edit_albedo;
+            if (fabs(albrat-1) >= 1e-6)
+            {
+                double magshift = -log(albrat) / log(magnbase);
+                p->absolute_magnitude += magshift;
+            }
+            cel->user_edited = true;
+        }
+    }
+
+    if (orb)
+    {
+        ImGui::Separator();
+        objedtheight += txtyscale;
+
+        std::string orbcen = "Center of Orbit: ";
+        orbcen += std::string(cel->orbit->center->name);
+        ImGui::Text(orbcen.c_str());
+        objedtheight += txtyscale;
+
+        edit_sma = cel->orbit->semimajor_axis / AU;
+        ImGui::Text("Semimaj.Axis");
+        ImGui::SameLine(col1);
+        ImGui::SetNextItemWidth(txtwid);
+        if (ImGui::InputDouble("##edtsma", &edit_sma, 0, 0, "%.9f"))
+        {
+            orb->semimajor_axis = edit_sma * AU;
+            if (cel->user_added) orb->compute_period(cel->mass);
+            cel->user_edited = true;
+        }
+        ImGui::SameLine();
+        ImGui::Text("AU");
+        edit_period = cel->orbit->period / oneday;
+        ImGui::SameLine(col2);
+        ImGui::Text("Period");
+        ImGui::SameLine(col3);
+        ImGui::SetNextItemWidth(txtwid);
+        if (ImGui::InputDouble("##edtper", &edit_period, 0, 0, "%.9f"))
+        {
+            cels[editidx]->orbit->period = edit_period * oneday;
+            if (cel->user_added) orb->compute_semimajor_axis(cel->mass);
+            cel->user_edited = true;
+        }
+        ImGui::SameLine();
+        ImGui::Text("days");
+        objedtheight += txtyscale*1.16;
+
+        edit_incl = cel->orbit->inclination * fiftyseven;
+        ImGui::Text("Inclination");
+        ImGui::SameLine(col1);
+        ImGui::SetNextItemWidth(txtwid);
+        if (ImGui::InputDouble("##edtincl", &edit_incl, 0, 0, "%.9f")) cel->user_edited = true;
+        ImGui::SameLine(col2);
+        edit_node = cel->orbit->ascending_node * fiftyseven;
+        ImGui::Text("Asc. Node");
+        ImGui::SameLine(col3);
+        ImGui::SetNextItemWidth(txtwid);
+        if (ImGui::InputDouble("##edtnode", &edit_node, 0, 0, "%.9f")) cel->user_edited = true;
+        objedtheight += txtyscale*1.16;
+
+        edit_eccn = cel->orbit->eccentricity;
+        ImGui::Text("Eccentricity");
+        ImGui::SameLine(col1);
+        ImGui::SetNextItemWidth(txtwid);
+        if (ImGui::InputDouble("##edtecc", &edit_eccn, 0, 0, "%.9f")) cel->user_edited = true;
+        ImGui::SameLine(col2);
+        edit_argperi = cel->orbit->arg_periapsis * fiftyseven;
+        ImGui::Text("Arg.Periapsis");
+        ImGui::SameLine(col3);
+        ImGui::SetNextItemWidth(txtwid);
+        if (ImGui::InputDouble("##edtargperi", &edit_argperi, 0, 0, "%.9f")) cel->user_edited = true;
+        objedtheight += txtyscale*1.16;
+
+        edit_epoch = cel->orbit->epoch;
+        ImGui::Text("Epoch, JD");
+        ImGui::SameLine(col1);
+        ImGui::SetNextItemWidth(txtwid);
+        if (ImGui::InputDouble("##edtepoch", &edit_epoch, 0, 0, "%.9f")) cel->user_edited = true;
+        ImGui::SameLine(col2);
+        edit_manom = cel->orbit->mean_anomaly * fiftyseven;
+        ImGui::Text("Mean Anomaly");
+        ImGui::SameLine(col3);
+        ImGui::SetNextItemWidth(txtwid);
+        if (ImGui::InputDouble("##edtmanom", &edit_manom, 0, 0, "%.9f")) cel->user_edited = true;
+        objedtheight += txtyscale*1.16;
+
+        edit_precnode = cel->orbit->prec_node ? (M_PI * 2 / cel->orbit->prec_node / oneday) : 0;
+        ImGui::Text("Prec. Node");
+        ImGui::SameLine(col1);
+        ImGui::SetNextItemWidth(txtwid);
+        if (ImGui::InputDouble("##edtprcnd", &edit_precnode, 0, 0, "%.9f")) cel->user_edited = true;
+        ImGui::SameLine(col2);
+        edit_procargperi = cel->orbit->proc_argperi ? (M_PI * 2 / cel->orbit->proc_argperi / oneday) : 0;
+        ImGui::Text("ProcArgPeri");
+        ImGui::SameLine(col3);
+        ImGui::SetNextItemWidth(txtwid);
+        if (ImGui::InputDouble("##edtprcap", &edit_procargperi, 0, 0, "%.9f")) cel->user_edited = true;
+        objedtheight += txtyscale*1.16;
+    }
+
+    ImVec2 wpos = ImGui::GetWindowPos(), wsiz = ImGui::GetContentRegionAvail();
+
+    int objedttop = io.DisplaySize.y - objedtheight, objedtleft = io.DisplaySize.x - objedtwidth;
+    ImGui::SetWindowSize(ImVec2(objedtwidth, objedtheight));
+    ImGui::SetWindowPos(ImVec2(objedtleft, objedttop));
+    ImGui::End();
+
+    if (io.MousePos.x >= objedtleft && io.MousePos.y >= objedttop)
         is_mouse_over_window = true;
 }
 
@@ -1651,12 +1956,19 @@ int main (int argc, char** argv)
     memset(cels, 0, MAX_CELOBJS*sizeof(CelestialObject*));
     bx_cache = new int[MAX_CELOBJS];
     by_cache = new int[MAX_CELOBJS];
+    std::string argsfind = "", argsgo = "";
 
     memset(lookfor, 0, 256);
 
     for (l=1; l<argc; l++)
     {
         n = strlen(argv[l]);
+        if (n == 1)
+        {
+            process_key_cmd_char(argv[l][0]);
+            continue;
+        }
+
         if (n == ((xonsm[4] & 017) ^ 015))
         {
             const char* ucpdhahzs = "\x2b\x85\xe9\x80\x57\xe4\x70\x00";
@@ -1669,6 +1981,21 @@ int main (int argc, char** argv)
                 show_xonsm = true;
                 xaorngsim = l;
             }
+        }
+
+        if (!strcmp(argv[l], "load"))
+        {
+            load_univ = argv[++l];
+        }
+
+        if (!strcmp(argv[l], "find"))
+        {
+            argsfind = argv[++l];
+        }
+
+        if (!strcmp(argv[l], "go"))
+        {
+            argsgo = argv[++l];
         }
 
         if (!strcmp(argv[l], "magtest")) magnitude_test = true;
@@ -1961,23 +2288,54 @@ int main (int argc, char** argv)
             if (show_consln) draw_cons_lines();
             draw_objects();
 
-            is_click = io.MouseReleased[0];
-            if (!is_mouse_over_window)
-            {
-                if (!ImGui::IsMouseDown(0) && !ImGui::IsMouseDown(1) && !ImGui::IsMouseDown(2)) draw_mouse_cursor(io);
-                identify_object_under_cursor(io);
-            }
-
-            is_mouse_over_window = false;
-
             txtyscale = ImGui::GetTextLineHeightWithSpacing();
             txtycompact = ImGui::GetTextLineHeight();
+
+            is_mouse_over_window = false;
 
             // Status window
             if (statuswnd) draw_status_window(io);
 
             // Object under cursor info
             if (objinfwnd) draw_objinf_window(io);
+
+            // Edit dialog
+            if (objedtwnd)
+            {
+                draw_objedit_window(io);
+                if (editidx >= 0)
+                {
+                    strcpy(cels[editidx]->name, edit_name);
+                    cels[editidx]->inclination = edit_eqincl * fiftyseventh;
+                    cels[editidx]->equinox = edit_equinox * fiftyseventh;
+                    if (cels[editidx]->orbit)
+                    {
+                        cels[editidx]->orbit->inclination = edit_incl * fiftyseventh;
+                        cels[editidx]->orbit->ascending_node = edit_node * fiftyseventh;
+                        cels[editidx]->orbit->eccentricity = edit_eccn;
+                        cels[editidx]->orbit->arg_periapsis = edit_argperi * fiftyseventh;
+                        cels[editidx]->orbit->epoch = edit_epoch;
+                        cels[editidx]->orbit->mean_anomaly = edit_manom * fiftyseventh;
+                        cels[editidx]->orbit->prec_node = edit_precnode ? (M_PI * 2 / (edit_precnode * oneday)) : 0;
+                        cels[editidx]->orbit->proc_argperi = edit_procargperi ? (M_PI * 2 / (edit_procargperi * oneday)) : 0;
+                    }
+                    if (cels[editidx]->typeclass() == class_star)
+                        ((Star*)cels[editidx])->update_location(simnow);
+                    else if (cels[editidx]->typeclass() == class_planet)
+                        ((Planet*)cels[editidx])->update_location(simnow);
+                    else if (cels[editidx]->typeclass() == class_moon)
+                        ((Moon*)cels[editidx])->update_location(simnow);
+                }
+            }
+
+            if (addcelwnd) draw_addcel_window(io);
+
+            is_click = io.MouseReleased[0];
+            if (!is_mouse_over_window)
+            {
+                if (!ImGui::IsMouseDown(0) && !ImGui::IsMouseDown(1) && !ImGui::IsMouseDown(2)) draw_mouse_cursor(io);
+                identify_object_under_cursor(io);
+            }
 
             // Positioning updates
             vm = velocity.magnitude();
@@ -1986,7 +2344,7 @@ int main (int argc, char** argv)
             if (vmfr < speed_of_light) vdil.scale(vdil.magnitude() / compute_time_dilation(vmfr));
             here.local_position += vdil;
             azimuth += spin;
-            viewchanged = searched || spin || velocity.magnitude() || (PrevDispSize.x != io.DisplaySize.x) || (PrevDispSize.y != io.DisplaySize.y);
+            viewchanged = searched || spin || velocity.magnitude() || objedtwnd || (PrevDispSize.x != io.DisplaySize.x) || (PrevDispSize.y != io.DisplaySize.y);
 
             // Slow down to avoid zipping past tracked object
             if (trackidx >= 0)
@@ -2015,6 +2373,28 @@ int main (int argc, char** argv)
                 viewchanged = true;
             }
 
+            // Command line args
+            if (argsgo.size())
+            {
+                int goidx = find_object(argsgo.c_str());
+                if (goidx >= 0) whereami = goidx;
+                else std::cerr << "Not found " << argsgo << std::endl;
+                argsgo = "";
+                viewchanged = true;
+            }
+            else if (argsfind.size())               // After go, wait to get new bearings then seek.
+            {
+                int findidx = find_object(argsfind.c_str());
+                if (findidx >= 0)
+                {
+                    selected = findidx;
+                    center_selected();
+                }
+                else std::cerr << "Not found " << argsfind << std::endl;
+                argsfind = "";
+                viewchanged = true;
+            }
+
             // Keyboard commands
             process_keyboard_commands(io);
         }
@@ -2034,7 +2414,8 @@ int main (int argc, char** argv)
             if (io.MousePos.x != lmx || io.MousePos.y != lmy) frames_without_mousemove = 0;
             else frames_without_mousemove++;
 
-            if ((io.MousePos.x != lmx || io.MousePos.y != lmy || viewchanged || velocity.magnitude()) && frame_dur > (1.0/target_frame_rate))
+            if ((io.MousePos.x != lmx || io.MousePos.y != lmy || viewchanged || velocity.magnitude() || is_mouse_over_window)
+                && frame_dur > (1.0/target_frame_rate))
             {
                 timeout_ms *= 0.333;
                 if (timeout_ms < 5) timeout_ms = 5;
@@ -2065,18 +2446,21 @@ int main (int argc, char** argv)
             {
                 // No time dilation in warp mode because faster than light is impossible so warp mode is
                 // some kind of hand wavy physics that bypass relativity.
-                JDnow += frame_dur/86400;
+                JDnow += frame_dur/oneday;
             }
             else
             {
-                JDnow += frame_dur/86400 / compute_time_dilation(vmfr);
+                JDnow += frame_dur/oneday / compute_time_dilation(vmfr);
             }
         }
-        simnow = (JDnow - J2000)*86400 + J2000_TIME_T;
+        simnow = (JDnow - J2000)*oneday + J2000_TIME_T;
     }
+
+    save_universe();
 
     for (i=0; cels[i]; i++)
     {
+        if (cels[i]->orbit) delete cels[i]->orbit;
         if (cels[i]) switch (cels[i]->typeclass())
         {
             case class_galaxy:
@@ -2099,6 +2483,7 @@ int main (int argc, char** argv)
             delete cels[i];
         }
     }
+
     delete[] cels;
     delete[] vmag_cache;
     delete[] magrad_cache;

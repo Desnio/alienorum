@@ -20,7 +20,7 @@ std::string Serialization::load_string(FILE *in)
     return std::string(buffer);
 }
 
-bool Serialization::save_all(std::fstream& fs, CelestialObject **cels)
+bool Serialization::save_all(std::fstream& fs, CelestialObject **cels, bool oe)
 {
     try
     {
@@ -28,27 +28,30 @@ bool Serialization::save_all(std::fstream& fs, CelestialObject **cels)
         json allobjs;
         for (i=0; cels[i]; i++)
         {
+            std::string j = std::to_string(i);
+            const char* l = j.c_str();
+            if (oe && !cels[i]->user_edited) continue;
             switch (cels[i]->typeclass())
             {
                 case class_galaxy:
-                allobjs[i] = ((Galaxy*)cels[i])->to_json();
+                allobjs[l] = ((Galaxy*)cels[i])->to_json();
                 break;
 
                 case class_star:
                 ((Star*)cels[i])->gotta_be_named_something();                            // I am sick of these massive-flaring stars with no massive-flaring names!
-                allobjs[i] = ((Star*)cels[i])->to_json();
+                allobjs[l] = ((Star*)cels[i])->to_json();
                 break;
 
                 case class_planet:
-                allobjs[i] = ((Planet*)cels[i])->to_json();
+                allobjs[l] = ((Planet*)cels[i])->to_json();
                 break;
 
                 case class_moon:
-                allobjs[i] = ((Moon*)cels[i])->to_json();
+                allobjs[l] = ((Moon*)cels[i])->to_json();
                 break;
 
                 default:
-                std::cerr << "Attempted to save CelestialObject of blank or unknown type class." << std::endl;
+                std::cerr << "Attempted to save CelestialObject " << cels[i]->name << " of blank or unknown type class." << std::endl;
             }
         }
 
@@ -69,32 +72,35 @@ bool Serialization::load_all(std::fstream& fs, CelestialObject **cels, int max)
         json allobj;
         allobj << fs;
         int i, j, n = allobj.size();
-        for (i=0; i<n; i++)
+        for (auto it = allobj.begin(); it != allobj.end(); ++it)
         {
-            json j = allobj.at(i);
+            std::string key = it.key();
+            i = atoi(key.c_str());
+            json js = it.value();
             cel_obj_class c;
-            j.at("typeclass").get_to(c);
+            js.at("typeclass").get_to(c);
 
             switch (c)
             {
                 case class_galaxy:
-                cels[i] = new Galaxy();
-                ((Galaxy*)cels[i])->from_json(j);
+                if (!cels[i]) cels[i] = new Galaxy();
+                ((Galaxy*)cels[i])->from_json(js);
                 break;
 
                 case class_star:
-                cels[i] = new Star();
-                ((Star*)cels[i])->from_json(j);
+                if (!cels[i]) cels[i] = new Star();
+                ((Star*)cels[i])->from_json(js);
+                ((Star*)cels[i])->update_location(J2000_TIME_T);
                 break;
 
                 case class_planet:
-                cels[i] = new Planet();
-                ((Planet*)cels[i])->from_json(j);
+                if (!cels[i]) cels[i] = new Planet();
+                ((Planet*)cels[i])->from_json(js);
                 break;
 
                 case class_moon:
-                cels[i] = new Moon();
-                ((Moon*)cels[i])->from_json(j);
+                if (!cels[i]) cels[i] = new Moon();
+                ((Moon*)cels[i])->from_json(js);
                 break;
 
                 default:
@@ -105,15 +111,7 @@ bool Serialization::load_all(std::fstream& fs, CelestialObject **cels, int max)
             mtx.lock();
             loading_msg = std::string("Loaded ") + std::to_string(i+1) + std::string(" of ") + std::to_string(n) + std::string(" objects...");
             mtx.unlock();
-        }
-        allobj[i] = nullptr;
 
-        // Assign orbiting objects to their orbit centers.
-        mtx.lock();
-        loading_msg = std::string("Assigning orbiting bodies to primary...");
-        mtx.unlock();
-        for (i=0; cels[i]; i++)
-        {
             if (!cels[i]->orbit) continue;
             const char* cenname = cels[i]->orbit->center_name.c_str();
             cels[i]->orbit->center = nullptr;

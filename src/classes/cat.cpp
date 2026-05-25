@@ -176,7 +176,7 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
 
     FILE* fp = fopen(path.c_str(), "rb");
 
-    while (fgets(buffer, 65520, fp))
+    while (fgets(buffer, 300, fp))
     {
         s = new Star();
         s->type = star;
@@ -262,7 +262,7 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
 
         //  31- 36  F6.3 arcsec/yr pm       ? Total proper motion
         read_field_onebased(buffer, 31, 36, field);
-        pm = atof(field) / 3600 * fiftyseventh / year;
+        pm = atof(field) / 3600 * fiftyseventh / oneyear;
 
         //  38- 42  F5.1   deg     pmPA     ? Direction angle of proper motion
         read_field_onebased(buffer, 38, 42, field);
@@ -339,15 +339,15 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
             s->equinox = find_angle_along_vector(rot.v, zaxis, center, yaxis);
             if (s->equinox < 0) s->equinox += (M_PI*2);
 
-            s->location.local_system_plane = ICRF_to_ecliptic;
-            s->location.equatorial_plane = rot;
+            s->location.local_system_plane = s->location.equatorial_plane = rot;
             s->known_poles = true;
         }
         else
         {
             s->update_location(J2000_TIME_T);
             // Assumed 90 degree inclination for all extrasolar systems unless inclination known.
-            s->location.local_system_plane = align_points_3d(cels[0]->location.system_center, Point(0,0,light_year*1e9), s->location.system_center);
+            s->location.equatorial_plane = s->location.local_system_plane =
+                align_points_3d(cels[0]->location.system_center, Point(0,0,light_year*1e9), s->location.system_center);
         }
 
         #if _debug_sbinaries_zetret
@@ -552,11 +552,11 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
 
         //  149-154  F6.3 arcsec/yr pmRA    *?Annual proper motion in RA J2000, FK5 system
         read_field_onebased(buffer, 149, 154, field);
-        s->proper_motion_RA = atof(field) * fiftyseventh / 3600 / year;
+        s->proper_motion_RA = atof(field) * fiftyseventh / 3600 / oneyear;
 
         //  155-160  F6.3 arcsec/yr pmDE     ?Annual proper motion in Dec J2000, FK5 system
         read_field_onebased(buffer, 155, 160, field);
-        s->proper_motion_decl = atof(field) * fiftyseventh / 3600 / year;
+        s->proper_motion_decl = atof(field) * fiftyseventh / 3600 / oneyear;
 
         //  162-166  F5.3   arcsec  Parallax ? Trigonometric parallax (unless n_Parallax)
         read_field_onebased(buffer, 162, 166, field);
@@ -589,7 +589,8 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
 
         s->update_location(J2000_TIME_T);
         // Assumed 90 degree inclination for all extrasolar systems unles sinclination known.
-        s->location.local_system_plane = align_points_3d(cels[0]->location.system_center, Point(0,0,light_year*1e9), s->location.system_center);
+        s->location.equatorial_plane = s->location.local_system_plane =
+            align_points_3d(cels[0]->location.system_center, Point(0,0,light_year*1e9), s->location.system_center);
 
         #if _debug_sbinaries_zetret
         if (s->HD == 20766) zet1ret = s;
@@ -789,12 +790,12 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
 
         //  88- 95  F8.2 mas/yr   pmRA     *? Proper motion mu_alpha.cos(delta), ICRS
         read_field_onebased(buffer, 88, 95, field);
-        f = atof(field) / 1000 / 3600 / year * fiftyseventh;
+        f = atof(field) / 1000 / 3600 / oneyear * fiftyseventh;
         if (f) s->proper_motion_RA = f;
 
         //  97-104  F8.2 mas/yr   pmDE     *? Proper motion mu_delta, ICRS 
         read_field_onebased(buffer, 97, 104, field);
-        f = atof(field) / 1000 / 3600 / year * fiftyseventh;
+        f = atof(field) / 1000 / 3600 / oneyear * fiftyseventh;
         if (f) s->proper_motion_decl = f;
 
         //  42- 46  F5.2  mag     Vmag      ? Magnitude in Johnson V                  (H5)
@@ -923,7 +924,19 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         A->component = 'A';
         hipcomps[HIP]['A'] = A;
 
-        s = new Star();
+        s = nullptr;
+        for (j=0; j<offset; j++)
+        {
+            if (cels[j]->typeclass() != class_star) continue;
+            if (!cels[j]->orbit) continue;
+            if (cels[j]->orbit->center == A)
+            {
+                s = (Star*)cels[j];
+                break;
+            }
+        }
+
+        if (!s) s = new Star();
         s->make_companion_of(A, 'B');
         s->epoch = J2000 + (1991.25 - 2000);
 
@@ -935,7 +948,7 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
 
         //   8- 17  F10.4 d        P        Orbital period                           (DO2)
         read_field_onebased(buffer, 8, 17, field);
-        s->orbit->period = atof(field) * 86400;
+        s->orbit->period = atof(field) * oneday;
 
         //  19- 29  F11.4 d        T       *Time of periastron passage (JD-2440000)  (DO3)
         read_field_onebased(buffer, 19, 29, field);
@@ -955,17 +968,16 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
 
         //  54- 59  F6.2  deg      i       *[0,180] Inclination                      (DO7)
         read_field_onebased(buffer, 54, 59, field);
-        s->orbit->inclination = atof(field) * fiftyseventh;
+        A->inclination = atof(field) * fiftyseventh;
+        s->orbit->inclination = 0;
 
         //  61- 66  F6.2  deg      Omega   *[0,360] Position angle of the node       (DO8)
         read_field_onebased(buffer, 61, 66, field);
-        s->orbit->ascending_node = atof(field) * fiftyseventh;
+        A->equinox = atof(field) * fiftyseventh;
+        s->orbit->ascending_node = 0;
 
         A->update_location(J2000_TIME_T);
-        A->location.local_system_plane = system_plane_from_incl_and_node(s->orbit->inclination,
-            s->orbit->ascending_node, s->location.system_center - cels[0]->location.system_center);
         s->location = A->location;
-        s->orbit->inclination = 0;
         A->known_poles = true;
         s->known_poles = true;
 
@@ -1098,7 +1110,8 @@ int CatalogReader::read_CCDM_catalog(CelestialObject **cels, int max)
         {
             // The inclination is unknown, but let's assume zero degrees
             s->inclination = A->inclination = 0;
-            A->location.local_system_plane = align_points_3d(cels[0]->location.system_center, Point(0,light_year*1e9,0), A->location.system_center);
+            A->location.equatorial_plane = A->location.local_system_plane =
+                align_points_3d(cels[0]->location.system_center, Point(0,light_year*1e9,0), A->location.system_center);
         }
         s->location = A->location;                      // Copies local system reference frame
         s->epoch = J2000;
@@ -1371,7 +1384,7 @@ int CatalogReader::read_SB9_catalog(CelestialObject **cels, int max)
 
         //   8- 23  F16.9 d       Per     [0.05,116675] Period
         read_field_onebased(buffer, 8, 23, field);
-        B->orbit->period = atof(field)*86400;
+        B->orbit->period = atof(field)*oneday;
 
         //  42- 57  F16.8 d       T0      ? Periastron time (JD)
         read_field_onebased(buffer, 42, 57, field);
@@ -1392,7 +1405,7 @@ int CatalogReader::read_SB9_catalog(CelestialObject **cels, int max)
         // 124-133  F10.5 km/s    K1      ? Velocity amplitude of primary
         read_field_onebased(buffer, 124, 133, field);
         f = atof(field);
-        B->orbit->semimajor_axis = (13751000 / 86400)              // convert to m/s
+        B->orbit->semimajor_axis = (13751000 / oneday)              // convert to m/s
             * sqrt(1.0 - B->orbit->eccentricity*B->orbit->eccentricity)
             * f
             * B->orbit->period;
@@ -1403,7 +1416,7 @@ int CatalogReader::read_SB9_catalog(CelestialObject **cels, int max)
         // 148-157  E10.5 km/s    K2      ? Velocity amplitude of secondary
         read_field_onebased(buffer, 148, 157, field);
         f = atof(field);
-        B->orbit->semimajor_axis += (13751000 / 86400)             // convert to m/s
+        B->orbit->semimajor_axis += (13751000 / oneday)             // convert to m/s
             * sqrt(1.0 - B->orbit->eccentricity*B->orbit->eccentricity)
             * f
             * B->orbit->period;
@@ -1490,7 +1503,7 @@ int CatalogReader::read_astorb_catalog(CelestialObject **cels, int max)
         epoch.tm_mon = _month-1;
         epoch.tm_mday = _day;
         time_t t = mktime(&epoch);
-        p->epoch = (t/86400) + 2440587.5;
+        p->epoch = (t/oneday) + 2440587.5;
 
         // 116-125  F10.6 deg     M         Mean anomaly (3)
         read_field_onebased(buffer, 116, 125, field);
@@ -1516,13 +1529,14 @@ int CatalogReader::read_astorb_catalog(CelestialObject **cels, int max)
         read_field_onebased(buffer, 169, 181, field);
         sma = atof(field);
         p->orbit->semimajor_axis = sma * AU;
-        p->orbit->period = sqrt(sma*sma*sma) * year;
+        p->orbit->period = sqrt(sma*sma*sma) * oneyear;
 
         if (!strcmp(name.c_str(), "Pluto"))
         {
             _day = 0;
         }
 
+        num_read++;
         cels[offset++] = p;
         if (offset >= (max-1))
         {
@@ -1572,7 +1586,6 @@ int CatalogReader::read_starname_dat(CelestialObject **cels)
             if ((HD && s->HD == HD) || (HIP && s->HIP == HIP) || (Gliese.size() && !strcmp(s->Gliese, Gliese.c_str())))
             {
                 strcpy(s->name, trim(field).c_str());
-                // std::cout << "Named " << s->name << std::endl << std::flush;
                 num_read++;
                 break;
             }
@@ -1623,14 +1636,13 @@ int CatalogReader::read_star_orbits_dat(CelestialObject **cels)
         read_field_onebased(buffer, 77, 87, field);
         double inclination = atof(field) * fiftyseventh;
 
-        bool overwrite_system_plane = false;
-        if (inclination)
+        if (inclination || ascending_node)
         {
-            overwrite_system_plane = true;
             A->location.local_system_plane = system_plane_from_incl_and_node(inclination, ascending_node,
                 A->location.system_center - cels[0]->location.system_center);
-            A->location.orbital_plane.a = 0;
-            A->location.equatorial_plane.a = 0;
+            A->location.orbital_plane = A->location.equatorial_plane = A->location.local_system_plane;
+            A->inclination = inclination;
+            A->equinox = ascending_node;
             A->known_poles = true;
         }
 
@@ -1693,10 +1705,11 @@ int CatalogReader::read_star_orbits_dat(CelestialObject **cels)
         f = atof(field) * fiftyseventh;
         if (f) s->orbit->mean_anomaly = f;
 
-        if (overwrite_system_plane)
+        if (inclination || ascending_node)
         {
             s->location = A->location;
-            s->orbit->ascending_node = s->orbit->inclination = 0;           // Clear these because we transfered them to the system plane.
+            s->inclination = inclination;
+            s->equinox = ascending_node;
             A->known_poles = s->known_poles = true;
         }
 
@@ -1813,30 +1826,30 @@ int CatalogReader::read_local_planets(CelestialObject **cels, int max)
 
         read_field_onebased(buffer, 212, 223, field);
         p->mass = atof(field);
-        if (p->mass < 4e+28) p->type = rocky;
-        else if (p->mass >= 2.5e+29) p->type = gas_giant;
-        else p->type = ice_giant;
+        if (p->mass < 1.6 * earth_mass) p->type = rocky;        // https://doi.org/10.1051/0004-6361/202348690
+        else if (p->mass < 2.5e+29) p->type = ice_giant;
+        else p->type = gas_giant;
 
         read_field_onebased(buffer, 225, 231, field);
         p->surface_pressure = atof(field);
 
         read_field_onebased(buffer, 233, 243, field);
-        p->epoch = J2000 + (atof(field) - 2000)*(year/86400);
+        p->epoch = J2000 + (atof(field) - 2000)*(oneyear/oneday);
 
         read_field_onebased(buffer, 245, 259, field);
         float f = atof(field);
-        p->precession = f ? (1.0 / f) : 0;
+        p->precession = f ? (M_PI * 2 / f) : 0;
 
         read_field_onebased(buffer, 261, 287, field);           // TODO: Laplace planes
         p->J2 = atof(field);
 
         read_field_onebased(buffer, 289, 303, field);
         f = atof(field);
-        o->prec_node = f ? (1.0 / f) : 0;
+        o->prec_node = f ? (M_PI * 2 / f) : 0;
 
         read_field_onebased(buffer, 305, 316, field);
         f = atof(field);
-        o->proc_argperi = f ? (1.0 / f) : 0;
+        o->proc_argperi = f ? (M_PI * 2 / f) : 0;
         p->distance_known = true;
 
         p->location = o->center->location;          // Copy the system center and local plane. The local position will auto-fill later.

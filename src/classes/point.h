@@ -5,6 +5,7 @@
 #ifndef _Point
 #define _Point
 
+#include <math.h>
 #include "misc.h"
 
 class Point;
@@ -49,7 +50,7 @@ class Point
     json to_json();
     bool from_json(json j);
 
-    static Point from_ra_dec(double right_ascension, double declination, double distance);
+    static Point from_ra_dec(double right_ascension, double declination, double distance, double node = 0);
     std::string printable() const;
 };
 
@@ -104,6 +105,7 @@ class CelestialLocation
     bool from_json(json j);
 };
 
+inline double sphere_volume(double r) { return 4.0/3 * M_PI * r*r*r; }
 Point compute_normal(Point pt1, Point pt2, Point pt3);
 double find_angle(double dx, double dy);
 double find_3D_angle(Point pt1, Point pt2, Point source);
