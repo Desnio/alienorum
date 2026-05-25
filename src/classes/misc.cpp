@@ -37,7 +37,7 @@ int timeout_ms = 5;
 bool dragging, dragged, viewchanged;
 int lmx, lmy, whereami=0, iamhome=0;
 double velocmag;
-time_t simnow = std::time(nullptr);
+double simnow = std::time(nullptr);
 double JDnow = ((double)simnow - J2000_TIME_T)/oneday + J2000;
 bool objinfwnd = true;
 bool statuswnd = true;

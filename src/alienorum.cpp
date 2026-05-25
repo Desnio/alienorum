@@ -1012,7 +1012,7 @@ void identify_object_under_cursor(ImGuiIO& io)
     if (trackidx >= 0)
     {
         is_an_obj_under_cursor = trackidx;
-        azimuth = -cels[trackidx]->RA_as_radians(here, myeq);
+        azimuth = -cels[trackidx]->RA_as_radians(here, 0);
         altitude = cels[trackidx]->Decl_as_radians(here);
     }
     else for (i=0; cels[i] && i<MAX_CELOBJS; i++)
@@ -1597,7 +1597,8 @@ void draw_status_window(ImGuiIO& io)
         statheight += txtyscale;
     } */
 
-    struct tm *utc_time = std::gmtime(&simnow);
+    time_t tmpnow = simnow;
+    struct tm *utc_time = std::gmtime(&tmpnow);
     int mon = utc_time->tm_mon + 1, mday = utc_time->tm_mday;
     std::string datedisp = std::to_string(utc_time->tm_year + 1900)
         + std::string("-") + std::string((mon<10)?"0":"") + std::to_string(mon)
@@ -2361,7 +2362,7 @@ int main (int argc, char** argv)
             if (vmfr < speed_of_light) vdil.scale(vdil.magnitude() / compute_time_dilation(vmfr));
             here.local_position += vdil;
             azimuth += spin;
-            viewchanged = searched || spin || velocity.magnitude() || objedtwnd || (PrevDispSize.x != io.DisplaySize.x) || (PrevDispSize.y != io.DisplaySize.y);
+            viewchanged = searched || (trackidx>=0) || spin || velocity.magnitude() || objedtwnd || (PrevDispSize.x != io.DisplaySize.x) || (PrevDispSize.y != io.DisplaySize.y);
 
             // Slow down to avoid zipping past tracked object
             if (trackidx >= 0)
@@ -2470,7 +2471,8 @@ int main (int argc, char** argv)
                 JDnow += frame_dur/oneday / compute_time_dilation(vmfr);
             }
         }
-        simnow = (JDnow - J2000)*oneday + J2000_TIME_T;
+        simnow = (double)(JDnow - J2000)*oneday + J2000_TIME_T;
+        // std::cout << simnow << std::endl;
     }
 
     save_universe();
