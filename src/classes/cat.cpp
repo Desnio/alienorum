@@ -1465,10 +1465,40 @@ int CatalogReader::read_astorb_catalog(CelestialObject **cels, int max)
 
         if (!(asno = atoi(field))) continue;
         if ((asno > 4 || absmagn >= 8)
-            && strcmp(name.c_str(), "Pluto")
-            && strcmp(name.c_str(), "Enya")
+            && asno != 4062
+            && asno != 4147
+            && asno != 4169
+            && asno != 4179
+            && asno != 4180
+            && asno != 4221
+            && asno != 4330
+            && asno != 4337
+            && asno != 4444
+            && asno != 4457
+            && asno != 4500
+            && asno != 4513
+            && asno != 4628
+            && asno != 4659
+            && asno != 4716
+            && asno != 4804
+            && asno != 4987
+            && asno != 5000
+            && asno != 5020
+            && asno != 5370
+            && asno != 5471
+            && asno != 5535
+            && asno != 5668
+            && asno != 5747
+            && asno != 5773
+            && asno != 5790
+            && asno != 5803
+            && asno != 5811
+            && asno != 6433
+            && asno != 134340
             )
             continue;
+
+        if (asno == 5747) name = "Williamina";              // She invented the OBAFGKM system and you chauvanists can't honor her namesake in astorb????
 
         Planet *p = new Planet();
         p->type = rocky;

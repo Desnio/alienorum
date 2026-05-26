@@ -38,19 +38,22 @@ class Point
     Point() {};
     Point(double x, double y, double z);
     Point(CelestialLocation& cel);
+    Point(Cartesian2D cart, double distance, double azimuth, double altitude, double zoom);
     Point operator+(Point other);
     Point& operator+=(Point other);
     Point operator-(Point other);
     Point& operator-=(Point other);
     Point operator*(double multiplier);
     Point& operator*=(double multiplier);
-    double distance_to(Point other);
+    double distance_to(Point other) const;
     double magnitude() const;
     void scale(double new_magn);
     json to_json();
     bool from_json(json j);
 
     static Point from_ra_dec(double right_ascension, double declination, double distance, double node = 0);
+    double get_distance_to_line(const Point a, const Point b) const;         // Where a and b are the termini of the line.
+    static Point sphere_limb(Point viewer, Point sphere_center, double sphere_radius, double position_angle);
     std::string printable() const;
 };
 

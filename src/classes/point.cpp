@@ -68,7 +68,7 @@ Point &Point::operator*=(double multiplier)
     return *this;
 }
 
-double Point::distance_to(Point other)
+double Point::distance_to(Point other) const
 {
     Point temp = other - *this;
     return sqrt(temp.x*temp.x + temp.y*temp.y + temp.z*temp.z);
@@ -81,6 +81,27 @@ Cartesian2D::Cartesian2D(Point pt, double az, double alt, double m)
     if (pt.z < 0) throw(its_behind_you);
     x = pt.x / pt.z * m;
     y = -pt.y / pt.z * m;
+}
+
+Point::Point(Cartesian2D cart, double r, double az, double alt, double m)
+{
+    z = r;
+    x = cart.x * z / m;
+    y = -cart.y * z / m;
+    if (alt) *this = rotate3D(*this, center, xaxis, -alt);
+    if (az) *this = rotate3D(*this, center, yaxis, az);
+}
+
+// https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment
+double Point::get_distance_to_line(Point a, Point b) const
+{
+    float r2 = pow(a.distance_to(b), 2);
+    if (!r2) return distance_to(a);
+
+    float t = fmax(0, fmin(1,  ((x - a.x) * (b.x - a.x) + (y - a.y) * (b.y - a.y) + (z - a.z) * (b.z - a.z)) / r2));
+    Point p(a.x + t * (b.x-a.x), a.y + t * (b.y-a.y), a.z + t * (b.z-a.z));
+
+    return distance_to(p);
 }
 
 Cartesian2D Cartesian2D::operator+(Cartesian2D other)
