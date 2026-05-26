@@ -19,21 +19,23 @@ double Color::luminance()
 
 Color Color::color_from_magnitude_indices(double Vmag, double BV)
 {
+    return color_from_magnitude_indices(Vmag, BV, BV);
+}
+
+Color Color::color_from_magnitude_indices(double Vmag, double BV, double VR)
+{
     Color c;
-    double BV_literal = BV+bv_correction, brightness = global_brightness * pow(magnbase, -Vmag) * 128;
+    double BV_literal = BV+bv_correction, VR_literal = VR+bv_correction,            // TODO:
+        brightness = global_brightness * pow(magnbase, -Vmag) * 128;
 
     c.green = 1;
     c.blue = pow(magnbase, -BV_literal);
-    c.red = pow(magnbase,  BV_literal);
+    c.red = pow(magnbase,   VR_literal);
 
     double lum = c.luminance(), invlum = 1.0 / lum;
     c.red   *= brightness * invlum;
     c.green *= brightness * invlum;
     c.blue  *= brightness * invlum;
-
-    // Literal B-V indices look too saturated on the screen.
-    // c.red = (c.red + c.green) / 2;
-    // c.blue = fmax(c.blue, (c.blue + c.green) / 2);
 
     return c;
 }

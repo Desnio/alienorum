@@ -275,6 +275,27 @@ Point rotate3D(Point point, Point source, Point axis, double theta)
 
 Rotation system_plane_from_incl_and_node(double inclination, double ascending_node, Point system_center)
 {
+    Point normal, axis;
+    if (system_center.magnitude())
+    {
+        normal = compute_normal(center, system_center, yaxis);
+        axis = system_center - center;
+    }
+    else
+    {
+        normal = xaxis;
+        axis = center - yaxis;
+    }
+    normal.scale(1);
+    axis.scale(1);
+
+    // Incline
+    Point pole = axis * -cos(inclination) + normal * sin(inclination);
+
+    // Then orient
+    pole = rotate3D(pole, center, axis, ascending_node);
+
+    /*
     // First, solve for inclination
     Rotation inclined;
     if (system_center.magnitude())
@@ -292,11 +313,12 @@ Rotation system_plane_from_incl_and_node(double inclination, double ascending_no
     if (1) // system_center.magnitude())
     {
         Point axis = (system_center.magnitude()) ? (system_center - center) : yaxis;
-        pole = rotate3D(pole, center, axis, (ascending_node + M_PI/2));
+        pole = rotate3D(pole, center, axis, (ascending_node - M_PI/2));
     }
+        */
 
     // Then realign the points for the new pole
-    return align_points_3d(pole, Point(0,light_year*1e9,0), center);
+    return align_points_3d(pole, yaxis, center);
 }
 
 Rotation align_points_3d(Point point, Point align, Point center)

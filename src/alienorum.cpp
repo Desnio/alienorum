@@ -1769,13 +1769,23 @@ void draw_objedit_window(ImGuiIO& io)
     ImGui::Text("%s", "Inclination");
     ImGui::SameLine(col1);
     ImGui::SetNextItemWidth(txtwid);
-    if (ImGui::InputDouble("##edteqinc", &edit_eqincl, 0, 0, "%.9f")) cel->user_edited = true;
+    if (ImGui::InputDouble("##edteqinc", &edit_eqincl, 0, 0, "%.9f"))
+    {
+        cels[editidx]->inclination = edit_eqincl * fiftyseventh;
+        cels[editidx]->known_poles = true;
+        cel->user_edited = true;
+    }
     ImGui::SameLine(col2);
     edit_equinox = cel->equinox * fiftyseven;
     ImGui::Text("%s", "Equinox");
     ImGui::SameLine(col3);
     ImGui::SetNextItemWidth(txtwid);
-    if (ImGui::InputDouble("##edteqnox", &edit_equinox, 0, 0, "%.9f")) cel->user_edited = true;
+    if (ImGui::InputDouble("##edteqnox", &edit_equinox, 0, 0, "%.9f"))
+    {
+        cels[editidx]->equinox = edit_equinox * fiftyseventh;
+        cels[editidx]->known_poles = true;
+        cel->user_edited = true;
+    }
 
     double edit_mass = cel->mass / 1000;
     ImGui::Text("%s", "Mass, kg");
@@ -2316,8 +2326,6 @@ int main (int argc, char** argv)
                 if (editidx >= 0)
                 {
                     strcpy(cels[editidx]->name, edit_name);
-                    cels[editidx]->inclination = edit_eqincl * fiftyseventh;
-                    cels[editidx]->equinox = edit_equinox * fiftyseventh;
                     if (cels[editidx]->orbit)
                     {
                         cels[editidx]->orbit->inclination = edit_incl * fiftyseventh;

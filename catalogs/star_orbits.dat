@@ -1,6 +1,6 @@
 
 #Center Name            Member Name             Period_s        Node_deg    Incl_deg    Omega_deg   SMA_m       Eccn        Anomaly_deg         Epoch
-Sun                     (system inclination)                    000         336.55
+Sun                     (system inclination)                    000         023.45
 
 # https://en.wikipedia.org/wiki/Alpha_Centauri
 Rigil Kentaurus         Toliman                 2.5170e+9       205.073     079.243     231.519     3.4855e+12  .519        000.0000000         1875.66
@@ -40,4 +40,4 @@ HD239960                (system inclination)                    152.6       165.
 Gliese 234 A            (system inclination)                    210.385     052.918
 Gliese 473 A            (system inclination)                    143.2       102.8
 HD8890                  (system inclination)                    201.28      127.57
-HD39801                 (stellar rotation)                      055         020
+HD39801                 (stellar rotation)                      145         020
