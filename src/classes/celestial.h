@@ -104,6 +104,8 @@ class CelestialObject
     std::string Decl_as_degms();
     std::string RA_as_hms(CelestialLocation seen_from, double seen_equinox);
     std::string Decl_as_degms(CelestialLocation seen_from);
+    void RA_from_hms(std::string);
+    void Decl_from_degms(std::string);
     double RA_as_radians(CelestialLocation seen_from, double seen_equinox);
     double Decl_as_radians(CelestialLocation seen_from);
     std::string scaled_distance(CelestialLocation fromwhere);

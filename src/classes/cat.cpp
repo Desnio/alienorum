@@ -1195,6 +1195,8 @@ int CatalogReader::read_SB9_catalog(CelestialObject **cels, int max)
             Bonn_seq = atoi(&field[6]);
         }
 
+        if (!HD && !HIP && !Bonn) continue;
+
         //  36- 42  A7    ---     Comp    ? Component
         read_field_onebased(buffer, 36, 42, field);
         strcpy(field, trim(field).c_str());
@@ -1465,6 +1467,84 @@ int CatalogReader::read_astorb_catalog(CelestialObject **cels, int max)
 
         if (!(asno = atoi(field))) continue;
         if ((asno > 4 || absmagn >= 8)
+        /*    && asno != 55
+            && asno != 89
+            && asno != 105
+            && asno != 116
+            && asno != 490
+            && asno != 742
+            && asno != 896
+            && asno != 1001
+            && asno != 1006
+            && asno != 1134
+            && asno != 1143
+            && asno != 1221
+            && asno != 1388
+            && asno != 1404
+            && asno != 1421
+            && asno != 1566
+            && asno != 1604
+            && asno != 1691
+            && asno != 1693
+            && asno != 1709
+            && asno != 1741
+            && asno != 1776
+            && asno != 1789
+            && asno != 1790
+            && asno != 1791
+            && asno != 1814
+            && asno != 1815
+            && asno != 1823
+            && asno != 1862
+            && asno != 1964
+            && asno != 1991
+            && asno != 2000
+            && asno != 2001
+            && asno != 2002
+            && asno != 2060
+            && asno != 2062
+            && asno != 2069
+            && asno != 2101
+            && asno != 2161
+            && asno != 2244
+            && asno != 2247
+            && asno != 2309
+            && asno != 2322
+            && asno != 2362
+            && asno != 2476
+            && asno != 2675
+            && asno != 2688
+            && asno != 2709
+            && asno != 2769
+            && asno != 2801
+            && asno != 2807
+            && asno != 2810
+            && asno != 2830
+            && asno != 2937
+            && asno != 2985
+            && asno != 2999
+            && asno != 3130
+            && asno != 3142
+            && asno != 3153
+            && asno != 3163
+            && asno != 3313
+            && asno != 3350
+            && asno != 3351
+            && asno != 3352
+            && asno != 3353
+            && asno != 3354
+            && asno != 3355
+            && asno != 3356
+            && asno != 3366
+            && asno != 3412
+            && asno != 3524
+            && asno != 3534
+            && asno != 3600
+            && asno != 3768
+            && asno != 3838
+            && asno != 3895
+            && asno != 3905
+            && asno != 3948
             && asno != 4062
             && asno != 4147
             && asno != 4169
@@ -1493,8 +1573,33 @@ int CatalogReader::read_astorb_catalog(CelestialObject **cels, int max)
             && asno != 5790
             && asno != 5803
             && asno != 5811
+            && asno != 6006
+            && asno != 6032
+            && asno != 6123
+            && asno != 6143
+            && asno != 6186
             && asno != 6433
+            && asno != 6469
+            && asno != 6470
+            && asno != 6471
+            && asno != 6486
+            && asno != 6493
+            && asno != 6701
+            && asno != 6714
+            && asno != 6826
+            && asno != 6875
+            && asno != 6914
+            && asno != 6999
+            && asno != 7000*/
+            && asno != 50000
+            && asno != 90377
+            && asno != 90482
             && asno != 134340
+            && asno != 136108
+            && asno != 136199
+            && asno != 136472
+            && asno != 163693
+            && asno != 541132
             )
             continue;
 
@@ -1507,7 +1612,7 @@ int CatalogReader::read_astorb_catalog(CelestialObject **cels, int max)
         p->cenobj = cels[0];
         p->orbit = new Orbit();
         p->orbit->center = cels[0];
-        strcpy(p->name, name.c_str());
+        strcpy(p->name, (std::to_string(asno) + std::string(" ") + name).c_str());
         p->absolute_magnitude = absmagn;
 
         //  55- 58  F4.2  mag     B-V       ? Color index (see E.F.Tedesco, pp.1090-1138)

@@ -193,6 +193,76 @@ std::string CelestialObject::Decl_as_degms(CelestialLocation seen_from)
     return std::string();
 }
 
+void CelestialObject::RA_from_hms(std::string ra_hms)
+{
+    const char* c = ra_hms.c_str();
+    int i, j=0;
+    double h, m, s;
+
+    for (i=0; c[i]; i++)
+    {
+        if (c[i] < '0' || c[i] > '9')
+        {
+            if (j & 1) j++;
+            continue;
+        }
+        else if (!j) h = c[i] - '0';
+        else if (j==1) h = h*10 + (c[i] - '0');
+        else if (j==2) m = c[i] - '0';
+        else if (j==3) m = m*10 + (c[i] - '0');
+        else if (j==4) s = c[i] - '0';
+        else if (j==5)
+        {
+            s = s*10 + atof(&c[i]);
+            break;
+        }
+
+        j++;
+    }
+
+    right_ascension = (h + m/60 + s/3600) * 15 * fiftyseventh;
+}
+
+void CelestialObject::Decl_from_degms(std::string decl_degms)
+{
+    const char* c = decl_degms.c_str();
+    int i, j=0, sign;
+    double d, m, s;
+
+    for (i=0; c[i]; i++)
+    {
+        if (c[i] == '+')
+        {
+            sign = 1;
+            continue;
+        }
+        else if (c[i] == '-')
+        {
+            sign = -1;
+            continue;
+        }
+        else if (c[i] < '0' || c[i] > '9')
+        {
+            if (j & 1) j++;
+            continue;
+        }
+        else if (!j) d = c[i] - '0';
+        else if (j==1) d = d*10 + (c[i] - '0');
+        else if (j==2) m = c[i] - '0';
+        else if (j==3) m = m*10 + (c[i] - '0');
+        else if (j==4) s = c[i] - '0';
+        else if (j==5)
+        {
+            s = s*10 + atof(&c[i]);
+            break;
+        }
+
+        j++;
+    }
+
+    declination = (d + m/60 + s/3600) * sign * fiftyseventh;
+}
+
 double CelestialObject::RA_as_radians(CelestialLocation seen_from, double seen_equinox)
 {
     Point relloc = (location.system_center - seen_from.system_center) + (location.local_position - seen_from.local_position);

@@ -674,8 +674,8 @@ void compute_object_draw_coordinates()
                     ? ((Planet*)cels[i])->viewer_reflectance_magnitude(here)
                     : cels[i]->viewer_magnitude(here);
 
-                double v_brightness = global_brightness * pow(magnbase, -vmag_cache[i]);
-                magrad_cache[i] = fmax(1.414, pow(v_brightness, 0.666)*global_brightness);
+                double brght = global_brightness * pow(magnbase, -vmag_cache[i]);
+                magrad_cache[i] = fmax(1.414, pow(brght, 0.666)*global_brightness);
 
                 Cartesian2D cart(rel, azimuth, altitude, zoom);
                 float dx = (int)(dispcx + cart.x * dispcx), dy = (int)(dispcy + cart.y * dispcx);
@@ -1743,9 +1743,10 @@ void draw_objedit_window(ImGuiIO& io)
 
     // TODO: If redlight_mode, set all window and text colors accordingly.
     ImGui::Begin("Edit Object", &objedtwnd, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings);
-    int objedtwidth = 717, objedtheight = 137;
+    int objedtwidth = 717, objedtheight = 67;
 
     double col1 = 123, col2 = 359, col3 = 503, txtwid = 167;
+    cel_obj_class tc = cels[editidx]->typeclass();
 
     strcpy(edit_name, cel->name);
     ImGui::Text("%s", "Name");
@@ -1763,6 +1764,64 @@ void draw_objedit_window(ImGuiIO& io)
         selected = editidx;
         center_selected();
         searched = true;
+    }
+    objedtheight += txtyscale*1.23;
+
+    if (tc == class_star)
+    {
+        Star* s = (Star*)cels[editidx];
+
+        char edit_ra[20];
+        strcpy(edit_ra, s->RA_as_hms(0).c_str());
+        ImGui::Text("%s", "R.Ascension");
+        ImGui::SameLine(col1);
+        ImGui::SetNextItemWidth(txtwid);
+        if (ImGui::InputText("##edtra", edit_ra, 20))
+        {
+            s->RA_from_hms(edit_ra);
+            s->update_location(simnow);
+            cel->user_edited = true;
+        }
+        ImGui::SameLine(col2);
+        char edit_decl[20];
+        strcpy(edit_decl, s->Decl_as_degms().c_str());
+        ImGui::Text("%s", "Declination");
+        ImGui::SameLine(col3);
+        ImGui::SetNextItemWidth(txtwid);
+        if (ImGui::InputText("##edtdecl", edit_decl, 20))
+        {
+            s->Decl_from_degms(edit_decl);
+            s->update_location(simnow);
+            cel->user_edited = true;
+        }
+        objedtheight += txtyscale*1.23;
+
+        double edit_dist = s->distance / light_year;
+        ImGui::Text("%s", "Distance");
+        ImGui::SameLine(col1);
+        ImGui::SetNextItemWidth(txtwid);
+        if (ImGui::InputDouble("##edtdist", &edit_dist, 0, 0, "%.3f"))
+        {
+            s->distance = edit_dist * light_year;
+            s->update_location(simnow);
+            cel->user_edited = true;
+        }
+        ImGui::SameLine();
+        ImGui::Text("%s", "l.y.");
+        ImGui::SameLine(col2);
+        double edit_rv = s->radial_velocity;
+        ImGui::Text("%s", "Rad. Vel.");
+        ImGui::SameLine(col3);
+        ImGui::SetNextItemWidth(txtwid);
+        if (ImGui::InputDouble("##edtrv", &edit_rv, 0, 0, "%.9f"))
+        {
+            s->radial_velocity = edit_rv;
+            s->update_location(simnow);
+            cel->user_edited = true;
+        }
+        ImGui::SameLine();
+        ImGui::Text("%s", "m/s");
+        objedtheight += txtyscale*1.23;
     }
 
     edit_eqincl = cel->inclination * fiftyseven;
@@ -1786,6 +1845,7 @@ void draw_objedit_window(ImGuiIO& io)
         cels[editidx]->known_poles = true;
         cel->user_edited = true;
     }
+    objedtheight += txtyscale*1.23;
 
     double edit_mass = cel->mass / 1000;
     ImGui::Text("%s", "Mass, kg");
@@ -1806,6 +1866,28 @@ void draw_objedit_window(ImGuiIO& io)
         cel->volumetric_mean_radius = edit_radius * 1000;
         cel->user_edited = true;
     }
+    objedtheight += txtyscale*1.23;
+
+    double edit_oblt = cel->oblateness;
+    ImGui::Text("%s", "Oblateness");
+    ImGui::SameLine(col1);
+    ImGui::SetNextItemWidth(txtwid);
+    if (ImGui::InputDouble("##edtoblt", &edit_oblt, 0, 0, "%.9e"))
+    {
+        cel->oblateness = edit_oblt;
+        cel->user_edited = true;
+    }
+    ImGui::SameLine(col2);
+    double edit_rot = cel->sidereal_rotational_period / oneday;
+    ImGui::Text("%s", "Rotation, d");
+    ImGui::SameLine(col3);
+    ImGui::SetNextItemWidth(txtwid);
+    if (ImGui::InputDouble("##edtrot", &edit_rot, 0, 0, "%.6f"))
+    {
+        cel->sidereal_rotational_period = edit_rot * oneday;
+        cel->user_edited = true;
+    }
+    objedtheight += txtyscale*1.23;
 
     double edit_absmag = cel->absolute_magnitude;
     ImGui::Text("%s", "Abs. Magn.");
@@ -1836,6 +1918,28 @@ void draw_objedit_window(ImGuiIO& io)
             cel->user_edited = true;
         }
     }
+    objedtheight += txtyscale*1.23;
+
+    double edit_prcseq = cel->precession / oneyear;
+    ImGui::Text("%s", "Precession");
+    ImGui::SameLine(col1);
+    ImGui::SetNextItemWidth(txtwid);
+    if (ImGui::InputDouble("##edtprcs", &edit_prcseq, 0, 0, "%.9e"))
+    {
+        cel->precession = edit_prcseq * oneyear;
+        cel->user_edited = true;
+    }
+    ImGui::SameLine(col2);
+    double edit_bvcol = cel->BV_color;
+    ImGui::Text("%s", "B-V color");
+    ImGui::SameLine(col3);
+    ImGui::SetNextItemWidth(txtwid);
+    if (ImGui::InputDouble("##edtbv", &edit_bvcol, 0, 0, "%.6f"))
+    {
+        cel->BV_color = edit_bvcol;
+        cel->user_edited = true;
+    }
+    objedtheight += txtyscale*1.23;
 
     if (orb)
     {
@@ -1880,7 +1984,7 @@ void draw_objedit_window(ImGuiIO& io)
         }
         ImGui::SameLine();
         ImGui::Text("%s", "days");
-        objedtheight += txtyscale*1.16;
+        objedtheight += txtyscale*1.23;
 
         edit_incl = cel->orbit->inclination * fiftyseven;
         ImGui::Text("%s", "Inclination");
@@ -1893,7 +1997,7 @@ void draw_objedit_window(ImGuiIO& io)
         ImGui::SameLine(col3);
         ImGui::SetNextItemWidth(txtwid);
         if (ImGui::InputDouble("##edtnode", &edit_node, 0, 0, "%.9f")) cel->user_edited = true;
-        objedtheight += txtyscale*1.16;
+        objedtheight += txtyscale*1.23;
 
         edit_eccn = cel->orbit->eccentricity;
         ImGui::Text("%s", "Eccentricity");
@@ -1906,7 +2010,7 @@ void draw_objedit_window(ImGuiIO& io)
         ImGui::SameLine(col3);
         ImGui::SetNextItemWidth(txtwid);
         if (ImGui::InputDouble("##edtargperi", &edit_argperi, 0, 0, "%.9f")) cel->user_edited = true;
-        objedtheight += txtyscale*1.16;
+        objedtheight += txtyscale*1.23;
 
         edit_epoch = cel->orbit->epoch;
         ImGui::Text("%s", "Epoch, JD");
@@ -1919,7 +2023,7 @@ void draw_objedit_window(ImGuiIO& io)
         ImGui::SameLine(col3);
         ImGui::SetNextItemWidth(txtwid);
         if (ImGui::InputDouble("##edtmanom", &edit_manom, 0, 0, "%.9f")) cel->user_edited = true;
-        objedtheight += txtyscale*1.16;
+        objedtheight += txtyscale*1.23;
 
         edit_precnode = cel->orbit->prec_node ? (M_PI * 2 / cel->orbit->prec_node / oneday) : 0;
         ImGui::Text("%s", "Prec. Node");
@@ -1932,7 +2036,7 @@ void draw_objedit_window(ImGuiIO& io)
         ImGui::SameLine(col3);
         ImGui::SetNextItemWidth(txtwid);
         if (ImGui::InputDouble("##edtprcap", &edit_procargperi, 0, 0, "%.9f")) cel->user_edited = true;
-        objedtheight += txtyscale*1.16;
+        objedtheight += txtyscale*1.23;
     }
 
     int objedttop = io.DisplaySize.y - objedtheight, objedtleft = io.DisplaySize.x - objedtwidth;
