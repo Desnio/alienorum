@@ -593,7 +593,7 @@ void cache_cons_lines()
 void compute_object_draw_coordinates()
 {
     int i, j, bx, by;
-    double theta, dispw = dispcx*2, disph = dispcy*2;
+    double dispw = dispcx*2, disph = dispcy*2;
     if (whereami >= 0) mycenobj = cels[whereami]->cenobj;
     double mycenobj_dist = mycenobj->location.distance_to(here);
     if (viewchanged)
@@ -703,7 +703,7 @@ void compute_object_draw_coordinates()
 
 void draw_objects()
 {
-    int i, j, l, n, pass;
+    int i, j, pass;
     double jay, step, dispw = dispcx*2, disph = dispcy*2;
     ImVec2 xycoord;
     double appmag, magrad, flare, theta;
@@ -774,9 +774,6 @@ void draw_objects()
         if (i == whereami) continue;
         if (!pass && magrad_cache[i] > 3) continue;
         else if (pass && magrad_cache[i] <= 3) continue;
-        // if (cels[i]->type == star && i!=selected && i!=trackidx && !((Star*)cels[i])->is_in_visible_box(here.system_center)) continue;
-
-        Point rel = cels[i]->tmprel;
 
         if (cels[i]->drawnx < 0 || cels[i]->drawnx >= dispw) continue;
         if (cels[i]->drawny < 0 || cels[i]->drawny >= disph) continue;
@@ -1176,7 +1173,6 @@ void pan_with_crosshairs(ImGuiIO& io)
 
 void center_selected()
 {
-    double myeq = (whereami >= 0) ? cels[whereami]->equinox_eff : 0;
     if (selected >= 0)
     {
         azimuth = -cels[selected]->RA_as_radians(here, 0);
@@ -1428,7 +1424,6 @@ void draw_status_window(ImGuiIO& io)
 {
     // TODO: If redlight_mode, set all window and text colors accordingly.
     int stattop = 0, statleft = 0, statwidth = 225, statheight = txtyscale*2.3;
-    int i;
     ImGui::Begin("Status", &statuswnd, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings);
 
     /////////////////////////////////////////////////////
@@ -1441,41 +1436,41 @@ void draw_status_window(ImGuiIO& io)
     std::string flagstr;
 
     flagstr = (std::string)"Zoom (scroll): " + std::to_string(zoom);
-    ImGui::Text(flagstr.c_str());
+    ImGui::Text("%s", flagstr.c_str());
     statheight += txtyscale;
 
     flagstr = (std::string)"Brghtns (B): " + std::to_string(global_brightness);
-    ImGui::Text(flagstr.c_str());
+    ImGui::Text("%s", flagstr.c_str());
     statheight += txtyscale;
 
     flagstr = (std::string)"Gamma (`): " + std::to_string(get_gamma());
-    ImGui::Text(flagstr.c_str());
+    ImGui::Text("%s", flagstr.c_str());
     statheight += txtyscale;
 
     flagstr = (std::string)"RA/Decl (G): "
         + std::string(show_grid ? "ON" : "OFF");
-    ImGui::Text(flagstr.c_str());
+    ImGui::Text("%s", flagstr.c_str());
     statheight += txtyscale;
 
     flagstr = (std::string)"Cons ln (C): "
         + std::string(show_consln ? (draw_actual_conslines ? "ON" : "(hidden)") : "OFF");
-    ImGui::Text(flagstr.c_str());
+    ImGui::Text("%s", flagstr.c_str());
     statheight += txtyscale;
 
     flagstr = (std::string)"Labels (L): "
         + std::string(show_labels ? "ON" : "OFF");
-    ImGui::Text(flagstr.c_str());
+    ImGui::Text("%s", flagstr.c_str());
     statheight += txtyscale;
 
     flagstr = (std::string)"Orbits (Sh+O): "
         + std::string(show_orbits ? "ON" : "OFF");
-    ImGui::Text(flagstr.c_str());
+    ImGui::Text("%s", flagstr.c_str());
     statheight += txtyscale;
 
     // Pass in the preview value visible before opening the combo (it could technically be different contents or not pulled from items[])
     ImGuiComboFlags cbolbls_flags = 0;
     const char* combo_preview_value = lbltypes[cbolbls_selected_idx];
-    ImGui::Text("Labels:");
+    ImGui::Text("%s", "Labels:");
     ImGui::SameLine();
     if (ImGui::BeginCombo("##cbolabels", combo_preview_value, cbolbls_flags))
     {
@@ -1499,7 +1494,7 @@ void draw_status_window(ImGuiIO& io)
     if (cbolbls_selected_idx == 0)
     {
         sprintf(lblcut0, "%.2f", appmagn_lblcut);
-        ImGui::Text("Mag limit:");
+        ImGui::Text("%s", "Mag limit:");
         ImGui::SameLine();
         ImGui::InputText("##appmaglim", lblcut0, 255);
         statheight += txtyscale*1.3;
@@ -1508,7 +1503,7 @@ void draw_status_window(ImGuiIO& io)
     else if (cbolbls_selected_idx == 1)
     {
         sprintf(lblcut1, "%.2f", absmagn_lblcut);
-        ImGui::Text("Mag limit:");
+        ImGui::Text("%s", "Mag limit:");
         ImGui::SameLine();
         ImGui::InputText("##absmaglim", lblcut1, 255);
         statheight += txtyscale*1.3;
@@ -1517,7 +1512,7 @@ void draw_status_window(ImGuiIO& io)
     else if (cbolbls_selected_idx == 2)
     {
         sprintf(lblcut2, "%.2f", distance_lblcut/light_year);
-        ImGui::Text("Dist. l.y.:");
+        ImGui::Text("%s", "Dist. l.y.:");
         ImGui::SameLine();
         ImGui::InputText("##distlim", lblcut2, 255);
         statheight += txtyscale*1.3;
@@ -1526,27 +1521,27 @@ void draw_status_window(ImGuiIO& io)
 
     flagstr = (std::string)"Redlgt (Sh+R): "
         + std::string(redlight_mode ? "ON" : "OFF");
-    ImGui::Text(flagstr.c_str());
+    ImGui::Text("%s", flagstr.c_str());
     statheight += txtyscale;
 
     flagstr = (std::string)"Obj info (N): "
         + std::string(objinfwnd ? "ON" : "OFF");
-    ImGui::Text(flagstr.c_str());
+    ImGui::Text("%s", flagstr.c_str());
     statheight += txtyscale;
 
     flagstr = (std::string)"Status (S): "
         + std::string(statuswnd ? "ON" : "OFF");
-    ImGui::Text(flagstr.c_str());
+    ImGui::Text("%s", flagstr.c_str());
     statheight += txtyscale;
 
-    ImGui::Text("-----");
+    ImGui::Text("%s", "-----");
     statheight += txtyscale;
 
     std::string vfstr;
     if (whereami >= 0)
         vfstr = std::string("View from ") + cels[whereami]->name;
     else vfstr = std::string("View from space");
-    ImGui::Text(vfstr.c_str());
+    ImGui::Text("%s", vfstr.c_str());
     statheight += txtyscale;
 
     double vm = velocity.magnitude() * target_frame_rate;
@@ -1574,26 +1569,26 @@ void draw_status_window(ImGuiIO& io)
         velocstr = std::string("Velocity: Warp ") + oss.str();
         oss.str("");
     }
-    ImGui::Text(velocstr.c_str());
+    ImGui::Text("%s", velocstr.c_str());
     statheight += txtyscale;
 
     std::string numobjs;
     if (num_stars)
     {
         numobjs = std::to_string(num_stars) + " stars";
-        ImGui::Text(numobjs.c_str());
+        ImGui::Text("%s", numobjs.c_str());
         statheight += txtyscale;
     }
     if (num_stars_in_box>1)             // There will always be at least one.
     {
         numobjs = std::to_string(num_stars_in_box) + " stars in range";
-        ImGui::Text(numobjs.c_str());
+        ImGui::Text("%s", numobjs.c_str());
         statheight += txtyscale;
     }
     /* if (num_planets)
     {
         numobjs = std::to_string(num_planets) + " planets";
-        ImGui::Text(numobjs.c_str());
+        ImGui::Text("%s", numobjs.c_str());
         statheight += txtyscale;
     } */
 
@@ -1603,7 +1598,7 @@ void draw_status_window(ImGuiIO& io)
     std::string datedisp = std::to_string(utc_time->tm_year + 1900)
         + std::string("-") + std::string((mon<10)?"0":"") + std::to_string(mon)
         + std::string("-") + std::string((mday<10)?"0":"") + std::to_string(mday);
-    ImGui::Text(datedisp.c_str());
+    ImGui::Text("%s", datedisp.c_str());
     statheight += txtyscale;
 
     int hr = utc_time->tm_hour, mn = utc_time->tm_min, sec = utc_time->tm_sec;
@@ -1611,15 +1606,15 @@ void draw_status_window(ImGuiIO& io)
         + std::string(":") + std::string((mn<10)?"0":"") + std::to_string(mn)
         + std::string(":") + std::string((sec<10)?"0":"") + std::to_string(sec)
         + std::string(" UTC");
-    ImGui::Text(timedisp.c_str());
+    ImGui::Text("%s", timedisp.c_str());
     statheight += txtyscale;
 
     std::string JDdisp = std::string("JD") + std::to_string(JDnow);
-    ImGui::Text(JDdisp.c_str());
+    ImGui::Text("%s", JDdisp.c_str());
     statheight += txtyscale;
 
     std::string frame_rate = std::to_string(1.0 / frame_dur) + std::string(" frames/s");
-    ImGui::Text(frame_rate.c_str());
+    ImGui::Text("%s", frame_rate.c_str());
     statheight += txtyscale;
 
     /////////////////////////////////////////////////////
@@ -1639,11 +1634,11 @@ void draw_objinf_window(ImGuiIO& io)
     ImGui::Begin("Object", &objinfwnd, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings);
     int objinfwidth = 225, objinfheight = txtyscale*2, objinftop = 0, objinfleft = (int)io.DisplaySize.x - objinfwidth;
 
-    ImGui::Text(objname.c_str());
+    ImGui::Text("%s", objname.c_str());
     objinfheight += txtyscale;
 
     int txtlines = std::count(objinfo.begin(), objinfo.end(), '\n');
-    ImGui::Text(objinfo.c_str());
+    ImGui::Text("%s", objinfo.c_str());
     objinfheight += txtlines*txtycompact;
 
     ImGui::SetWindowPos(ImVec2(objinfleft, objinftop));
@@ -1660,7 +1655,7 @@ void draw_addcel_window(ImGuiIO& io)
     ImGui::Begin("Add Object", &addcelwnd);
     ImGui::SetWindowSize(ImVec2(193, 81));
 
-    ImGui::Text("Type");
+    ImGui::Text("%s", "Type");
     ImGui::SameLine();
     ImGuiComboFlags cboceltyp_flags = 0;
     const char* combo_preview_value = celtypes[cboceltyp_selected_idx];
@@ -1687,7 +1682,7 @@ void draw_addcel_window(ImGuiIO& io)
         for (ncelobjs=0; cels[ncelobjs]; ncelobjs++);
         if (ncelobjs < (MAX_CELOBJS-1))
         {
-            bool is_cen_planet = (cels[addcenidx]->type == rocky | cels[addcenidx]->type == ice_giant || cels[addcenidx]->type == gas_giant);
+            bool is_cen_planet = (cels[addcenidx]->type == rocky || cels[addcenidx]->type == ice_giant || cels[addcenidx]->type == gas_giant);
 
             if (cboceltyp_selected_idx == 2 && is_cen_planet) cboceltyp_selected_idx = 3;
             else if (cboceltyp_selected_idx == 3 && !is_cen_planet) cboceltyp_selected_idx = 2;
@@ -1748,13 +1743,12 @@ void draw_objedit_window(ImGuiIO& io)
 
     // TODO: If redlight_mode, set all window and text colors accordingly.
     ImGui::Begin("Edit Object", &objedtwnd, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings);
-    int cx = (int)io.DisplaySize.x/2, cy = (int)io.DisplaySize.y / 2;
     int objedtwidth = 717, objedtheight = 137;
 
     double col1 = 123, col2 = 359, col3 = 503, txtwid = 167;
 
     strcpy(edit_name, cel->name);
-    ImGui::Text("Name");
+    ImGui::Text("%s", "Name");
     ImGui::SameLine(col1);
     ImGui::SetNextItemWidth(txtwid*2);
     if (ImGui::InputText("##edtname", edit_name, 255, 0)) cel->user_edited = true;
@@ -1772,19 +1766,19 @@ void draw_objedit_window(ImGuiIO& io)
     }
 
     edit_eqincl = cel->inclination * fiftyseven;
-    ImGui::Text("Inclination");
+    ImGui::Text("%s", "Inclination");
     ImGui::SameLine(col1);
     ImGui::SetNextItemWidth(txtwid);
     if (ImGui::InputDouble("##edteqinc", &edit_eqincl, 0, 0, "%.9f")) cel->user_edited = true;
     ImGui::SameLine(col2);
     edit_equinox = cel->equinox * fiftyseven;
-    ImGui::Text("Equinox");
+    ImGui::Text("%s", "Equinox");
     ImGui::SameLine(col3);
     ImGui::SetNextItemWidth(txtwid);
     if (ImGui::InputDouble("##edteqnox", &edit_equinox, 0, 0, "%.9f")) cel->user_edited = true;
 
     double edit_mass = cel->mass / 1000;
-    ImGui::Text("Mass, kg");
+    ImGui::Text("%s", "Mass, kg");
     ImGui::SameLine(col1);
     ImGui::SetNextItemWidth(txtwid);
     if (ImGui::InputDouble("##edtmass", &edit_mass, 0, 0, "%.9e"))
@@ -1794,7 +1788,7 @@ void draw_objedit_window(ImGuiIO& io)
     }
     ImGui::SameLine(col2);
     double edit_radius = cel->volumetric_mean_radius / 1000;
-    ImGui::Text("Radius, km");
+    ImGui::Text("%s", "Radius, km");
     ImGui::SameLine(col3);
     ImGui::SetNextItemWidth(txtwid);
     if (ImGui::InputDouble("##edtvmrad", &edit_radius, 0, 0, "%.6f"))
@@ -1804,7 +1798,7 @@ void draw_objedit_window(ImGuiIO& io)
     }
 
     double edit_absmag = cel->absolute_magnitude;
-    ImGui::Text("Abs. Magn.");
+    ImGui::Text("%s", "Abs. Magn.");
     ImGui::SameLine(col1);
     ImGui::SetNextItemWidth(txtwid);
     if (ImGui::InputDouble("##edtabsmag", &edit_absmag, 0, 0, "%.3f"))
@@ -1817,7 +1811,7 @@ void draw_objedit_window(ImGuiIO& io)
         Planet* p = (Planet*)cel;
         p->estimate_albedo();
         ImGui::SameLine(col2);
-        ImGui::Text("Albedo");
+        ImGui::Text("%s", "Albedo");
         double edit_albedo = p->albedo;
         ImGui::SameLine(col3);
         ImGui::SetNextItemWidth(txtwid);
@@ -1840,19 +1834,19 @@ void draw_objedit_window(ImGuiIO& io)
 
         std::string orbcen = "Center of Orbit: ";
         orbcen += std::string(cel->orbit->center->name);
-        ImGui::Text(orbcen.c_str());
+        ImGui::Text("%s", orbcen.c_str());
         if (orb->center && orb->center->type == star)
         {
             ImGui::SameLine(col2);
             stringstream oss;
             double star_appmag = orb->center->viewer_magnitude(cel->location);
             oss << "Star apparent mag. " << (star_appmag > 0 ? "+" : "") << std::setprecision(2) << star_appmag;
-            ImGui::Text(oss.str().c_str());
+            ImGui::Text("%s", oss.str().c_str());
         }
         objedtheight += txtyscale;
 
         edit_sma = cel->orbit->semimajor_axis / AU;
-        ImGui::Text("Semimaj.Axis");
+        ImGui::Text("%s", "Semimaj.Axis");
         ImGui::SameLine(col1);
         ImGui::SetNextItemWidth(txtwid);
         if (ImGui::InputDouble("##edtsma", &edit_sma, 0, 0, "%.9f"))
@@ -1862,10 +1856,10 @@ void draw_objedit_window(ImGuiIO& io)
             cel->user_edited = true;
         }
         ImGui::SameLine();
-        ImGui::Text("AU");
+        ImGui::Text("%s", "AU");
         edit_period = cel->orbit->period / oneday;
         ImGui::SameLine(col2);
-        ImGui::Text("Period");
+        ImGui::Text("%s", "Period");
         ImGui::SameLine(col3);
         ImGui::SetNextItemWidth(txtwid);
         if (ImGui::InputDouble("##edtper", &edit_period, 0, 0, "%.9f"))
@@ -1875,63 +1869,61 @@ void draw_objedit_window(ImGuiIO& io)
             cel->user_edited = true;
         }
         ImGui::SameLine();
-        ImGui::Text("days");
+        ImGui::Text("%s", "days");
         objedtheight += txtyscale*1.16;
 
         edit_incl = cel->orbit->inclination * fiftyseven;
-        ImGui::Text("Inclination");
+        ImGui::Text("%s", "Inclination");
         ImGui::SameLine(col1);
         ImGui::SetNextItemWidth(txtwid);
         if (ImGui::InputDouble("##edtincl", &edit_incl, 0, 0, "%.9f")) cel->user_edited = true;
         ImGui::SameLine(col2);
         edit_node = cel->orbit->ascending_node * fiftyseven;
-        ImGui::Text("Asc. Node");
+        ImGui::Text("%s", "Asc. Node");
         ImGui::SameLine(col3);
         ImGui::SetNextItemWidth(txtwid);
         if (ImGui::InputDouble("##edtnode", &edit_node, 0, 0, "%.9f")) cel->user_edited = true;
         objedtheight += txtyscale*1.16;
 
         edit_eccn = cel->orbit->eccentricity;
-        ImGui::Text("Eccentricity");
+        ImGui::Text("%s", "Eccentricity");
         ImGui::SameLine(col1);
         ImGui::SetNextItemWidth(txtwid);
         if (ImGui::InputDouble("##edtecc", &edit_eccn, 0, 0, "%.9f")) cel->user_edited = true;
         ImGui::SameLine(col2);
         edit_argperi = cel->orbit->arg_periapsis * fiftyseven;
-        ImGui::Text("Arg.Periapsis");
+        ImGui::Text("%s", "Arg.Periapsis");
         ImGui::SameLine(col3);
         ImGui::SetNextItemWidth(txtwid);
         if (ImGui::InputDouble("##edtargperi", &edit_argperi, 0, 0, "%.9f")) cel->user_edited = true;
         objedtheight += txtyscale*1.16;
 
         edit_epoch = cel->orbit->epoch;
-        ImGui::Text("Epoch, JD");
+        ImGui::Text("%s", "Epoch, JD");
         ImGui::SameLine(col1);
         ImGui::SetNextItemWidth(txtwid);
         if (ImGui::InputDouble("##edtepoch", &edit_epoch, 0, 0, "%.9f")) cel->user_edited = true;
         ImGui::SameLine(col2);
         edit_manom = cel->orbit->mean_anomaly * fiftyseven;
-        ImGui::Text("Mean Anomaly");
+        ImGui::Text("%s", "Mean Anomaly");
         ImGui::SameLine(col3);
         ImGui::SetNextItemWidth(txtwid);
         if (ImGui::InputDouble("##edtmanom", &edit_manom, 0, 0, "%.9f")) cel->user_edited = true;
         objedtheight += txtyscale*1.16;
 
         edit_precnode = cel->orbit->prec_node ? (M_PI * 2 / cel->orbit->prec_node / oneday) : 0;
-        ImGui::Text("Prec. Node");
+        ImGui::Text("%s", "Prec. Node");
         ImGui::SameLine(col1);
         ImGui::SetNextItemWidth(txtwid);
         if (ImGui::InputDouble("##edtprcnd", &edit_precnode, 0, 0, "%.9f")) cel->user_edited = true;
         ImGui::SameLine(col2);
         edit_procargperi = cel->orbit->proc_argperi ? (M_PI * 2 / cel->orbit->proc_argperi / oneday) : 0;
-        ImGui::Text("ProcArgPeri");
+        ImGui::Text("%s", "ProcArgPeri");
         ImGui::SameLine(col3);
         ImGui::SetNextItemWidth(txtwid);
         if (ImGui::InputDouble("##edtprcap", &edit_procargperi, 0, 0, "%.9f")) cel->user_edited = true;
         objedtheight += txtyscale*1.16;
     }
-
-    ImVec2 wpos = ImGui::GetWindowPos(), wsiz = ImGui::GetContentRegionAvail();
 
     int objedttop = io.DisplaySize.y - objedtheight, objedtleft = io.DisplaySize.x - objedtwidth;
     ImGui::SetWindowSize(ImVec2(objedtwidth, objedtheight));
@@ -2281,7 +2273,7 @@ int main (int argc, char** argv)
             {
                 ImGui::SetWindowPos(ImVec2(left,0));
                 ImGui::SetWindowSize(ImVec2(aspect_width, splash_height+25));
-                ImGui::Text(lloadmsg);
+                ImGui::Text("%s", lloadmsg);
                 ImGui::Image((ImTextureID)(intptr_t)splash_image_texture, ImVec2(aspect_width, splash_height));
             }
             else std::cout << "ImGui::Begin() failed." << std::endl;
@@ -2480,6 +2472,7 @@ int main (int argc, char** argv)
     for (i=0; cels[i]; i++)
     {
         if (cels[i]->orbit) delete cels[i]->orbit;
+        cels[i]->orbit = nullptr;
         if (cels[i]) switch (cels[i]->typeclass())
         {
             case class_galaxy:
@@ -2501,6 +2494,7 @@ int main (int argc, char** argv)
             default:
             delete cels[i];
         }
+        cels[i] = nullptr;
     }
 
     delete[] cels;
