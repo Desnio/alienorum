@@ -4,6 +4,7 @@
 #include <iostream>
 #include <algorithm>
 #include <filesystem>
+#include <sstream>
 #include <cstdlib>
 #include <stdio.h>
 #include <math.h>
@@ -12,6 +13,7 @@
 #include <map>
 #include <string.h>
 #include "cat.h"
+#include "serial.h"
 
 // Zeta 1,2 Reticuli make for a good case study in the program correctly identifying binary systems,
 // since they have a decent separation both in actual physical distance and in angular position from the solar system.
@@ -1684,6 +1686,299 @@ int CatalogReader::read_astorb_catalog(CelestialObject **cels, int max)
     return num_read;
 }
 
+int CatalogReader::read_exoplanets_catalog(CelestialObject **cels, int max)
+{
+    int offset, num_added = 0;
+
+    for (offset=0; offset<max && cels[offset]; offset++);
+    if (offset >= (max-1)) return 0;
+
+    std::string path = "catalogs/";
+    std::string startswith = "PSCompPars_";
+    std::string candidate = "";
+    std::vector<std::string> results;
+    try
+    {
+        for (const auto& entry : fs::directory_iterator(path))
+        {
+            std::string entry_name = entry.path().filename();
+            if (!fs::is_directory(entry.path())
+                &&
+                !strcmp(entry_name.substr(0, startswith.size()).c_str(), startswith.c_str())
+                )
+            {
+                if (strcmp(entry_name.c_str(), candidate.c_str()) > 0) candidate = entry_name;
+            }
+        }
+        if (!candidate.size()) return 0;
+        std::cout << "Found " << candidate << std::endl;
+    }
+    catch (const fs::filesystem_error& e)
+    {
+        std::cerr << "Error: " << e.what() << '\n';
+        return 0;
+    }
+
+    path += candidate;
+    std::stringstream lmss;
+    lmss << "Loading exoplanets from " << path << "...";
+    loading_msg = lmss.str();
+    FILE *fp = fopen(path.c_str(), "r");
+    char buffer[2048], wasfirst = 0;
+    int i=0;
+    int col_plnm=-1, col_stnm=-1, col_hd=-1, col_orbper=-1, col_sma=-1, col_rade=-1, col_radj=-1,
+        col_mass_e=-1, col_mass_j=-1, col_eccn=-1, col_incl=-1, col_periepo=-1, col_argperi=-1,
+        col_oblt=-1, col_sptp=-1, col_srad=-1, col_smass=-1,
+        col_ra=-1, col_decl=-1, col_dist=-1, col_vmag=-1;
+    while (fgets(buffer, 2046, fp))
+    {
+        if (buffer[0] == '#' && buffer[2] == 'C' && buffer[3] == 'O'
+            && buffer[4] == 'L' && buffer[5] == 'U' && buffer[6] == 'M'
+            && buffer[7] == 'N'
+            )
+        {
+            char *colon = strchr(buffer, ':');
+            if (!colon) continue;
+            *colon = 0;
+            if (!strcmp(buffer, "# COLUMN pl_name")) col_plnm = i;
+            if (!strcmp(buffer, "# COLUMN hostname")) col_stnm = i;
+            if (!strcmp(buffer, "# COLUMN hd_name")) col_hd = i;
+            if (!strcmp(buffer, "# COLUMN pl_orbper")) col_orbper = i;
+            if (!strcmp(buffer, "# COLUMN pl_orbsmax")) col_sma = i;
+            if (!strcmp(buffer, "# COLUMN pl_rade")) col_rade = i;
+            if (!strcmp(buffer, "# COLUMN pl_radj")) col_radj = i;
+            if (!strcmp(buffer, "# COLUMN pl_bmasse")) col_mass_e = i;
+            if (!strcmp(buffer, "# COLUMN pl_bmassj")) col_mass_j = i;
+            if (!strcmp(buffer, "# COLUMN pl_orbeccen")) col_eccn = i;
+            if (!strcmp(buffer, "# COLUMN pl_orbincl")) col_incl = i;
+            if (!strcmp(buffer, "# COLUMN pl_orbtper")) col_periepo = i;
+            if (!strcmp(buffer, "# COLUMN pl_orblper")) col_argperi = i;
+            if (!strcmp(buffer, "# COLUMN pl_trueobliq")) col_oblt = i;
+            if (!strcmp(buffer, "# COLUMN st_spectype")) col_sptp = i;
+            if (!strcmp(buffer, "# COLUMN st_rad")) col_srad = i;
+            if (!strcmp(buffer, "# COLUMN st_mass")) col_smass = i;
+            if (!strcmp(buffer, "# COLUMN ra")) col_ra = i;
+            if (!strcmp(buffer, "# COLUMN dec")) col_decl = i;
+            if (!strcmp(buffer, "# COLUMN sy_dist")) col_dist = i;
+            if (!strcmp(buffer, "# COLUMN sy_vmag")) col_vmag = i;
+
+            i++;
+        }
+        else if (wasfirst == '#' && buffer[0] != '#')
+        {
+            if (col_plnm<0 || col_stnm<0 || col_hd<0 || col_orbper<0 || col_sma<0
+                || (col_rade<0 && col_radj<0) || (col_mass_e<0 && col_mass_j<0)
+                || col_eccn<0 || col_incl<0 || col_periepo<0 || col_argperi<0
+                || col_oblt<0 || col_srad<0 || col_smass<0
+                || col_ra<0 || col_decl<0 || col_vmag<0
+                )
+            {
+                std::stringstream oss;
+                oss << "ERROR: Exoplanets file " << candidate << " missing one or more required columns!";
+                loading_msg = oss.str();
+                std::cerr << loading_msg << std::endl;
+                std::this_thread::sleep_for(std::chrono::milliseconds(60000));
+                return 0;
+            }
+        }
+        else if (buffer[0] != '#')
+        {
+            int j=-1;
+            Star *s = nullptr;
+            Planet *p = nullptr;
+            char *comma, *field = buffer;
+            std::string planet_name = "", star_name = "", spectral_type = "";
+            double p_incl, star_radius=0, star_mass=0, star_ra=0, star_decl=0, star_dist=0, star_vmag = 1e29;
+            for (i=0; strlen(field); i++)
+            {
+                comma = strchr(field, ',');
+                if (comma) *comma = 0;
+                if (i == col_plnm)
+                {
+                    planet_name = field;
+                    if (p) strcpy(p->name, planet_name.c_str());
+                }
+                else if (i == col_stnm)
+                {
+                    star_name = field;
+                }
+                else if (i == col_hd)
+                {
+                    if (field[0] == 'H' && field[1] == 'D') field += 2;
+                    int HD = atoi(field), HIP=0;
+                    if (!HD && !strcmp(star_name.substr(0,2).c_str(), "HD")) HD = atoi(star_name.substr(2).c_str());
+                    if (!strcmp(star_name.substr(0,3).c_str(), "HIP")) HIP = atoi(star_name.substr(3).c_str());
+
+                    if (HD && hdcache[HD]) s = hdcache[HD];
+                    else if (HIP && hipcache[HIP]) s = hipcache[HIP];
+                    else if (!HD && !HIP)
+                    {
+                        // In case of multi-planet system, scan the last several objects for an EXACT name match.
+                        for (j=0; j<10; j++)
+                        {
+                            CelestialObject *cel = cels[offset-2-j];
+                            if (cel->typeclass() != class_star) continue;
+                            if (!strcmp(cel->name, star_name.c_str()))
+                            {
+                                s = (Star*)cel;
+                                break;
+                            }
+                        }
+
+                        bool do_search = false;      // Full search is expensive. Only search if good chance of finding it (Gliese, named stars).
+
+                        if (!strcmp(star_name.substr(0, 3).c_str(), "GJ ")) do_search = true;
+                        else if (star_name.c_str()[0] >= 'A' && star_name.c_str()[0] <= 'Z'
+                                && star_name.c_str()[1] >= 'a' && star_name.c_str()[1] <= 'z'
+                                && star_name.c_str()[2] >= 'a' && star_name.c_str()[2] <= 'z'
+                                )
+                            do_search = true;
+                        if (!strcmp(star_name.substr(0, 6).c_str(), "Kepler")) do_search = false;
+                        if (!strcmp(star_name.substr(0, 5).c_str(), "CoRoT")) do_search = false;
+                        if (!strcmp(star_name.substr(0, 5).c_str(), "Qatar")) do_search = false;
+                        if (!strcmp(star_name.substr(0, 4).c_str(), "Gaia")) do_search = false;
+
+                        if (!s && do_search)
+                        {
+                            j = find_object(star_name.c_str(), true);
+                            if (j < 0)
+                            {
+                                std::cout << "Warning: failed to identify star " << star_name << std::endl;
+                                break;
+                            }
+                            if (cels[j]->typeclass() != class_star)
+                            {
+                                std::cerr << "ERROR: " << star_name << " matches " << cels[j]->name << " not a star." << std::endl;
+                                break;
+                            }
+                            s = (Star*)cels[j];
+                        }
+                    }
+
+                    if (!s)
+                    {
+                        s = new Star();
+                        strcpy(s->name, star_name.c_str());
+                    }
+
+                    if (!p) p = new Planet();
+                    if (planet_name.size()) strcpy(p->name, planet_name.c_str());
+                    if (!p->orbit) p->orbit = new Orbit();
+                    p->orbit->center = p->cenobj = s;
+                    p->orbit->ascending_node = 0;           // unknown for exoplanets :(
+                }
+                else
+                {
+                    if (!s || !p)
+                    {
+                        std::cerr << "Columns out of sequence." << std::endl;
+                        throw 0xbadda7a;
+                    }
+                    else if (trim(field).size()) 
+                    {
+                        if (i == col_orbper) p->orbit->period = atof(field) * oneday;
+                        else if (i == col_sma) p->orbit->semimajor_axis = atof(field) * AU;
+                        else if (i == col_rade) p->volumetric_mean_radius = atof(field) * earth_radius;
+                        else if (i == col_radj) p->volumetric_mean_radius = atof(field) * jupiter_radius;
+                        else if (i == col_mass_e) p->mass = atof(field) * earth_mass;
+                        else if (i == col_mass_j) p->mass = atof(field) * jupiter_mass;
+                        else if (i == col_eccn) p->orbit->eccentricity = atof(field);
+                        else if (i == col_incl) p_incl = atof(field) * fiftyseventh;
+                        else if (i == col_periepo)
+                        {
+                            p->orbit->epoch = atof(field);
+                            p->orbit->mean_anomaly = 0;
+                        }
+                        else if (i == col_argperi) p->orbit->arg_periapsis = atof(field) * fiftyseventh;
+                        else if (i == col_oblt) p->inclination = atof(field) * fiftyseventh;
+                        else if (i == col_sptp) spectral_type = field;
+                        else if (i == col_srad) star_radius = atof(field) * solar_radius;
+                        else if (i == col_smass) star_mass = atof(field) * solar_mass;
+                        else if (i == col_ra) star_ra = atof(field) * fiftyseventh;
+                        else if (i == col_decl) star_decl = atof(field) * fiftyseventh;
+                        else if (i == col_dist) star_dist = atof(field) * parsec;
+                        else if (i == col_vmag) star_vmag = atof(field);
+                    }
+                }
+
+                if (!comma) break;
+                field = comma+1;
+            }
+
+            if (s)
+            {
+                if (!star_dist || (star_vmag > 1e28)) continue;
+                if (s && (fabs(s->right_ascension - star_ra) > fiftyseventh)
+                        || fabs(s->declination - star_decl) > fiftyseventh
+                        || fabs(s->apparent_magnitude - star_vmag) > 0.5
+                    )
+                {
+                    s = new Star();
+                    s->type = star;
+                    strcpy(s->name, star_name.c_str());
+                    p->orbit->center = p->cenobj = s;
+                }
+
+                s->right_ascension = star_ra;
+                s->declination = star_decl;
+                s->distance = star_dist;
+                s->distance_known = true;
+                s->mass = star_mass;
+                s->volumetric_mean_radius = star_radius;
+                s->apparent_magnitude = star_vmag;
+                double intrinsic_brightness = pow(magnbase, -s->apparent_magnitude) * pow(fmax(AU, s->distance) / parsec / 10, 2);
+                s->absolute_magnitude = -log(intrinsic_brightness) * invlogmagnbase;
+                strcpy(s->spectral_type, spectral_type.c_str());
+
+                if (!s->mass) s->estimate_mass();
+                if (!s->volumetric_mean_radius) s->estimate_radius();
+
+                s->is_really_truly_in_visible_box(cels[0]->location);
+
+                cels[offset] = s;
+                offset++;
+                cels[offset] = nullptr;
+                if (offset >= max-1)
+                {
+                    fclose(fp);
+                    return num_added;
+                }
+
+                s->inclination = p_incl;
+            }
+
+            if (s && p)
+            {
+                ((Star*)s)->has_planets = true;
+                if (p->mass < 1.6 * earth_mass) p->type = rocky;        // https://doi.org/10.1051/0004-6361/202348690
+                else if (p->mass < 2.5e+29) p->type = ice_giant;
+                else p->type = gas_giant;
+                if (!p->volumetric_mean_radius) p->estimate_radius();
+                double p_rad_e = fmax(0.01, p->volumetric_mean_radius / earth_radius);
+                p->absolute_magnitude = fmax(-10, earth_absmag - log(p_rad_e*p_rad_e) / log(magnbase));
+                if (!p->orbit->semimajor_axis) p->orbit->compute_semimajor_axis(p->mass);
+                cels[offset] = p;
+                offset++;
+                cels[offset] = nullptr;
+                num_added++;
+                std::stringstream lmss1;
+                lmss1 << "Loaded " << num_added << " exoplanets from " << path << "...";
+                loading_msg = lmss1.str();
+                if (offset >= max-1)
+                {
+                    fclose(fp);
+                    return num_added;
+                }
+            }
+        }
+
+        wasfirst = buffer[0];
+    }
+
+    fclose(fp);
+    return num_added;
+}
+
 int CatalogReader::read_starname_dat(CelestialObject **cels)
 {
     std::string path = "starname.dat";
@@ -1893,6 +2188,7 @@ int CatalogReader::read_local_planets(CelestialObject **cels, int max)
 
         Orbit* o = new Orbit();
         o->center = cels[j];
+        if (cels[j]->typeclass() == class_star) ((Star*)cels[j])->has_planets = true;
         Planet* p;
 
         if (o->center->orbit && o->center->orbit->center)

@@ -17,3 +17,5 @@ class Serialization
 };
 
 #endif
+
+int find_object(const char *search_term, bool only_stars = false);

@@ -39,6 +39,7 @@ class CatalogReader
 
     // Planets, Minor Planets, Comets
     int read_astorb_catalog(CelestialObject** cels, int max);
+    int read_exoplanets_catalog(CelestialObject** cels, int max);
 
     // Internal Catalogs
     int read_starname_dat(CelestialObject** cels);                  // No max because we are not adding stars, only setting names.

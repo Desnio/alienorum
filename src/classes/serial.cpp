@@ -20,6 +20,79 @@ std::string Serialization::load_string(FILE *in)
     return std::string(buffer);
 }
 
+int find_object(const char* search_term, bool os)
+{
+    int i, n;
+    int is_hd  = ((search_term[0]&0x5f) == 'H' && (search_term[1]&0x5f) == 'D') ? atoi(&search_term[2]) : 0,
+        is_hip = ((search_term[0]&0x5f) == 'H' && (search_term[1]&0x5f) == 'I' && (search_term[2]&0x5f) == 'P') ? atoi(&search_term[3]) : 0;
+    bool is_gliese = (((search_term[0]&0x5f) == 'G' && (search_term[1]&0x5f) == 'L')
+        || ((search_term[0]&0x5f) == 'G' && (search_term[1]&0x5f) == 'J')
+        || ((search_term[0]&0x5f) == 'W' && (search_term[1]&0x5f) == 'O')
+        || ((search_term[0]&0x5f) == 'N' && (search_term[1]&0x5f) == 'N')
+        ) && contains_digits_or_dots(search_term);
+    int result = -1;
+    const char *match_cons = nullptr;
+    n = strlen(search_term);
+    if (n>4 && search_term[n-4] == ' ' && search_term[n-3] >= 'A' && search_term[n-3] <= 'Z'
+        && ((search_term[n-2] >= 'A' && search_term[n-2] <= 'Z') || (search_term[n-2] >= 'a' && search_term[n-2] <= 'z'))
+        && ((search_term[n-1] >= 'A' && search_term[n-1] <= 'Z') || (search_term[n-1] >= 'a' && search_term[n-1] <= 'z'))
+        )
+        match_cons = &search_term[n-3];
+
+    for (i=0; cels[i]; i++)
+    {
+        if (os && (cels[i]->typeclass() != class_star)) continue;
+        if (match_cons && cels[i]->typeclass() == class_star && strcmp(((Star*)cels[i])->constellation, match_cons)) continue;
+        if (!strcmp(cels[i]->name, search_term))
+        {
+            result = i;
+            break;
+        }
+        if (cels[i]->typeclass() == class_star)
+        {
+            if ((is_hd && is_hd == ((Star*)cels[i])->HD)
+                || (is_hip && is_hip == ((Star*)cels[i])->HIP))
+            {
+                result = i;
+                break;
+            }
+            if (is_gliese && has_same_numbers(((Star*)cels[i])->Gliese, search_term))
+            {
+                result = i;
+                break;
+            }
+        }
+    }
+
+    if (result < 0)
+    {
+        int best_Levenshtein = 1e6;
+        std::string lookstr = search_term;
+        for (i=0; cels[i]; i++)
+        {
+            int lev = Damerau_Levenshtein(cels[i]->name, lookstr);
+            if (!has_same_numbers(cels[i]->name, lookstr.c_str())) lev = 1e9;
+            if (cels[i]->type == star)
+            {
+                int lev1 = Damerau_Levenshtein( ((Star*)cels[i])->Bayer, lookstr);
+                if (!has_same_numbers(((Star*)cels[i])->Bayer, lookstr.c_str())) lev1 = 1e9;
+                if (lev1 < lev) lev = lev1;
+                lev1 = Damerau_Levenshtein( ((Star*)cels[i])->Flamsteed, lookstr);
+                if (!has_same_numbers(((Star*)cels[i])->Flamsteed, lookstr.c_str())) lev1 = 1e9;
+                if (lev1 < lev) lev = lev1;
+            }
+            if (lev < best_Levenshtein)
+            {
+                best_Levenshtein = lev;
+                result = i;
+                if (!lev) break;
+            }
+        }
+    }
+
+    return result;
+}
+
 bool Serialization::save_all(std::fstream& fs, CelestialObject **cels, bool oe)
 {
     try

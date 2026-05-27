@@ -28,5 +28,8 @@ comets              https://cdsarc.cds.unistra.fr/viz-bin/nph-Cat/tar.gz?B/comet
 
 # exoplanets
 # https://exoplanetarchive.ipac.caltech.edu/cgi-bin/TblView/nph-tblView?app=ExoTbls&config=PSCompPars
-# open the above link in a browser, manually select to include the Inclination column,
-# then click the download (save icon) button.
+# open the above link in a browser, manually select to include the columns:
+# HD ID, Inclination, Epoch of Periastron, Argument of Periastron, True Obliquity, RA[deg], Dec[deg], Distance[pc], V Magnitude.
+# and click Update.
+# Then click the download (save icon) button, choose CSV format, and click the green Download Table arrow.
+# Save the resulting file in the alienorum/catalogs/ folder.

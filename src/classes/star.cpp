@@ -366,7 +366,7 @@ double Star::estimate_mass()
     double T = estimate_temperature();
     double logL = (cels[0]->absolute_magnitude - absolute_magnitude);
     double luminosity = std::pow(magnbase, logL);
-    double radius = estimate_radius() / Rsun;
+    double radius = (volumetric_mean_radius ? volumetric_mean_radius : estimate_radius()) / Rsun;
 
     // Approximate Surface Gravity (log g) based on empirical stellar trends
     // Hotter and more luminous stars have different surface profiles.
