@@ -1783,8 +1783,9 @@ int CatalogReader::read_exoplanets_catalog(CelestialObject **cels, int max)
         }
         else if (buffer[0] != '#')
         {
-            int j=-1;
+            int j=-1, HD, HIP;
             Star *s = nullptr;
+            bool s_is_new = false;
             Planet *p = nullptr;
             char *comma, *field = buffer;
             std::string planet_name = "", star_name = "", spectral_type = "";
@@ -1805,7 +1806,8 @@ int CatalogReader::read_exoplanets_catalog(CelestialObject **cels, int max)
                 else if (i == col_hd)
                 {
                     if (field[0] == 'H' && field[1] == 'D') field += 2;
-                    int HD = atoi(field), HIP=0;
+                    HD = atoi(field);
+                    HIP=0;
                     if (!HD && !strcmp(star_name.substr(0,2).c_str(), "HD")) HD = atoi(star_name.substr(2).c_str());
                     if (!strcmp(star_name.substr(0,3).c_str(), "HIP")) HIP = atoi(star_name.substr(3).c_str());
 
@@ -1859,6 +1861,7 @@ int CatalogReader::read_exoplanets_catalog(CelestialObject **cels, int max)
                     {
                         s = new Star();
                         strcpy(s->name, star_name.c_str());
+                        s_is_new = true;
                     }
 
                     if (!p) p = new Planet();
@@ -1876,7 +1879,17 @@ int CatalogReader::read_exoplanets_catalog(CelestialObject **cels, int max)
                     }
                     else if (trim(field).size()) 
                     {
-                        if (i == col_orbper) p->orbit->period = atof(field) * oneday;
+                        if (i == col_orbper)
+                        {
+                            p->orbit->period = atof(field) * oneday;
+                            if (!p->orbit->period)
+                            {
+                                delete p->orbit;
+                                delete p;
+                                p = nullptr;
+                                break;
+                            }
+                        }
                         else if (i == col_sma) p->orbit->semimajor_axis = atof(field) * AU;
                         else if (i == col_rade) p->volumetric_mean_radius = atof(field) * earth_radius;
                         else if (i == col_radj) p->volumetric_mean_radius = atof(field) * jupiter_radius;
@@ -1917,6 +1930,7 @@ int CatalogReader::read_exoplanets_catalog(CelestialObject **cels, int max)
                     s->type = star;
                     strcpy(s->name, star_name.c_str());
                     p->orbit->center = p->cenobj = s;
+                    s_is_new = true;
                 }
 
                 s->right_ascension = star_ra;
@@ -1935,19 +1949,22 @@ int CatalogReader::read_exoplanets_catalog(CelestialObject **cels, int max)
 
                 s->is_really_truly_in_visible_box(cels[0]->location);
 
-                cels[offset] = s;
-                offset++;
-                cels[offset] = nullptr;
-                if (offset >= max-1)
+                if (s_is_new)
                 {
-                    fclose(fp);
-                    return num_added;
+                    cels[offset] = s;
+                    offset++;
+                    cels[offset] = nullptr;
+                    if (offset >= max-1)
+                    {
+                        fclose(fp);
+                        return num_added;
+                    }
                 }
 
                 s->inclination = p_incl;
             }
 
-            if (s && p)
+            if (s && p && p->orbit->period)
             {
                 ((Star*)s)->has_planets = true;
                 if (p->mass < 1.6 * earth_mass) p->type = rocky;        // https://doi.org/10.1051/0004-6361/202348690

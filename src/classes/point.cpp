@@ -213,30 +213,6 @@ Point Point::from_ra_dec(double right_ascension, double declination, double dist
     return Point(x, y, z);
 }
 
-double find_3d_angle(Point A, Point B, Point source)
-{
-    Point lA = A - source;
-    lA.scale(1);
-    Point lB = B - source;
-    lB.scale(1);
-
-    // https://stackoverflow.com/questions/1211212/how-to-calculate-an-angle-from-three-points
-    double P12 = lA.magnitude();
-    double P13 = lB.magnitude();
-    double P23 = lA.distance_to(lB);
-
-    double param = (P12*P12 + P13*P13 - P23*P23)/(2 * P12 * P13+.00000000001);
-    if (param < -1) param = -1;
-    if (param >  1) param =  1;
-    double retval = acos(param);
-    if (isnan(retval))
-    {
-        std::cerr << "P12 " << P12 << " P13 " << P13 << " P23 " << P23 << std::endl;
-        throw 0xbad9a9;
-    }
-    return retval;
-}
-
 double find_angle_along_vector(Point pt1, Point pt2, Point source, Point v)
 {
     Point lpt1 = pt1 - source;
@@ -379,7 +355,7 @@ Rotation align_points_3d(Point point, Point align, Point center)
     }
 
     // Find the 3D angle between pp and pl relative to center.
-    double theta = find_3d_angle(point, align, center);
+    double theta = find_3D_angle(point, align, center);
     // cout << " theta = " << theta << " ";
 
     // Rotate pl positively or negatively along that normal by the found angle, and use the better of the two values.
