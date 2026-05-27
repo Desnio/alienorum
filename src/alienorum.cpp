@@ -647,10 +647,20 @@ void compute_object_draw_coordinates()
                 break;
 
                 case class_planet:
+                if (i!=selected && i!=trackidx && i!=whereami && cels[i]->cenobj!=mycenobj)
+                {
+                    cels[i]->drawnx = cels[i]->drawny = -1e9;
+                    continue;
+                }
                 ((Planet*)cels[i])->update_location(simnow);
                 break;
 
                 case class_moon:
+                if (i!=selected && i!=trackidx && i!=whereami && cels[i]->cenobj!=mycenobj)
+                {
+                    cels[i]->drawnx = cels[i]->drawny = -1e9;
+                    continue;
+                }
                 ((Moon*)cels[i])->update_location(simnow);
                 break;
 
