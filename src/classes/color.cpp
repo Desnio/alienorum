@@ -55,8 +55,8 @@ RGB Color::rgb_from_color(Color c, double bloom_radius)
     if (redlight_mode)
     {
         red = min(255, (int)(red + 0.5 * green + 0.3 * blue));
-        green /= 3;
-        blue /= 3;
+        green *= 0.333;
+        blue *= 0.333;
     }
 
     result.r = max(0, red);

@@ -433,6 +433,17 @@ void load_catalogs()
         if (!cels[i]->cenobj) cels[i]->cenobj = cels[i];
         while (cels[i]->cenobj->orbit && cels[i]->cenobj->orbit->center && cels[i]->cenobj->orbit->center->typeclass() != class_galaxy)
             cels[i]->cenobj = cels[i]->cenobj->orbit->center;
+        if (cels[i]->type == star)
+        {
+            if (cels[i]->orbit && cels[i]->absolute_magnitude < cels[i]->cenobj->absolute_magnitude)
+                cels[i]->absolute_magnitude = cels[i]->cenobj->absolute_magnitude + 1;
+            ((Star*)cels[i])->update_location(J2000_TIME_T);
+        }
+        else if (cels[i]->orbit)
+        {
+            if (cels[i]->typeclass() == class_planet) ((Planet*)cels[i])->update_location(J2000_TIME_T);
+            else if (cels[i]->typeclass() == class_moon) ((Moon*)cels[i])->update_location(J2000_TIME_T);
+        }
     }
 
     refresh_star_visibilities();
@@ -781,26 +792,28 @@ void draw_objects()
     // Dits and doscs
     for (pass=0; pass<=1; pass++) for (i=0; cels[i] && i<MAX_CELOBJS; i++)
     {
-        if (cels[i]->typeclass() == class_star
-            && i!=selected && i!=trackidx && i!=whereami && cels[i]->cenobj!=mycenobj
-            && !((Star*)cels[i])->tmp_vis_flag)
-            continue;
-
         if (i == whereami) continue;
+
         if (!pass && magrad_cache[i] > 3) continue;
         else if (pass && magrad_cache[i] <= 3) continue;
 
         if (cels[i]->drawnx < 0 || cels[i]->drawnx >= dispw) continue;
         if (cels[i]->drawny < 0 || cels[i]->drawny >= disph) continue;
 
+        if (cels[i]->typeclass() == class_star
+            && i!=selected && i!=trackidx && i!=whereami && cels[i]->cenobj!=mycenobj
+            && !((Star*)cels[i])->tmp_vis_flag)
+            continue;
+
         xycoord = ImVec2(cels[i]->drawnx, cels[i]->drawny);
         appmag = vmag_cache[i];
-        if (appmag > 7) continue;
+        if (appmag > 6.5) continue;
+
         magrad = magrad_cache[i];
-        flare = fmin(81, fmax(0, sqrt(magrad-400)/8));
+        flare = (magrad>400) ? fmin(81, fmax(0, sqrt(magrad-400)/8)) : 0;
         magrad = fmin(15, magrad);
 
-        #define bloom_exponent 2.9
+        #define bloom_exponent 2.1
 
         Color col = Color::color_from_magnitude_indices(appmag, cels[i]->BV_color);
         if (flare)
@@ -813,9 +826,11 @@ void draw_objects()
             // May still want to revisit this later.
             // std::cout << cels[i]->name << " " << magrad_cache[i] << " " << flare << " " << (int)rgb.r << "," << (int)rgb.g << "," << (int)rgb.b << std::endl;
 
-            for (jay=flare; jay>flare/1.5; jay -= 4.4)
+            double flare2 = flare*0.666;
+            for (jay=flare; jay>flare2; jay -= 4.4)
             {
-                ImVec2 radii(15+jay, (15+jay)/3);
+                double jay15 = jay+15;
+                ImVec2 radii(jay15, jay15*0.333);
                 ImU32 fcol = rgba_apply_redlight(IM_COL32(rgb.r, rgb.g, rgb.b, 4));
                 for (theta=0; theta<M_PI*2; theta += M_PI/5)
                     ImGui::GetBackgroundDrawList()->AddEllipseFilled(xycoord, radii, fcol, theta);
@@ -825,7 +840,7 @@ void draw_objects()
 
         double divisor = 1.0 / (pow(bloom_exponent, magrad*2-1));
         col.red *= divisor; col.green *= divisor; col.blue *= divisor;
-        for (jay=magrad; jay>=0; jay-=0.5)
+        for (jay=magrad; jay>=0; jay-=0.7)
         {
             RGB rgb = Color::rgb_from_color(col, 1);
             if (rgb.r >= 16 || rgb.b >= 16)

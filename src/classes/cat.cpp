@@ -311,11 +311,11 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
 
         // 122-126  F5.2   mag     Mv       Absolute visual magnitude
         read_field_onebased(buffer, 122, 126, field);
-        absmagn = atof(field);
-        s->absolute_magnitude = absmagn;
-        s->distance = CelestialObject::distance_from_magnitudes(s->apparent_magnitude, absmagn);
-        if (absmagn && s->apparent_magnitude)
+        if (trim(field).size())
         {
+            absmagn = atof(field);
+            s->absolute_magnitude = absmagn;
+            s->distance = CelestialObject::distance_from_magnitudes(s->apparent_magnitude, absmagn);
             s->distance_known = true;
         }
 
@@ -890,9 +890,10 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         read_field_onebased(buffer, 1, 10, field);
         s->CCDM = trim(field);
 
+        Star* A;
         if (s->ccdm_compseq)
         {
-            Star* A = hipcache[HIP];
+            A = hipcache[HIP];
             s = new Star();
             s->make_companion_of(A, buffer[40]);
             s->epoch = J2000 + (1991.25 - 2000);
@@ -915,9 +916,13 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         {
             //  50- 55  F6.3   mag     Hp       Magnitude of component                   (DC9)
             read_field_onebased(buffer, 50, 55, field);
-            s->apparent_magnitude = atof(field);
-            double intrinsic_brightness = pow(magnbase, -s->apparent_magnitude) * pow(fmax(AU, s->distance) / parsec / 10, 2);
-            s->absolute_magnitude = -log(intrinsic_brightness) * invlogmagnbase;
+            if (trim(field).size())
+            {
+                s->apparent_magnitude = atof(field);
+                double intrinsic_brightness = pow(magnbase, -s->apparent_magnitude) * pow(fmax(AU, s->distance) / parsec / 10, 2);
+                s->absolute_magnitude = -log(intrinsic_brightness) * invlogmagnbase;
+                if (A && (s->absolute_magnitude < A->absolute_magnitude)) s->absolute_magnitude = A->absolute_magnitude + 1;
+            }
         }
         num_read++;
     }
@@ -965,6 +970,7 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         {
             s = new Star();
             cels[offset++] = s;
+            s->absolute_magnitude = 1e29;
         }
         s->make_companion_of(A, 'B');
         s->epoch = J2000 + (1991.25 - 2000);
@@ -1011,7 +1017,7 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         s->known_poles = true;
 
         s->apparent_magnitude = 11;         // placeholder
-        s->absolute_magnitude = A->absolute_magnitude + 1;      // garbage number
+        if (s->absolute_magnitude > 1e28) s->absolute_magnitude = A->absolute_magnitude + 1;      // garbage number
 
         num_read++;
         if (num_read >= max-4) return num_read;
@@ -1171,6 +1177,7 @@ int CatalogReader::read_CCDM_catalog(CelestialObject **cels, int max)
             double intrinsic_brightness = pow(magnbase, -s->apparent_magnitude) * pow(fmax(AU, s->distance) / parsec / 10, 2);
             s->absolute_magnitude = -log(intrinsic_brightness) * invlogmagnbase;
         }
+        if (A && (s->absolute_magnitude < A->absolute_magnitude)) s->absolute_magnitude = A->absolute_magnitude + 1;
 
         // TODO: For systems where both members are not already loaded,
         // can load additional members.
@@ -1210,6 +1217,10 @@ int CatalogReader::read_SB9_catalog(CelestialObject **cels, int max)
 
     while (fgets(buffer, 1020, fp))
     {
+        //  52- 57  F6.3  mag     mag2    ? Magnitude of component 2
+        read_field_onebased(buffer, 52, 57, field);
+        if (!trim(field).size()) continue;
+
         HD = HIP = Bonn = 0;
         read_field_onebased(buffer, 104, 132, field);
         if (field[0] == 'H' && field[1] == 'I' && field[2] == 'P' && field[3] == ' ')
@@ -1320,7 +1331,7 @@ int CatalogReader::read_SB9_catalog(CelestialObject **cels, int max)
         B = nullptr;
         auto it_hip = hipcomps.find(HIP);
         auto it_hd = hdcomps.find(HD);
-        if (it_hip != hipcomps.end())
+        if (HIP && (it_hip != hipcomps.end()))
         {
             auto it_b = hipcomps[HIP].find(comp[0]);
             if (it_b != hipcomps[HIP].end())
@@ -1328,7 +1339,7 @@ int CatalogReader::read_SB9_catalog(CelestialObject **cels, int max)
                 B = hipcomps[HIP][comp[0]];
             }
         }
-        else if (it_hd != hdcomps.end())
+        else if (HD && (it_hd != hdcomps.end()))
         {
             auto it_b = hdcomps[HD].find(comp[0]);
             if (it_b != hdcomps[HD].end())
@@ -1385,6 +1396,7 @@ int CatalogReader::read_SB9_catalog(CelestialObject **cels, int max)
                 throw 0xbadc0de;
             }
             B->make_companion_of(A, comp[0]);
+            B->absolute_magnitude = B->apparent_magnitude = 1e29;
             B->epoch = A->epoch;
             cels[offset++] = B;
             cels[offset] = 0;
@@ -1394,10 +1406,10 @@ int CatalogReader::read_SB9_catalog(CelestialObject **cels, int max)
 
         //  52- 57  F6.3  mag     mag2    ? Magnitude of component 2
         read_field_onebased(buffer, 52, 57, field);
-        if (!trim(field).size()) B->apparent_magnitude = A->apparent_magnitude + 1;             // a complete guess!!!
-        else B->apparent_magnitude = atof(field);
+        if (atof(field)) B->apparent_magnitude = atof(field);
         double intrinsic_brightness = pow(magnbase, -B->apparent_magnitude) * pow(fmax(AU, B->distance) / parsec / 10, 2);
-        B->absolute_magnitude = -log(intrinsic_brightness) * invlogmagnbase;
+        if (B->absolute_magnitude > 1e28) B->absolute_magnitude = -log(intrinsic_brightness) * invlogmagnbase;
+        if (A && (B->absolute_magnitude < A->absolute_magnitude)) B->absolute_magnitude = A->absolute_magnitude + 1;
 
         //  93-102  A10   ---     Sp2     MK Spectral type component 2
         read_field_onebased(buffer, 93, 102, field);

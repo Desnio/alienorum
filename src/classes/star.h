@@ -6,6 +6,8 @@
 #include <math.h>
 #include "celestial.h"
 
+class StarMulti;
+
 class Star : public CelestialObject
 {
     public:
@@ -24,6 +26,7 @@ class Star : public CelestialObject
     char constellation[32];
     std::string CCDM;
     char ccdm_compseq = 0;
+    StarMulti* multisys = nullptr;
     char component = 0;
 
     __uint32_t HR = 0;                      // Harvard Revised catalog number
@@ -65,6 +68,13 @@ protected:
     Box visible_area;
     bool visible_area_set = false;
     bool _is_in_visible_range = true;
+};
+
+class StarMulti
+{
+    public:
+    Star** members;
+    // TODO:
 };
 
 void rename_all_from_Bayer_Flamsteed();
