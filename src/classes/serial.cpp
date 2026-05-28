@@ -70,6 +70,8 @@ int find_object(const char* search_term, bool os)
         std::string lookstr = search_term;
         for (i=0; cels[i]; i++)
         {
+            if (os && (cels[i]->typeclass() != class_star)) continue;
+            if (match_cons && cels[i]->typeclass() == class_star && strcmp(((Star*)cels[i])->constellation, match_cons)) continue;
             int lev = Damerau_Levenshtein(cels[i]->name, lookstr);
             if (!has_same_numbers(cels[i]->name, lookstr.c_str())) lev = 1e9;
             if (cels[i]->type == star)

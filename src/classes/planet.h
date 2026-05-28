@@ -27,6 +27,8 @@ class Planet : public CelestialObject
     void update_location(double tmnow);                 // Only applicable if we have an orbit; otherwise just return.
 
     Planet();
+    ~Planet() { if (orbit) delete orbit; }
+
     json to_json();
     bool from_json(json j);
 };

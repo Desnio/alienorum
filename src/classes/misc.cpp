@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <chrono>
 #include <algorithm>
 #include <math.h>
 
@@ -138,6 +139,13 @@ double solve_Kepler(double M, double e)
         E = E - delta / (1.0 - e * std::cos(E));
     } while (std::abs(delta) > 1e-10);
     return E;
+}
+
+long long micronow()
+{
+    auto now = std::chrono::system_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch());
+    return duration.count();
 }
 
 // Trim from start (left)

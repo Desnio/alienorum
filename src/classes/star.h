@@ -41,6 +41,7 @@ class Star : public CelestialObject
     bool tmp_vis_flag;                      // Used only for rendering.
 
     Star();
+    ~Star() { if (orbit) delete orbit; }
 
     void update_location(double tmnow);     // Apply proper motion and re-derive 3D coordinates from the result.
     void rename_from_Bayer_Flamsteed();

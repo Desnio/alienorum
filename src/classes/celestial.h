@@ -93,6 +93,7 @@ class CelestialObject
     float drawnx=-1e9, drawny=-1e9;
 
     CelestialObject();
+    virtual ~CelestialObject() = default;
     CelestialLocation location;
     Orbit* orbit = nullptr;                     // Most stars won't have an orbit, unless we get into stellar orbital mechanics.
     CelestialObject *cenobj = nullptr;

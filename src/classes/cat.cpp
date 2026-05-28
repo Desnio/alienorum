@@ -51,7 +51,7 @@ std::vector<Cartesian2D> conscen;
 int nconsln = 0;
 int *consaidx, *consbidx;
 Star **hdcache, **hipcache;
-std::map<int,std::map<char,Star* > > hipcomps;
+std::map<int,std::map<char,Star* > > hdcomps, hipcomps;
 
 #if _debug_sbinaries_zetret
 Star *zet1ret = nullptr, *zet2ret = nullptr;
@@ -126,7 +126,9 @@ void CatalogReader::download_catalogs()
                 // TODO: Add compatibility for Windows and Mac.
                 if (frist)
                 {
+                    mtx.lock();
                     loading_msg = "Downloading catalogs...";
+                    mtx.unlock();
                     std::cout << loading_msg << std::endl;
                 }
                 std::string cmd = (std::string)"wget -O " + destfname + (std::string)" " + (std::string)url;
@@ -220,6 +222,12 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
             {
                 s->orbit = new Orbit();
                 s->orbit->center = A;
+            }
+
+            if (A && A->HD)
+            {
+                hdcomps[A->HD]['A'] = A;
+                hdcomps[A->HD][s->component] = s;
             }
         }
         else A = nullptr;
@@ -379,7 +387,9 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
         num_read++;
         if ((offset+num_read) >= (max-1)) break;
 
+        mtx.lock();
         if (!(num_read % 123)) loading_msg = std::string("Loaded ") + std::to_string(num_read) + std::string(" objects from Gliese's Third Catalogue of Nearby Stars...");
+        mtx.unlock();
     }
 
     fclose(fp);
@@ -616,7 +626,9 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
             if ((offset+num_read) >= (max-1)) break;
         }
 
+        mtx.lock();
         if (!(num_read % 123)) loading_msg = std::string("Loaded ") + std::to_string(num_read) + std::string(" objects from Bright Star Catalogue...");
+        mtx.unlock();
     }
     fclose(fp);
     return num_read;
@@ -842,20 +854,28 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         {
             cursor = offset;
             cels[offset++] = s;
+            mtx.lock();
             loading_msg = std::string("Loading Hipparcos Catalog... Added HIP") + std::to_string(s->HIP);
+            mtx.unlock();
         }
         else
         {
+            mtx.lock();
             loading_msg = std::string("Loading Hipparcos Catalog... Updated HIP") + std::to_string(s->HIP);
+            mtx.unlock();
         }
 
         num_read++;
         if (num_read >= max-4) return num_read;
 
+        mtx.lock();
         if (!(num_read % 123)) loading_msg = std::string("Loaded ") + std::to_string(num_read) + std::string(" objects from The Hipparcos Catalogue...");
+        mtx.unlock();
     }
 
+    mtx.lock();
     loading_msg = "Building Hipparcos-CCDM Cross Reference...";
+    mtx.unlock();
     path = "catalogs/Hipparcos/h_dm_com.dat";
     fp = fopen(path.c_str(), "rb");
     while (fgets(buffer, 1020, fp))
@@ -876,6 +896,8 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
             s = new Star();
             s->make_companion_of(A, buffer[40]);
             s->epoch = J2000 + (1991.25 - 2000);
+            cels[offset++] = s;
+            if (offset >= max-2) return num_read++;
         }
 
         //  38- 39  I2     ---     seq      Sequential component number             (DCM6)
@@ -886,7 +908,8 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         read_field_onebased(buffer, 41, 41, field);
         s->component = field[0];
 
-        hipcomps[HIP][s->component] = s;
+        if (HD) hdcomps[HD][s->component] = s;
+        if (HIP) hipcomps[HIP][s->component] = s;
 
         if (s != hipcache[HIP])
         {
@@ -895,14 +918,13 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
             s->apparent_magnitude = atof(field);
             double intrinsic_brightness = pow(magnbase, -s->apparent_magnitude) * pow(fmax(AU, s->distance) / parsec / 10, 2);
             s->absolute_magnitude = -log(intrinsic_brightness) * invlogmagnbase;
-
-            cels[offset++] = s;
-            num_read++;
-            if (num_read >= max-4) return num_read;
         }
+        num_read++;
     }
 
+    mtx.lock();
     loading_msg = "Loading Hipparcos Binary Star Orbits...";
+    mtx.unlock();
     path = "catalogs/Hipparcos/hip_dm_o.dat";
     fp = fopen(path.c_str(), "rb");
     while (fgets(buffer, 1020, fp))
@@ -924,7 +946,8 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         }
 
         A->component = 'A';
-        hipcomps[HIP]['A'] = A;
+        if (HD) hdcomps[HD]['A'] = A;
+        if (HIP) hipcomps[HIP]['A'] = A;
 
         s = nullptr;
         for (j=0; j<offset; j++)
@@ -938,7 +961,11 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
             }
         }
 
-        if (!s) s = new Star();
+        if (!s)
+        {
+            s = new Star();
+            cels[offset++] = s;
+        }
         s->make_companion_of(A, 'B');
         s->epoch = J2000 + (1991.25 - 2000);
 
@@ -986,7 +1013,6 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
         s->apparent_magnitude = 11;         // placeholder
         s->absolute_magnitude = A->absolute_magnitude + 1;      // garbage number
 
-        cels[offset++] = s;
         num_read++;
         if (num_read >= max-4) return num_read;
     }
@@ -1028,38 +1054,54 @@ int CatalogReader::read_CCDM_catalog(CelestialObject **cels, int max)
         // 127-132  I6     ---     HIC      ? Hipparcos Input Catalogue (Turon et al., Cat. <I/196>) identifier (also HIP <I/239>)
         read_field_onebased(buffer, 127, 132, field);
         HIP = atoi(field);
-        if (!HIP) continue;             // TODO: Revisit this.
 
         char refcomp = buffer[11], conccomp = buffer[12];
         if (refcomp == ' ') refcomp = 'A';
 
-        bool found = false;
-        auto it = hipcomps.find(HIP);
+        A = s = nullptr;
+        auto it = hipcomps.find(HIP), ithd = hdcomps.find(HD);
         if (it != hipcomps.end())
         {
             auto it1 = hipcomps[HIP].find(refcomp);
             if (it1 != hipcomps[HIP].end())
             {
+                A = hipcomps[HIP][refcomp];
                 auto it2 = hipcomps[HIP].find(conccomp);
                 if (it2 != hipcomps[HIP].end())
                 {
-                    A = hipcomps[HIP][refcomp];
                     s = hipcomps[HIP][conccomp];
-                    found = true;
                 }
-                else
-                {
-                    s = new Star();
-                    s->make_companion_of(A, conccomp);
-                    s->epoch = J2000 + (1991.25 - 2000);
-                }
-            }
-            else
-            {
-                continue;
             }
         }
-        else continue;
+        if (!s && ithd != hdcomps.end())
+        {
+            auto it1 = hdcomps[HD].find(refcomp);
+            if (it1 != hdcomps[HD].end())
+            {
+                A = hdcomps[HD][refcomp];
+                auto it2 = hdcomps[HD].find(conccomp);
+                if (it2 != hdcomps[HD].end())
+                {
+                    s = hdcomps[HD][conccomp];
+                }
+            }
+        }
+        if (!A) continue;
+        if (!s)
+        {
+            s = new Star();
+            s->make_companion_of(A, conccomp);
+            s->epoch = J2000 + (1991.25 - 2000);
+
+            if (HD)
+            {
+                hdcomps[HD][refcomp] = A;
+                hdcomps[HD][conccomp] = s;
+            }
+
+            cels[offset++] = s;
+            cels[offset] = nullptr;
+        }
 
         if (A->HD == 20766)                            // Zeta 1 Reticuli orbits Zeta 2, not the other way around.
         {
@@ -1142,7 +1184,10 @@ int CatalogReader::read_CCDM_catalog(CelestialObject **cels, int max)
         s->gotta_be_named_something();
         num_read++;
 
-        loading_msg = std::string("Loaded ") + std::to_string(num_read) + std::string(" objects from Catalogue of the Components of Double and Multiple Stars...");
+        mtx.lock();
+        loading_msg = std::string("Loaded ") + std::to_string(num_read)
+            + std::string(" objects from Catalogue of the Components of Double and Multiple Stars...");
+        mtx.unlock();
     }
     return num_read;
 }
@@ -1274,12 +1319,21 @@ int CatalogReader::read_SB9_catalog(CelestialObject **cels, int max)
         found = -1;
         B = nullptr;
         auto it_hip = hipcomps.find(HIP);
+        auto it_hd = hdcomps.find(HD);
         if (it_hip != hipcomps.end())
         {
             auto it_b = hipcomps[HIP].find(comp[0]);
             if (it_b != hipcomps[HIP].end())
             {
                 B = hipcomps[HIP][comp[0]];
+            }
+        }
+        else if (it_hd != hdcomps.end())
+        {
+            auto it_b = hdcomps[HD].find(comp[0]);
+            if (it_b != hdcomps[HD].end())
+            {
+                B = hdcomps[HD][comp[0]];
             }
         }
         else
@@ -1319,29 +1373,21 @@ int CatalogReader::read_SB9_catalog(CelestialObject **cels, int max)
                 found = foundidx[comp[0]-'B'];
             }
 
-            if (found < 0)
-            {
-                B = new Star();
-                B->type = star;
-                if (A->HD == 20766)
-                {
-                    std::cerr << "BAD! 1061" << std::endl;
-                    throw 0xbadc0de;
-                }
-                B->make_companion_of(A, comp[0]);
-                B->epoch = A->epoch;
-                cels[offset++] = B;
-                cels[offset] = 0;
-            }
-            else
-            {
-                B = (Star*)cels[found];
-            }
+            if (found >= 0) B = (Star*)cels[found];
         }
         if (!B)
         {
             B = new Star();
+            B->type = star;
+            if (A->HD == 20766)
+            {
+                std::cerr << "BAD! 1366" << std::endl;
+                throw 0xbadc0de;
+            }
             B->make_companion_of(A, comp[0]);
+            B->epoch = A->epoch;
+            cels[offset++] = B;
+            cels[offset] = 0;
         }
 
         B->SB9 = SB9;
@@ -1432,7 +1478,10 @@ int CatalogReader::read_SB9_catalog(CelestialObject **cels, int max)
             return num_read;
         }
 
-        if (!(num_read % 123)) loading_msg = std::string("Loaded ") + std::to_string(num_read) + std::string(" objects from Stellar Binaries Catalogue...");
+        mtx.lock();
+        if (!(num_read % 123)) loading_msg = std::string("Loaded ") + std::to_string(num_read)
+            + std::string(" objects from Stellar Binaries Catalogue...");
+        mtx.unlock();
     }
     fclose(fp);
 
@@ -1722,7 +1771,9 @@ int CatalogReader::read_exoplanets_catalog(CelestialObject **cels, int max)
     path += candidate;
     std::stringstream lmss;
     lmss << "Loading exoplanets from " << path << "...";
+    mtx.lock();
     loading_msg = lmss.str();
+    mtx.unlock();
     FILE *fp = fopen(path.c_str(), "r");
     char buffer[2048], wasfirst = 0;
     int i=0;
@@ -1775,7 +1826,9 @@ int CatalogReader::read_exoplanets_catalog(CelestialObject **cels, int max)
             {
                 std::stringstream oss;
                 oss << "ERROR: Exoplanets file " << candidate << " missing one or more required columns!";
+                mtx.lock();
                 loading_msg = oss.str();
+                mtx.unlock();
                 std::cerr << loading_msg << std::endl;
                 std::this_thread::sleep_for(std::chrono::milliseconds(60000));
                 return 0;
@@ -1980,7 +2033,9 @@ int CatalogReader::read_exoplanets_catalog(CelestialObject **cels, int max)
                 num_added++;
                 std::stringstream lmss1;
                 lmss1 << "Loaded " << num_added << " exoplanets from " << path << "...";
+                mtx.lock();
                 loading_msg = lmss1.str();
+                mtx.unlock();
                 if (offset >= max-1)
                 {
                     fclose(fp);

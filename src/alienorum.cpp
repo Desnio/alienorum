@@ -404,8 +404,7 @@ void load_catalogs()
         int nCCDM = cr.read_CCDM_catalog(cels, MAX_CELOBJS);
         cout << "Read " << nCCDM << " objects." << endl << flush;
     }
-    #ifndef DEBUG
-    // Takes too long to load (~29 seconds).
+
     if (have_SB9)
     {
         mtx.lock();
@@ -415,7 +414,6 @@ void load_catalogs()
         int nSB9 = cr.read_SB9_catalog(cels, MAX_CELOBJS);
         cout << "Read " << nSB9 << " objects." << endl << flush;
     }
-    #endif
 
     for (i=0; cels[i]; i++)
     {
@@ -802,7 +800,7 @@ void draw_objects()
         flare = fmin(81, fmax(0, sqrt(magrad-400)/8));
         magrad = fmin(15, magrad);
 
-        #define bloom_exponent 2.5
+        #define bloom_exponent 2.9
 
         Color col = Color::color_from_magnitude_indices(appmag, cels[i]->BV_color);
         if (flare)
@@ -1386,7 +1384,7 @@ void draw_status_window(ImGuiIO& io)
     if (ImGui::InputText("##find", lookfor, 255, ImGuiInputTextFlags_EnterReturnsTrue)) lookfor_cb();
     ImGui::SameLine();
     if (ImGui::Button("Find")) lookfor_cb();
-    statheight += txtyscale*1.3;
+    statheight += txtyscale;
 
     std::string flagstr;
 
@@ -1444,7 +1442,7 @@ void draw_status_window(ImGuiIO& io)
         }
         ImGui::EndCombo();
     }
-    statheight += txtyscale*1.3;
+    statheight += txtyscale;
 
     if (cbolbls_selected_idx == 0)
     {
@@ -1461,7 +1459,7 @@ void draw_status_window(ImGuiIO& io)
         ImGui::Text("%s", "Mag limit:");
         ImGui::SameLine();
         ImGui::InputText("##absmaglim", lblcut1, 255);
-        statheight += txtyscale*1.3;
+        statheight += txtyscale;
         absmagn_lblcut = atof(lblcut1);
     }
     else if (cbolbls_selected_idx == 2)
@@ -1470,7 +1468,7 @@ void draw_status_window(ImGuiIO& io)
         ImGui::Text("%s", "Dist. l.y.:");
         ImGui::SameLine();
         ImGui::InputText("##distlim", lblcut2, 255);
-        statheight += txtyscale*1.3;
+        statheight += txtyscale;
         distance_lblcut = atof(lblcut2)*light_year;
     }
 
@@ -1720,7 +1718,7 @@ void draw_objedit_window(ImGuiIO& io)
         center_selected();
         searched = true;
     }
-    objedtheight += txtyscale*1.23;
+    objedtheight += txtyscale;
 
     if (tc == class_star)
     {
@@ -1749,7 +1747,7 @@ void draw_objedit_window(ImGuiIO& io)
             s->update_location(simnow);
             cel->user_edited = true;
         }
-        objedtheight += txtyscale*1.23;
+        objedtheight += txtyscale;
 
         double edit_dist = s->distance / light_year;
         ImGui::Text("%s", "Distance");
@@ -1776,7 +1774,7 @@ void draw_objedit_window(ImGuiIO& io)
         }
         ImGui::SameLine();
         ImGui::Text("%s", "m/s");
-        objedtheight += txtyscale*1.23;
+        objedtheight += txtyscale;
     }
 
     edit_eqincl = cel->inclination * fiftyseven;
@@ -1800,7 +1798,7 @@ void draw_objedit_window(ImGuiIO& io)
         cels[editidx]->known_poles = true;
         cel->user_edited = true;
     }
-    objedtheight += txtyscale*1.23;
+    objedtheight += txtyscale;
 
     double edit_mass = cel->mass / 1000;
     ImGui::Text("%s", "Mass, kg");
@@ -1821,7 +1819,7 @@ void draw_objedit_window(ImGuiIO& io)
         cel->volumetric_mean_radius = edit_radius * 1000;
         cel->user_edited = true;
     }
-    objedtheight += txtyscale*1.23;
+    objedtheight += txtyscale;
 
     double edit_oblt = cel->oblateness;
     ImGui::Text("%s", "Oblateness");
@@ -1842,7 +1840,7 @@ void draw_objedit_window(ImGuiIO& io)
         cel->sidereal_rotational_period = edit_rot * oneday;
         cel->user_edited = true;
     }
-    objedtheight += txtyscale*1.23;
+    objedtheight += txtyscale;
 
     double edit_absmag = cel->absolute_magnitude;
     ImGui::Text("%s", "Abs. Magn.");
@@ -1873,7 +1871,7 @@ void draw_objedit_window(ImGuiIO& io)
             cel->user_edited = true;
         }
     }
-    objedtheight += txtyscale*1.23;
+    objedtheight += txtyscale;
 
     double edit_prcseq = cel->precession / oneyear;
     ImGui::Text("%s", "Precession");
@@ -1894,7 +1892,7 @@ void draw_objedit_window(ImGuiIO& io)
         cel->BV_color = edit_bvcol;
         cel->user_edited = true;
     }
-    objedtheight += txtyscale*1.23;
+    objedtheight += txtyscale;
 
     if (orb)
     {
@@ -1939,7 +1937,7 @@ void draw_objedit_window(ImGuiIO& io)
         }
         ImGui::SameLine();
         ImGui::Text("%s", "days");
-        objedtheight += txtyscale*1.23;
+        objedtheight += txtyscale;
 
         edit_incl = cel->orbit->inclination * fiftyseven;
         ImGui::Text("%s", "Inclination");
@@ -1952,7 +1950,7 @@ void draw_objedit_window(ImGuiIO& io)
         ImGui::SameLine(col3);
         ImGui::SetNextItemWidth(txtwid);
         if (ImGui::InputDouble("##edtnode", &edit_node, 0, 0, "%.9f")) cel->user_edited = true;
-        objedtheight += txtyscale*1.23;
+        objedtheight += txtyscale;
 
         edit_eccn = cel->orbit->eccentricity;
         ImGui::Text("%s", "Eccentricity");
@@ -1965,7 +1963,7 @@ void draw_objedit_window(ImGuiIO& io)
         ImGui::SameLine(col3);
         ImGui::SetNextItemWidth(txtwid);
         if (ImGui::InputDouble("##edtargperi", &edit_argperi, 0, 0, "%.9f")) cel->user_edited = true;
-        objedtheight += txtyscale*1.23;
+        objedtheight += txtyscale;
 
         edit_epoch = cel->orbit->epoch;
         ImGui::Text("%s", "Epoch, JD");
@@ -1978,7 +1976,7 @@ void draw_objedit_window(ImGuiIO& io)
         ImGui::SameLine(col3);
         ImGui::SetNextItemWidth(txtwid);
         if (ImGui::InputDouble("##edtmanom", &edit_manom, 0, 0, "%.9f")) cel->user_edited = true;
-        objedtheight += txtyscale*1.23;
+        objedtheight += txtyscale;
 
         edit_precnode = cel->orbit->prec_node ? (M_PI * 2 / cel->orbit->prec_node / oneday) : 0;
         ImGui::Text("%s", "Prec. Node");
@@ -1991,7 +1989,7 @@ void draw_objedit_window(ImGuiIO& io)
         ImGui::SameLine(col3);
         ImGui::SetNextItemWidth(txtwid);
         if (ImGui::InputDouble("##edtprcap", &edit_procargperi, 0, 0, "%.9f")) cel->user_edited = true;
-        objedtheight += txtyscale*1.23;
+        objedtheight += txtyscale;
     }
 
     int objedttop = io.DisplaySize.y - objedtheight, objedtleft = io.DisplaySize.x - objedtwidth;
@@ -2367,7 +2365,7 @@ int main (int argc, char** argv)
             if (show_consln) draw_cons_lines();
             draw_objects();
 
-            txtyscale = ImGui::GetTextLineHeightWithSpacing();
+            txtyscale = ImGui::GetTextLineHeightWithSpacing() * 1.116;
             txtycompact = ImGui::GetTextLineHeight();
 
             is_mouse_over_window = false;
@@ -2421,7 +2419,7 @@ int main (int argc, char** argv)
             if (vmfr < speed_of_light) vdil.scale(vdil.magnitude() / compute_time_dilation(vmfr));
             here.local_position += vdil;
             azimuth += spin;
-            viewchanged = searched || (trackidx>=0) || spin || velocity.magnitude() || objedtwnd || (PrevDispSize.x != io.DisplaySize.x) || (PrevDispSize.y != io.DisplaySize.y);
+            viewchanged = searched || (trackidx>=0) || spin || velocity.magnitude() || (PrevDispSize.x != io.DisplaySize.x) || (PrevDispSize.y != io.DisplaySize.y);
 
             // Slow down to avoid zipping past tracked object
             if (trackidx >= 0)
@@ -2529,8 +2527,9 @@ int main (int argc, char** argv)
             {
                 JDnow += frame_dur/oneday / compute_time_dilation(vmfr);
             }
+
+            simnow = (double)(JDnow - J2000)*oneday + J2000_TIME_T;
         }
-        simnow = (double)(JDnow - J2000)*oneday + J2000_TIME_T;
         // std::cout << simnow << std::endl;
     }
 
@@ -2538,29 +2537,7 @@ int main (int argc, char** argv)
 
     for (i=0; cels[i]; i++)
     {
-        if (cels[i]->orbit) delete cels[i]->orbit;
-        cels[i]->orbit = nullptr;
-        if (cels[i]) switch (cels[i]->typeclass())
-        {
-            case class_galaxy:
-            delete (Galaxy*)cels[i];
-            break;
-
-            case class_star:
-            delete (Star*)cels[i];
-            break;
-
-            case class_planet:
-            delete (Planet*)cels[i];
-            break;
-
-            case class_moon:
-            delete (Moon*)cels[i];
-            break;
-
-            default:
-            delete cels[i];
-        }
+        delete cels[i];
         cels[i] = nullptr;
     }
 

@@ -102,6 +102,8 @@ extern const char *lbltypes[nlbltyp], *celtypes[nceltyp];
 extern int cbolbls_selected_idx, cboceltyp_selected_idx;
 extern double bv_correction;
 
+long long micronow();
+
 // APP STATUS AND SETTINGS
 extern std::string loading_msg;
 extern std::mutex mtx;

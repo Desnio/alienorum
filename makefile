@@ -17,6 +17,9 @@ CPPFLAGS = -std=c++17 -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends -Wall -Wformat
 # Uncomment for debug mode
 # CPPFLAGS += -g -DDEBUG
 
+# Uncomment to track down memory errors
+# CPPFLAGS += -g -O0 -fsanitize=address -fno-omit-frame-pointer
+
 # For gprof
 # example command line:
 # gprof bin/alienorum gmon.out > alienorum.output
