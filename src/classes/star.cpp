@@ -4,6 +4,33 @@
 #include <math.h>
 #include "star.h"
 
+char Star::get_component()
+{
+    if (!multisys) return 0;
+    return multisys->is_member(this);
+}
+
+void Star::set_component(char comp, Star* compA)
+{
+    if (!compA) compA = this;
+    assert(!multisys || !compA->multisys || (compA->multisys == multisys));
+    if (!compA->multisys) compA->multisys = new StarMulti();
+    multisys = compA->multisys;
+    multisys->add_member(this, comp);
+
+    if (comp > 'A')
+    {
+        if (compA->orbit && compA->orbit->center == this)
+        {
+            orbit = compA->orbit;
+            compA->orbit = nullptr;
+        }
+        if (!orbit) orbit = new Orbit();
+        orbit->center = compA;
+    }
+    else orbit = nullptr;
+}
+
 Star::Star()
 {
     _class = class_star;
@@ -12,6 +39,16 @@ Star::Star()
     memset(Flamsteed, 0, 32*sizeof(char));
     memset(constellation, 0, 32*sizeof(char));
     memset(Gliese, 0, 16*sizeof(char));
+}
+
+Star::~Star()
+{
+    if (orbit) delete orbit;
+}
+
+StarMulti::~StarMulti()
+{
+    ;
 }
 
 void Star::update_location(double tmnow)
@@ -100,6 +137,16 @@ void Star::rename_from_Bayer_Flamsteed()
             strcpy(name, Gliese);
         else strcpy(name, (std::to_string(FlamsteedNo) + std::string(" ") + consgen[j]).c_str());
     }
+
+    if (multisys && multisys->get_member('A') == this)
+    {
+        char c;
+        Star* companion;
+        for (c = 'B'; companion = multisys->get_member(c); c++)
+        {
+            strcpy(companion->name, (lop_component(name) + std::string(" ") + std::string(1, c)).c_str() );
+        }
+    }
 }
 
 bool Star::is_sunlike()
@@ -142,7 +189,8 @@ bool Star::is_really_truly_in_visible_box(Point seen_from)
 {
     if (!visible_area_set)
     {
-        double cutoff_dist = pow(10.0, 0.2*(6.5-apparent_magnitude)) * distance;
+        if (orbit && !orbit->semimajor_axis && orbit->center) orbit->semimajor_axis = location.distance_to(orbit->center->location);
+        double cutoff_dist = orbit ? (orbit->semimajor_axis*100) : (pow(10.0, 0.2*(6.5-apparent_magnitude)) * distance);
         visible_area.corner1 = Point(-cutoff_dist, -cutoff_dist, -cutoff_dist) + location.system_center;
         visible_area.corner2 = Point( cutoff_dist,  cutoff_dist,  cutoff_dist) + location.system_center;
         visible_area_set = true;
@@ -214,7 +262,8 @@ double Star::estimate_radius()
 
 void Star::gotta_be_named_something()
 {
-    if (trim(name).size()) return;           // already am
+    if (!trim(name).size())                                                 // already am
+    if (multisys && multisys->get_member('A') != this) return;              // let somebody else do it
     else if (orbit && orbit->center && strlen(orbit->center->name))
     {
         int n = strlen(orbit->center->name);
@@ -244,6 +293,16 @@ void Star::gotta_be_named_something()
     else if (SB9) strcpy(name, (std::string("SB9-")+std::to_string(SB9)).c_str() );
     else std::cerr << "Failed to name star @ RA: " << RA_as_hms(0) << " decl " << Decl_as_degms() << " magnitude " << apparent_magnitude
         << " distance " << (distance/light_year) << std::endl;
+
+    if (multisys)
+    {
+        char c;
+        Star* companion;
+        for (c = 'B'; companion = multisys->get_member(c); c++)
+        {
+            strcpy(companion->name, (lop_component(name) + std::string(" ") + std::string(1, c)).c_str() );
+        }
+    }
 }
 
 json Star::to_json()
@@ -347,13 +406,8 @@ void Star::make_companion_of(Star *A, char comp)
     visible_area = A->visible_area;
     type = star;
 
-    if (A->orbit && A->orbit->center == this)
-    {
-        orbit = A->orbit;
-        A->orbit = nullptr;
-    }
-    else if (!orbit) orbit = new Orbit();
-    orbit->center = A;
+    // A->set_component('A', A);
+    set_component(comp, A);
 }
 
 double Star::estimate_mass()
@@ -466,6 +520,62 @@ void Gliese_doubles_fix()
                     s2->update_location(J2000_TIME_T);
                 }
             }
+        }
+    }
+}
+
+void StarMulti::add_member(Star *s, char comp)
+{
+    comp &= 0x5f;
+    if (comp < 'A' || comp > 'Z') throw 0xbadc0de;
+
+    int cidx = comp - 'A';
+    if (!members || cidx >= allocated)
+    {
+        char toalloc = std::max(2, cidx+1);
+        Star** new_members = new Star*[toalloc];
+        memset(new_members, 0, sizeof(Star*)*toalloc);
+        if (members)
+        {
+            int i;
+            for (i=0; i<allocated; i++) new_members[i] = members[i];
+            delete[] members;
+        }
+        members = new_members;
+        allocated = toalloc;
+    }
+    members[cidx] = s;
+    s->multisys = this;
+}
+
+Star *StarMulti::get_member(char comp)
+{
+    comp &= 0x5f;
+    if (comp < 'A' || comp > 'Z') throw 0xbadc0de;
+    int i = comp - 'A';
+    if (i >= allocated) return nullptr;
+    return members[i];
+}
+
+char StarMulti::is_member(Star *s)
+{
+    if (!allocated) return 0;
+    int i;
+    for (i=0; i<allocated; i++)
+        if (members[i] == s) return 'A' + i;
+    return 0;
+}
+
+void StarMulti::unlink()
+{
+    if (!allocated) return;
+    int i;
+    for (i=0; i<allocated; i++)
+    {
+        if (members[i])
+        {
+            members[i]->multisys = nullptr;
+            members[i] = nullptr;
         }
     }
 }

@@ -43,7 +43,7 @@ double txtyscale, txtycompact, edit_sma, edit_incl, edit_eccn, edit_argperi, edi
     edit_node, edit_manom, edit_period, edit_eqincl, edit_equinox, edit_precnode, edit_procargperi;
 bool is_click;
 double frame_dur = 0, best_frame_dur = 1e9;
-bool splash = true, magnitude_test = false;
+bool splash = true, magnitude_test = false, redo_proper_motions = true;
 
 // ImGui Example Code
 
@@ -123,11 +123,8 @@ void draw_ra_dec_lines()
         for (j=-80; j<=80; j+=10)
         {
             Point jadolzhnaperejexatdoma = Point::from_ra_dec(fiftyseventh * i * 15, fiftyseventh * j, 5, node);
-            try
-            {
-                zdes = Cartesian2D(jadolzhnaperejexatdoma, azimuth, altitude, zoom);
-            }
-            catch (...)
+            zdes = Cartesian2D(jadolzhnaperejexatdoma, azimuth, altitude, zoom);
+            if (zdes.x < -1e4 || zdes.y < -1e4 || prev.x < -1e4 || prev.y < -1e4)
             {
                 prev_valid = false;
                 continue;
@@ -140,9 +137,10 @@ void draw_ra_dec_lines()
                     dx2 = dispcx + prev.x * dispcx,
                     dy2 = dispcy + prev.y * dispcx;
 
-                    if (prev_valid)
-                    ImGui::GetBackgroundDrawList()->AddLine(
-                        ImVec2(dx1, dy1), ImVec2(dx2, dy2), gc, 1);
+                if (prev_valid)
+                {
+                    ImGui::GetBackgroundDrawList()->AddLine(ImVec2(dx1, dy1), ImVec2(dx2, dy2), gc, 1);
+                }
             }
 
             prev = zdes;
@@ -156,11 +154,8 @@ void draw_ra_dec_lines()
         for (i=0; i<=24; i++)
         {
             Point jadolzhnaperejexatdoma = Point::from_ra_dec(fiftyseventh * i * 15, fiftyseventh * j, 5, node);
-            try
-            {
-                zdes = Cartesian2D(jadolzhnaperejexatdoma, azimuth, altitude, zoom);
-            }
-            catch (...)
+            zdes = Cartesian2D(jadolzhnaperejexatdoma, azimuth, altitude, zoom);
+            if (zdes.x < -1e4 || zdes.y < -1e4 || prev.x < -1e4 || prev.y < -1e4)
             {
                 prev_valid = false;
                 continue;
@@ -174,8 +169,7 @@ void draw_ra_dec_lines()
                     dy2 = dispcy + prev.y * dispcx;
 
                     if (prev_valid)
-                    ImGui::GetBackgroundDrawList()->AddLine(
-                        ImVec2(dx1, dy1), ImVec2(dx2, dy2), j?gc:gcb, 1);
+                    ImGui::GetBackgroundDrawList()->AddLine(ImVec2(dx1, dy1), ImVec2(dx2, dy2), j?gc:gcb, 1);
             }
 
             prev = zdes;
@@ -192,11 +186,8 @@ void draw_ra_dec_lines()
             Point pt = Point::from_ra_dec(fiftyseventh * i, 0, AU);
             pt = rotate3D(pt, center, here.orbital_plane.v, -here.orbital_plane.a);
             pt = rotate3D(pt, center, here.equatorial_plane.v, here.equatorial_plane.a);
-            try
-            {
-                zdes = Cartesian2D(pt, azimuth, altitude, zoom);
-            }
-            catch (...)
+            zdes = Cartesian2D(pt, azimuth, altitude, zoom);
+            if (zdes.x < -1e4 || zdes.y < -1e4 || prev.x < -1e4 || prev.y < -1e4)
             {
                 prev_valid = false;
                 continue;
@@ -209,9 +200,8 @@ void draw_ra_dec_lines()
                     dx2 = dispcx + prev.x * dispcx,
                     dy2 = dispcy + prev.y * dispcx;
 
-                    if (prev_valid)
-                    ImGui::GetBackgroundDrawList()->AddLine(
-                        ImVec2(dx1, dy1), ImVec2(dx2, dy2), ec, 1);
+                if (prev_valid)
+                ImGui::GetBackgroundDrawList()->AddLine(ImVec2(dx1, dy1), ImVec2(dx2, dy2), ec, 1);
             }
 
             prev = zdes;
@@ -384,12 +374,6 @@ void load_catalogs()
         Gliese_doubles_fix();
     }
 
-    mtx.lock();
-    loading_msg = std::string("Naming stars...");
-    mtx.unlock();
-    rename_all_from_Bayer_Flamsteed();
-    cr.read_starname_dat(cels);
-
     cout << "Reading exoplanets..." << endl << flush;
     int nexo = cr.read_exoplanets_catalog(cels, MAX_CELOBJS);
     num_planets += nexo;
@@ -426,11 +410,46 @@ void load_catalogs()
     mtx.unlock();
     cr.read_star_orbits_dat(cels);
 
+    mtx.lock();
+    loading_msg = std::string("Naming stars...");
+    mtx.unlock();
+    rename_all_from_Bayer_Flamsteed();
+    cr.read_starname_dat(cels);
+
+    if (magnitude_test)
+    {
+        for (i=0; i<290; i++)
+        {
+            double magnitude = -1.0 + 0.1 * i;
+            Star* s = new Star();
+            strcpy(s->name, ((std::string)"Test "+std::to_string(magnitude)).c_str());
+            s->right_ascension = fiftyseventh * i;
+            s->declination = -2.59 * fiftyseventh;
+            s->apparent_magnitude = s->absolute_magnitude = magnitude;
+            s->distance = parsec*10;
+            s->proper_motion_decl = s->proper_motion_RA = s->radial_velocity = 0;
+            s->BV_color = 0.5;
+            s->epoch = J2000;
+            s->update_location(J2000_TIME_T);
+            cels[ncelobjs++] = s;
+        }
+    }
+
     if (load_univ.size()) load_universe(load_univ);
 
     for (i=0; cels[i]; i++)
     {
+        // Center of each star system
         if (!cels[i]->cenobj) cels[i]->cenobj = cels[i];
+
+        // Orbit integrity check
+        if (cels[i]->orbit && cels[i]->orbit->center == cels[i])
+        {
+            delete cels[i]->orbit;
+            cels[i]->orbit = nullptr;
+        }
+
+        // System center integrity
         while (cels[i]->cenobj->orbit && cels[i]->cenobj->orbit->center && cels[i]->cenobj->orbit->center->typeclass() != class_galaxy)
             cels[i]->cenobj = cels[i]->cenobj->orbit->center;
         if (cels[i]->type == star)
@@ -612,7 +631,7 @@ void compute_object_draw_coordinates()
     double dispw = dispcx*2, disph = dispcy*2;
     if (whereami >= 0) mycenobj = cels[whereami]->cenobj;
     double mycenobj_dist = mycenobj->location.distance_to(here);
-    if (viewchanged)
+    if (viewchanged || redo_proper_motions)
     {
         num_stars_in_box = 0;
         bool star_in_box;
@@ -626,21 +645,26 @@ void compute_object_draw_coordinates()
                 case class_star:
                 if (star_in_box = (i ? ((Star*)cels[i])->is_in_visible_box(Point(here)) : true)) num_stars_in_box++;              // ANC
                 ((Star*)cels[i])->tmp_vis_flag = star_in_box;
-                if (i!=selected && i!=trackidx && i!=whereami && cels[i]->cenobj!=mycenobj && !star_in_box)
+                if (i!=selected && i!=trackidx && i!=editidx && i!=whereami && cels[i]->cenobj!=mycenobj)
                 {
-                    cels[i]->drawnx = cels[i]->drawny = -1e9;
-                    continue;
-                }
-                if (cels[i]->orbit && cels[i]->orbit->center && cels[i]->orbit->center != cels[whereami]
-                    && (cels[i]->orbit->center->drawnx < 0 || cels[i]->orbit->center->drawny < 0
-                        || cels[i]->orbit->center->drawnx > dispw || cels[i]->orbit->center->drawny > disph
-                        || cels[i]->orbit->semimajor_axis < cels[i]->location.distance_to(here)*1e-4*zoom
+                    if (!star_in_box)
+                    {
+                        cels[i]->drawnx = cels[i]->drawny = -1e9;
+                        continue;
+                    }
+                    if (!redo_proper_motions && !cels[i]->orbit) continue;
+                    if (cels[i]->orbit && cels[i]->orbit->center && cels[i]->orbit->center != cels[whereami]
+                        && (cels[i]->orbit->center->drawnx < 0 || cels[i]->orbit->center->drawny < 0
+                            || cels[i]->orbit->center->drawnx > dispw || cels[i]->orbit->center->drawny > disph
+                            || cels[i]->orbit->semimajor_axis < cels[i]->location.distance_to(here)*1e-4*zoom
+                            )
                         )
-                    )
-                {
-                    cels[i]->drawnx = cels[i]->drawny = -1e9;
-                    continue;
+                    {
+                        cels[i]->drawnx = cels[i]->drawny = -1e9;
+                        continue;
+                    }
                 }
+
                 ((Star*)cels[i])->update_location(simnow);
                 tmp = cels[i]->location - here;
                 cels[i]->tmprel = Point(tmp);
@@ -656,7 +680,7 @@ void compute_object_draw_coordinates()
                 break;
 
                 case class_planet:
-                if (i!=selected && i!=trackidx && i!=whereami && cels[i]->cenobj!=mycenobj)
+                if (i!=selected && i!=trackidx && i!=editidx && i!=whereami && cels[i]->cenobj!=mycenobj)
                 {
                     cels[i]->drawnx = cels[i]->drawny = -1e9;
                     continue;
@@ -665,7 +689,7 @@ void compute_object_draw_coordinates()
                 break;
 
                 case class_moon:
-                if (i!=selected && i!=trackidx && i!=whereami && cels[i]->cenobj!=mycenobj)
+                if (i!=selected && i!=trackidx && i!=editidx && i!=whereami && cels[i]->cenobj!=mycenobj)
                 {
                     cels[i]->drawnx = cels[i]->drawny = -1e9;
                     continue;
@@ -696,12 +720,12 @@ void compute_object_draw_coordinates()
 
             try
             {
-                vmag_cache[i] = (cels[i]->type == rocky || cels[i]->type == ice_giant || cels[i]->type == gas_giant)
+                vmag_cache[i] = (cels[i]->typeclass() == class_planet || cels[i]->typeclass() == class_moon)
                     ? ((Planet*)cels[i])->viewer_reflectance_magnitude(here)
                     : cels[i]->viewer_magnitude(here);
 
                 double brght = global_brightness * pow(magnbase, -vmag_cache[i]);
-                magrad_cache[i] = fmax(1.414, pow(brght, 0.666)*global_brightness);
+                magrad_cache[i] = fmax(1.414, sqrt(brght)*global_brightness);
 
                 Cartesian2D cart(rel, azimuth, altitude, zoom);
                 float dx = (int)(dispcx + cart.x * dispcx), dy = (int)(dispcy + cart.y * dispcx);
@@ -725,6 +749,8 @@ void compute_object_draw_coordinates()
             }
         }
     }
+
+    redo_proper_motions = false;
 }
 
 void draw_objects()
@@ -809,11 +835,13 @@ void draw_objects()
         appmag = vmag_cache[i];
         if (appmag > 6.5) continue;
 
-        magrad = magrad_cache[i];
-        flare = (magrad>400) ? fmin(81, fmax(0, sqrt(magrad-400)/8)) : 0;
-        magrad = fmin(15, magrad);
+        #define max_magrad 10
 
-        #define bloom_exponent 2.1
+        magrad = magrad_cache[i];
+        flare = (magrad>max_magrad) ? fmin(225, fmax(0, 1.0+sqrt(magrad-max_magrad)*5)) : 0;
+        magrad = fmin(max_magrad, magrad);
+
+        #define bloom_exponent 2.5
 
         Color col = Color::color_from_magnitude_indices(appmag, cels[i]->BV_color);
         if (flare)
@@ -823,13 +851,11 @@ void draw_objects()
             rgb.r = (int)(col.red * divisor);
             rgb.g = (int)(col.green* divisor);
             rgb.b = (int)(col.blue * divisor);
-            // May still want to revisit this later.
-            // std::cout << cels[i]->name << " " << magrad_cache[i] << " " << flare << " " << (int)rgb.r << "," << (int)rgb.g << "," << (int)rgb.b << std::endl;
 
             double flare2 = flare*0.666;
             for (jay=flare; jay>flare2; jay -= 4.4)
             {
-                double jay15 = jay+15;
+                double jay15 = jay+max_magrad;
                 ImVec2 radii(jay15, jay15*0.333);
                 ImU32 fcol = rgba_apply_redlight(IM_COL32(rgb.r, rgb.g, rgb.b, 4));
                 for (theta=0; theta<M_PI*2; theta += M_PI/5)
@@ -838,7 +864,15 @@ void draw_objects()
             }
         }
 
-        double divisor = 1.0 / (pow(bloom_exponent, magrad*2-1));
+        double mgrc = magrad_cache[i];
+        double divisor = (1.0 / (pow(bloom_exponent, mgrc-1)));
+
+        if (mgrc >= 2)
+        {
+            mgrc = 2.0 * sqrt(mgrc/2);
+            divisor = (2.9 / fmax(col.red, col.blue));
+        }
+
         col.red *= divisor; col.green *= divisor; col.blue *= divisor;
         for (jay=magrad; jay>=0; jay-=0.7)
         {
@@ -869,7 +903,7 @@ void draw_objects()
         if (cels[i]->orbit && cels[i]->location.distance_to(here) > 1e3*cels[i]->orbit->semimajor_axis) continue;
         xycoord = ImVec2(cels[i]->drawnx, cels[i]->drawny);
         appmag = vmag_cache[i];
-        magrad = fmin(15, magrad_cache[i]);
+        magrad = fmin(max_magrad, magrad_cache[i]);
         if ((!cbolbls_selected_idx && appmag <= appmagn_lblcut)
             || (cbolbls_selected_idx == 1 && cels[i]->absolute_magnitude <= absmagn_lblcut)
             || (cbolbls_selected_idx == 2 && here.distance_to(cels[i]->location) <= distance_lblcut)
@@ -1317,10 +1351,10 @@ void process_key_cmd_char(char c)
         viewchanged = true;
         break;
 
-        case 'y': JDnow += (oneyear/oneday); viewchanged = true; compute_object_draw_coordinates(); break;
-        case 'Y': JDnow -= (oneyear/oneday); viewchanged = true; compute_object_draw_coordinates(); break;
-        case 'z': JDnow += (oneyear/864); viewchanged = true; compute_object_draw_coordinates(); break;
-        case 'Z': JDnow -= (oneyear/864); viewchanged = true; compute_object_draw_coordinates(); break;
+        case 'y': JDnow += (oneyear/oneday); redo_proper_motions = viewchanged = true; compute_object_draw_coordinates(); break;
+        case 'Y': JDnow -= (oneyear/oneday); redo_proper_motions = viewchanged = true; compute_object_draw_coordinates(); break;
+        case 'z': JDnow += (oneyear/864); redo_proper_motions = viewchanged = true; compute_object_draw_coordinates(); break;
+        case 'Z': JDnow -= (oneyear/864); redo_proper_motions = viewchanged = true; compute_object_draw_coordinates(); break;
 
         case '+':
         vm = velocity.magnitude();
@@ -1730,8 +1764,9 @@ void draw_objedit_window(ImGuiIO& io)
     if (ImGui::Button("Focus"))
     {
         selected = editidx;
-        center_selected();
         searched = true;
+        viewchanged = true;
+        center_selected();
     }
     objedtheight += txtyscale;
 
@@ -1749,6 +1784,7 @@ void draw_objedit_window(ImGuiIO& io)
             s->RA_from_hms(edit_ra);
             s->update_location(simnow);
             cel->user_edited = true;
+            viewchanged = true;
         }
         ImGui::SameLine(col2);
         char edit_decl[20];
@@ -1761,6 +1797,7 @@ void draw_objedit_window(ImGuiIO& io)
             s->Decl_from_degms(edit_decl);
             s->update_location(simnow);
             cel->user_edited = true;
+            viewchanged = true;
         }
         objedtheight += txtyscale;
 
@@ -1773,6 +1810,7 @@ void draw_objedit_window(ImGuiIO& io)
             s->distance = edit_dist * light_year;
             s->update_location(simnow);
             cel->user_edited = true;
+            viewchanged = true;
         }
         ImGui::SameLine();
         ImGui::Text("%s", "l.y.");
@@ -1786,6 +1824,7 @@ void draw_objedit_window(ImGuiIO& io)
             s->radial_velocity = edit_rv;
             s->update_location(simnow);
             cel->user_edited = true;
+            viewchanged = true;
         }
         ImGui::SameLine();
         ImGui::Text("%s", "m/s");
@@ -1801,6 +1840,7 @@ void draw_objedit_window(ImGuiIO& io)
         cels[editidx]->inclination = edit_eqincl * fiftyseventh;
         cels[editidx]->known_poles = true;
         cel->user_edited = true;
+        viewchanged = true;
     }
     ImGui::SameLine(col2);
     edit_equinox = cel->equinox * fiftyseven;
@@ -1812,6 +1852,7 @@ void draw_objedit_window(ImGuiIO& io)
         cels[editidx]->equinox = edit_equinox * fiftyseventh;
         cels[editidx]->known_poles = true;
         cel->user_edited = true;
+        viewchanged = true;
     }
     objedtheight += txtyscale;
 
@@ -1823,6 +1864,7 @@ void draw_objedit_window(ImGuiIO& io)
     {
         cel->mass = edit_mass * 1000;
         cel->user_edited = true;
+        viewchanged = true;
     }
     ImGui::SameLine(col2);
     double edit_radius = cel->volumetric_mean_radius / 1000;
@@ -1833,6 +1875,7 @@ void draw_objedit_window(ImGuiIO& io)
     {
         cel->volumetric_mean_radius = edit_radius * 1000;
         cel->user_edited = true;
+        viewchanged = true;
     }
     objedtheight += txtyscale;
 
@@ -1844,6 +1887,7 @@ void draw_objedit_window(ImGuiIO& io)
     {
         cel->oblateness = edit_oblt;
         cel->user_edited = true;
+        viewchanged = true;
     }
     ImGui::SameLine(col2);
     double edit_rot = cel->sidereal_rotational_period / oneday;
@@ -1854,6 +1898,7 @@ void draw_objedit_window(ImGuiIO& io)
     {
         cel->sidereal_rotational_period = edit_rot * oneday;
         cel->user_edited = true;
+        viewchanged = true;
     }
     objedtheight += txtyscale;
 
@@ -1865,6 +1910,7 @@ void draw_objedit_window(ImGuiIO& io)
     {
         cel->absolute_magnitude = edit_absmag;
         cel->user_edited = true;
+        viewchanged = true;
     }
     if (cel->typeclass() == class_planet || cel->typeclass() == class_moon)
     {
@@ -1884,6 +1930,7 @@ void draw_objedit_window(ImGuiIO& io)
             if (!isnan(absmag)) p->absolute_magnitude = absmag;
 
             cel->user_edited = true;
+            viewchanged = true;
         }
     }
     objedtheight += txtyscale;
@@ -1896,6 +1943,7 @@ void draw_objedit_window(ImGuiIO& io)
     {
         cel->precession = edit_prcseq * oneyear;
         cel->user_edited = true;
+        viewchanged = true;
     }
     ImGui::SameLine(col2);
     double edit_bvcol = cel->BV_color;
@@ -1906,6 +1954,7 @@ void draw_objedit_window(ImGuiIO& io)
     {
         cel->BV_color = edit_bvcol;
         cel->user_edited = true;
+        viewchanged = true;
     }
     objedtheight += txtyscale;
 
@@ -1936,6 +1985,10 @@ void draw_objedit_window(ImGuiIO& io)
             orb->semimajor_axis = edit_sma * AU;
             if (cel->user_added) orb->compute_period(cel->mass);
             cel->user_edited = true;
+            viewchanged = true;
+            if (cel->typeclass() == class_star) ((Star*)cel)->update_location(simnow);
+            else if (cel->typeclass() == class_planet) ((Planet*)cel)->update_location(simnow);
+            else if (cel->typeclass() == class_moon) ((Moon*)cel)->update_location(simnow);
         }
         ImGui::SameLine();
         ImGui::Text("%s", "AU");
@@ -1949,6 +2002,10 @@ void draw_objedit_window(ImGuiIO& io)
             cels[editidx]->orbit->period = edit_period * oneday;
             if (cel->user_added) orb->compute_semimajor_axis(cel->mass);
             cel->user_edited = true;
+            viewchanged = true;
+            if (cel->typeclass() == class_star) ((Star*)cel)->update_location(simnow);
+            else if (cel->typeclass() == class_planet) ((Planet*)cel)->update_location(simnow);
+            else if (cel->typeclass() == class_moon) ((Moon*)cel)->update_location(simnow);
         }
         ImGui::SameLine();
         ImGui::Text("%s", "days");
@@ -1958,52 +2015,108 @@ void draw_objedit_window(ImGuiIO& io)
         ImGui::Text("%s", "Inclination");
         ImGui::SameLine(col1);
         ImGui::SetNextItemWidth(txtwid);
-        if (ImGui::InputDouble("##edtincl", &edit_incl, 0, 0, "%.9f")) cel->user_edited = true;
+        if (ImGui::InputDouble("##edtincl", &edit_incl, 0, 0, "%.9f"))
+        {
+            cel->user_edited = true;
+            viewchanged = true;
+            if (cel->typeclass() == class_star) ((Star*)cel)->update_location(simnow);
+            else if (cel->typeclass() == class_planet) ((Planet*)cel)->update_location(simnow);
+            else if (cel->typeclass() == class_moon) ((Moon*)cel)->update_location(simnow);
+        }
         ImGui::SameLine(col2);
         edit_node = cel->orbit->ascending_node * fiftyseven;
         ImGui::Text("%s", "Asc. Node");
         ImGui::SameLine(col3);
         ImGui::SetNextItemWidth(txtwid);
-        if (ImGui::InputDouble("##edtnode", &edit_node, 0, 0, "%.9f")) cel->user_edited = true;
+        if (ImGui::InputDouble("##edtnode", &edit_node, 0, 0, "%.9f"))
+        {
+            cel->user_edited = true;
+            viewchanged = true;
+            if (cel->typeclass() == class_star) ((Star*)cel)->update_location(simnow);
+            else if (cel->typeclass() == class_planet) ((Planet*)cel)->update_location(simnow);
+            else if (cel->typeclass() == class_moon) ((Moon*)cel)->update_location(simnow);
+        }
         objedtheight += txtyscale;
 
         edit_eccn = cel->orbit->eccentricity;
         ImGui::Text("%s", "Eccentricity");
         ImGui::SameLine(col1);
         ImGui::SetNextItemWidth(txtwid);
-        if (ImGui::InputDouble("##edtecc", &edit_eccn, 0, 0, "%.9f")) cel->user_edited = true;
+        if (ImGui::InputDouble("##edtecc", &edit_eccn, 0, 0, "%.9f"))
+        {
+            cel->user_edited = true;
+            viewchanged = true;
+            if (cel->typeclass() == class_star) ((Star*)cel)->update_location(simnow);
+            else if (cel->typeclass() == class_planet) ((Planet*)cel)->update_location(simnow);
+            else if (cel->typeclass() == class_moon) ((Moon*)cel)->update_location(simnow);
+        }
         ImGui::SameLine(col2);
         edit_argperi = cel->orbit->arg_periapsis * fiftyseven;
         ImGui::Text("%s", "Arg.Periapsis");
         ImGui::SameLine(col3);
         ImGui::SetNextItemWidth(txtwid);
-        if (ImGui::InputDouble("##edtargperi", &edit_argperi, 0, 0, "%.9f")) cel->user_edited = true;
+        if (ImGui::InputDouble("##edtargperi", &edit_argperi, 0, 0, "%.9f"))
+        {
+            cel->user_edited = true;
+            viewchanged = true;
+            if (cel->typeclass() == class_star) ((Star*)cel)->update_location(simnow);
+            else if (cel->typeclass() == class_planet) ((Planet*)cel)->update_location(simnow);
+            else if (cel->typeclass() == class_moon) ((Moon*)cel)->update_location(simnow);
+        }
         objedtheight += txtyscale;
 
         edit_epoch = cel->orbit->epoch;
         ImGui::Text("%s", "Epoch, JD");
         ImGui::SameLine(col1);
         ImGui::SetNextItemWidth(txtwid);
-        if (ImGui::InputDouble("##edtepoch", &edit_epoch, 0, 0, "%.9f")) cel->user_edited = true;
+        if (ImGui::InputDouble("##edtepoch", &edit_epoch, 0, 0, "%.9f"))
+        {
+            cel->user_edited = true;
+            viewchanged = true;
+            if (cel->typeclass() == class_star) ((Star*)cel)->update_location(simnow);
+            else if (cel->typeclass() == class_planet) ((Planet*)cel)->update_location(simnow);
+            else if (cel->typeclass() == class_moon) ((Moon*)cel)->update_location(simnow);
+        }
         ImGui::SameLine(col2);
         edit_manom = cel->orbit->mean_anomaly * fiftyseven;
         ImGui::Text("%s", "Mean Anomaly");
         ImGui::SameLine(col3);
         ImGui::SetNextItemWidth(txtwid);
-        if (ImGui::InputDouble("##edtmanom", &edit_manom, 0, 0, "%.9f")) cel->user_edited = true;
+        if (ImGui::InputDouble("##edtmanom", &edit_manom, 0, 0, "%.9f"))
+        {
+            cel->user_edited = true;
+            viewchanged = true;
+            if (cel->typeclass() == class_star) ((Star*)cel)->update_location(simnow);
+            else if (cel->typeclass() == class_planet) ((Planet*)cel)->update_location(simnow);
+            else if (cel->typeclass() == class_moon) ((Moon*)cel)->update_location(simnow);
+        }
         objedtheight += txtyscale;
 
         edit_precnode = cel->orbit->prec_node ? (M_PI * 2 / cel->orbit->prec_node / oneday) : 0;
         ImGui::Text("%s", "Prec. Node");
         ImGui::SameLine(col1);
         ImGui::SetNextItemWidth(txtwid);
-        if (ImGui::InputDouble("##edtprcnd", &edit_precnode, 0, 0, "%.9f")) cel->user_edited = true;
+        if (ImGui::InputDouble("##edtprcnd", &edit_precnode, 0, 0, "%.9f"))
+        {
+            cel->user_edited = true;
+            viewchanged = true;
+            if (cel->typeclass() == class_star) ((Star*)cel)->update_location(simnow);
+            else if (cel->typeclass() == class_planet) ((Planet*)cel)->update_location(simnow);
+            else if (cel->typeclass() == class_moon) ((Moon*)cel)->update_location(simnow);
+        }
         ImGui::SameLine(col2);
         edit_procargperi = cel->orbit->proc_argperi ? (M_PI * 2 / cel->orbit->proc_argperi / oneday) : 0;
         ImGui::Text("%s", "ProcArgPeri");
         ImGui::SameLine(col3);
         ImGui::SetNextItemWidth(txtwid);
-        if (ImGui::InputDouble("##edtprcap", &edit_procargperi, 0, 0, "%.9f")) cel->user_edited = true;
+        if (ImGui::InputDouble("##edtprcap", &edit_procargperi, 0, 0, "%.9f"))
+        {
+            cel->user_edited = true;
+            viewchanged = true;
+            if (cel->typeclass() == class_star) ((Star*)cel)->update_location(simnow);
+            else if (cel->typeclass() == class_planet) ((Planet*)cel)->update_location(simnow);
+            else if (cel->typeclass() == class_moon) ((Moon*)cel)->update_location(simnow);
+        }
         objedtheight += txtyscale;
     }
 
@@ -2101,25 +2214,6 @@ int main (int argc, char** argv)
             std::cout << "Size of Orbit: " << sizeof(Orbit) << std::endl;
             std::cout << "Size of Point: " << sizeof(Point) << std::endl;
             std::cout << "Size of CelestialLocation: " << sizeof(CelestialLocation) << std::endl;
-        }
-    }
-
-    if (magnitude_test)
-    {
-        for (i=0; i<290; i++)
-        {
-            double magnitude = -1.0 + 0.1 * i;
-            Star* s = new Star();
-            strcpy(s->name, ((std::string)"Test "+std::to_string(magnitude)).c_str());
-            s->right_ascension = fiftyseventh * i;
-            s->declination = -2.59 * fiftyseventh;
-            s->apparent_magnitude = s->absolute_magnitude = magnitude;
-            s->distance = parsec*10;
-            s->proper_motion_decl = s->proper_motion_RA = s->radial_velocity = 0;
-            s->BV_color = 0.5;
-            s->epoch = J2000;
-            s->update_location(J2000_TIME_T);
-            cels[ncelobjs++] = s;
         }
     }
 
@@ -2391,6 +2485,8 @@ int main (int argc, char** argv)
             // Object under cursor info
             if (objinfwnd) draw_objinf_window(io);
 
+            viewchanged = searched || (trackidx>=0) || spin || velocity.magnitude() || (PrevDispSize.x != io.DisplaySize.x) || (PrevDispSize.y != io.DisplaySize.y);
+
             // Edit dialog
             if (objedtwnd)
             {
@@ -2434,7 +2530,6 @@ int main (int argc, char** argv)
             if (vmfr < speed_of_light) vdil.scale(vdil.magnitude() / compute_time_dilation(vmfr));
             here.local_position += vdil;
             azimuth += spin;
-            viewchanged = searched || (trackidx>=0) || spin || velocity.magnitude() || (PrevDispSize.x != io.DisplaySize.x) || (PrevDispSize.y != io.DisplaySize.y);
 
             // Slow down to avoid zipping past tracked object
             if (trackidx >= 0)
@@ -2545,10 +2640,18 @@ int main (int argc, char** argv)
 
             simnow = (double)(JDnow - J2000)*oneday + J2000_TIME_T;
         }
-        // std::cout << simnow << std::endl;
     }
 
     save_universe();
+
+    for (i=0; cels[i]; i++)
+    {
+        if (cels[i]->typeclass() == class_star && ((Star*)cels[i])->multisys)
+        {
+            ((Star*)cels[i])->multisys->unlink();
+            delete ((Star*)cels[i])->multisys;
+        }
+    }
 
     for (i=0; cels[i]; i++)
     {
