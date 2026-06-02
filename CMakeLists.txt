@@ -23,7 +23,7 @@ add_library(IMGUI STATIC
 # PUBLIC so we don't have to do the same for all things that rely on imgui
 target_include_directories(IMGUI PUBLIC src/imgui)
 
-# SDL needed for imgui_impl_sld2.cpp
+# SDL required for imgui_impl_sld2.cpp
 target_link_libraries(IMGUI PUBLIC SDL2::SDL2)
 
 add_library(CLASSES STATIC
