@@ -707,7 +707,9 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
             // There are only a handful with no V magnitude; omit them.
             read_field_onebased(buffer, 42, 46, field);
             if (!trim(field).size()) continue;
+            #if _filter_Hipparcos_stars_absmag
             double appmag = atof(field);
+            #endif
 
             #if _filter_Hipparcos_stars_appmag
             f = atof(field);
