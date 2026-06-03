@@ -554,7 +554,9 @@ void cache_cons_lines()
         {
             if (cels[j]->type != star) continue;
             Star* s = (Star*)cels[j];
-            if (!strcmp(s->constellation, "Equ")) if (s->apparent_magnitude > 7.5) continue;
+            // Equuleus has some stars with apparent magnitudes dimmer than 6.5 that form part of the shape of the constellation.
+            // If we remove this line, the constellation lines won't all work.
+            if (!strcmp(s->constellation, "Equ") && s->apparent_magnitude > 7.5) continue;
             else if (s->apparent_magnitude > 6.5) continue;
             if (founda < 0
                 && 
