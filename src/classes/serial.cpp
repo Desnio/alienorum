@@ -207,6 +207,7 @@ bool Serialization::load_all(std::fstream& fs, CelestialObject **cels, int max)
             if (!cels[i]->orbit->center) std::cout << "FAILED to place " << cels[i]->name << " in orbit around " << cenname << std::endl;
 
             if (i==ncelobjs) ncelobjs++;
+            if (ncelobjs >= max-1) return false;                                // Avoid overflowing the array.
         }
 
         for (i=0; cels[i]; i++)
