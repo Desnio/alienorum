@@ -262,7 +262,7 @@ double Star::estimate_radius()
 
 void Star::gotta_be_named_something()
 {
-    if (!trim(name).size())                                                 // already am
+    if (!trim(name).size()) return;                                         // already am
     if (multisys && multisys->get_member('A') != this) return;              // let somebody else do it
     else if (orbit && orbit->center && strlen(orbit->center->name))
     {
