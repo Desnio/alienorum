@@ -527,6 +527,7 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
             if (HR != current_multi_hrno)
             {
                 current_multi = nullptr;
+                current_multi_hrno = HR;
                 A = nullptr;
             }
             s->multisys = current_multi;
