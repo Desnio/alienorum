@@ -348,10 +348,10 @@ int draw_sphere(CelestialObject* cel, double arad)
 
     bool prev_valid = false;
     bool dwh = false;
-    if (cel->typeclass() == class_moon) dwh = ((Moon*)cel)->depth && ((Moon*)cel)->width && ((Moon*)cel)->height;
+    if (cel->typeclass() == class_moon) dwh = (((Moon*)cel)->depth && ((Moon*)cel)->width && ((Moon*)cel)->height);
     double equatorial_radius, theta, vtheta, cos_theta, cos_vtheta, is_day;
     if (dwh)
-        equatorial_radius = cel->volumetric_mean_radius = pow(((Moon*)cel)->depth * ((Moon*)cel)->width * ((Moon*)cel)->height, 0.333333333) * 500;
+        equatorial_radius = pow(((Moon*)cel)->depth * ((Moon*)cel)->width, 0.5) * 500;
     else
         equatorial_radius = cel->volumetric_mean_radius * pow(1.0 - cel->oblateness, 0.333);
 

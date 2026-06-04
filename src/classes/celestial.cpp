@@ -781,7 +781,7 @@ void Map::generate_rocky_map(int lr, double BV, bool has_water)
     int octaves = 5 + (rand() % 4);
     double lacunarity = frand(1.0, 2.9);
     double gain = has_water ? 0.5 : 2.5;
-    double scale = has_water ? 1.5 : 0.8; // Controls feature sizes (smaller scale = larger continents)
+    double scale = frand(has_water ? 1.5 : 0.2, has_water ? 2.9 : 0.8);             // Controls feature sizes (smaller scale = larger continents)
 
     Color col = Color::color_from_magnitude_indices(BV+bv_correction*2, BV);
     RGB rgb = Color::rgb_from_color(col, -1);
@@ -798,6 +798,17 @@ void Map::generate_rocky_map(int lr, double BV, bool has_water)
     inv_lat_scale = 1.0 / lat_scale;
     inv_lon_scale = 1.0 / lon_scale;
     std::cout << "Allocated " << allocated << " pixels for fictitious rocky map." << std::endl;
+
+    int vegr, vegg, vegb;
+    if (has_water)
+    {
+        vegr = rand() % 224;
+        vegg = rand() % 192;
+        vegb = rand() % 128;
+        if (vegr < vegg && vegr < vegb) vegb = vegr / 1.5;
+        if (vegg < vegr && vegg < vegb) vegg /= 3;
+        if (vegb < vegr && vegb < vegg) vegb /= 5;
+    }
 
     for (int y = 0; y < image_height; ++y)
     {
@@ -823,10 +834,6 @@ void Map::generate_rocky_map(int lr, double BV, bool has_water)
             if (has_water)
             {
                 double r_weight = heightValue;
-                int vegr = rand() % 224, vegg = rand() % 192, vegb = rand() % 128;
-                if (vegr < vegg && vegr < vegb) vegb = vegr / 1.5;
-                if (vegg < vegr && vegg < vegb) vegg /= 3;
-                if (vegb < vegr && vegb < vegg) vegb /= 5;
 
                 // Biome allocation based on height thresholds
                 if (heightValue < 0.45)
