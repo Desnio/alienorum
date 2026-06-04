@@ -1168,7 +1168,7 @@ void compute_object_draw_coordinates()
                         continue;
                     }
                     if (!redo_proper_motions && !cels[i]->orbit) continue;
-                    if (cels[i]->orbit && cels[i]->orbit->center && cels[i]->orbit->center != cels[whereami]
+                    if (cels[i]->orbit && cels[i]->orbit->center && (whereami < 0 || cels[i]->orbit->center != cels[whereami])
                         && (cels[i]->orbit->center->drawnx < 0 || cels[i]->orbit->center->drawny < 0
                             || cels[i]->orbit->center->drawnx > dispw || cels[i]->orbit->center->drawny > disph
                             || cels[i]->orbit->semimajor_axis < cels[i]->location.distance_to(here)*1e-4*zoom
