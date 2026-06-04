@@ -63,7 +63,8 @@ using json = nlohmann::json;
 #define MAX_SPLASH_STARS 5381
 #define MAX_HD 359083
 #define MAX_HIP 120416
-#define _USE_CCDM 0
+#define _USE_CCDM 1
+#define _ALLOW_CCDM_ADDITIONS 0
 #define default_brightness 1.0
 #define default_gamma 1.0
 #define target_frame_rate 30

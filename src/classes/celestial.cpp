@@ -18,6 +18,33 @@ CelestialObject::CelestialObject()
     memset(name, 0, 32*sizeof(char));
 }
 
+CelestialObject *CelestialObject::get_light_center()
+{
+    if (!orbit || !orbit->center)
+    {
+        if (type == star) return this;
+        return nullptr;
+    }
+
+    CelestialObject *light_center = orbit->center;
+    int i;
+    for (i=0; i<5; i++)
+    {
+        if (light_center->type == rocky || light_center->type == ice_giant || light_center->type == gas_giant)
+        {
+            light_center = light_center->orbit->center;
+            if (!light_center)
+            {
+                std::cerr << "Cannot find light source for " << name << std::endl;
+                throw 0xbadda7a;
+            }
+            // std::cout << "Light source for " << name << " is " << light_center->name << std::endl;
+        }
+        else break;
+    }
+    return light_center;
+}
+
 double CelestialObject::viewer_magnitude(CelestialLocation seen_from)
 {
     if (type == rocky || type == ice_giant || type == gas_giant)
@@ -667,7 +694,7 @@ bool Map::load_from_png(std::string filename)
         green_data = new unsigned char[toalloc];
         blue_data = new unsigned char[toalloc];
         allocated = toalloc;
-        int x, y, iy, i=0;
+        int x, y, i=0;
         for (y=0; y<image_height; y++)
         {
             for (x=0; x<image_width; x++)
@@ -690,7 +717,7 @@ bool Map::load_from_png(std::string filename)
         green_data = new unsigned char[toalloc];
         blue_data = new unsigned char[toalloc];
         allocated = toalloc;
-        int x, y, iy, i=0;
+        int x, y, i=0;
         for (y=0; y<image_height; y++)
         {
             for (x=0; x<image_width; x++)

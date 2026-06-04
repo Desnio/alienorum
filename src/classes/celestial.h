@@ -109,6 +109,7 @@ class CelestialObject
     double distance = 0;                        // meters
     bool distance_known = false;
     bool known_poles = false;
+    bool estimated_poles = false;
 
     double epoch = J2000;                       // JD
     double absolute_magnitude = 0;
@@ -137,6 +138,7 @@ class CelestialObject
     CelestialObject *cenobj = nullptr;
     Point tmprel;
 
+    CelestialObject* get_light_center();
     double viewer_magnitude(CelestialLocation seen_from);
     static double distance_from_magnitudes(double apparent, double absolute);
     std::string RA_as_hms(double seen_equinox);

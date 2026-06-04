@@ -1098,11 +1098,15 @@ int CatalogReader::read_CCDM_catalog(CelestialObject **cels, int max)
 
         if (!s)
         {
+            #if _ALLOW_CCDM_ADDITIONS
             s = new Star();
             s->epoch = J2000 + (1991.25 - 2000);
 
             cels[offset++] = s;
             cels[offset] = nullptr;
+            #else
+            continue;
+            #endif
         }
         if (s != A) s->make_companion_of(A, conccomp);
 
@@ -1153,12 +1157,19 @@ int CatalogReader::read_CCDM_catalog(CelestialObject **cels, int max)
         s->right_ascension = A->right_ascension - rho * sin(theta) / cos(A->declination);
         s->declination = A->declination + rho * cos(theta);
 
-        if (!A->known_poles)
+        if (!A->known_poles && !A->estimated_poles)
         {
-            // The inclination is unknown, but let's assume zero degrees
-            s->obliquity = A->obliquity = 0;
-            A->location.equatorial_plane = A->location.local_system_plane =
-                align_points_3d(cels[0]->location.system_center, Point(0,light_year*1e9,0), A->location.system_center);
+            // The inclination is unknown, but let's use a trick to put the companion in the local system plane.
+            // Subtract the local system center from [0,0,0] this will give the same as the Sun's coordinates relative to the local system.
+            // The normal would ideally put both the companion star and the Sun on the local ecliptic. This doesn't, though.
+            Point sundir = center - A->location.system_center;
+            sundir.scale(AU*29);
+            Point pole = compute_normal(A->location.local_position, s->location.local_position, sundir);
+
+            A->location.equatorial_plane = A->location.local_system_plane
+                = s->location.equatorial_plane = s->location.local_system_plane
+                = align_points_3d(pole, yaxis, center);
+            A->estimated_poles = s->estimated_poles = true;
         }
         s->location = A->location;                      // Copies local system reference frame
         s->epoch = J2000;

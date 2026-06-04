@@ -26,12 +26,16 @@ class Planet : public CelestialObject
     double viewer_reflectance_magnitude(CelestialLocation seen_from, double phase = -1, double sourceabsmagn = -1e9, double sourcedist = 0);
     void estimate_albedo();                             // if radius and abs mag known
     void update_location(double tmnow);                 // Only applicable if we have an orbit; otherwise just return.
+    bool is_in_con_HZ();                                // True if planet is within the conservative habitable zone.
 
     Planet();
     ~Planet() { if (orbit) delete orbit; }
 
     json to_json();
     bool from_json(json j);
+
+    protected:
+    bool cache_in_cons_hz, cached_in_cons_hz = false;
 };
 
 #endif

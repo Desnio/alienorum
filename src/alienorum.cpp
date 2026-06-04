@@ -431,11 +431,7 @@ int draw_sphere(CelestialObject* cel, double arad)
     RGB rgb = Color::rgb_from_color(Color::color_from_magnitude_indices(4.2, cel->BV_color), -1);
     Point cursor, land;
     bool self_luminous;
-    CelestialObject *lightcen;
-
-    self_luminous = cel->type == star;
-    lightcen = cel;
-    if (!self_luminous) while (lightcen->orbit && lightcen->type != star) lightcen = lightcen->orbit->center;
+    CelestialObject *lightcen = cel->get_light_center();
 
     auto sphere_began = std::chrono::high_resolution_clock::now();
     double step = wireframe ? (fiftyseventh*15) : fmax(fmin(M_PI*sphresolution/arad*fiftyseventh, fiftyseventh*2), fiftyseventh*0.2),
@@ -1176,6 +1172,11 @@ void compute_object_draw_coordinates()
                 ((Star*)cels[i])->update_location(simnow);
                 tmp = cels[i]->location - here;
                 cels[i]->tmprel = Point(tmp);
+                if (whereami >= 0 && cels[i]->tmprel.magnitude() < cels[whereami]->volumetric_mean_radius)
+                {
+                    cels[i]->drawnx = cels[i]->drawny = -1e9;
+                    continue;
+                }
 
                 // If entering a new star system, change allegiance to new center object.
                 if (whereami < 0
@@ -1755,9 +1756,9 @@ void identify_object_under_cursor(ImGuiIO& io)
             }
         }
 
-        objinfo += (std::string)"RA:    " + cels[i]->RA_as_hms(here, myeq) + (std::string)"\n"
-                + (std::string)"Decl:  " + cels[i]->Decl_as_degms(here) + (std::string)"\n";
-        oss << "Mag:    " << std::setprecision(2) << lmag << std::endl;
+        objinfo += (std::string)"RA:      " + cels[i]->RA_as_hms(here, myeq) + (std::string)"\n"
+                + (std::string)"Decl:    " + cels[i]->Decl_as_degms(here) + (std::string)"\n";
+        oss << "Mag:     " << std::setprecision(2) << lmag << std::endl;
         objinfo += oss.str();
         oss.str("");
         oss.clear();
@@ -1767,18 +1768,21 @@ void identify_object_under_cursor(ImGuiIO& io)
             Star* s = (Star*)cels[i];
             if (s->distance_known)
             {
-                oss << "AbsMag: " << std::setprecision(2) << s->absolute_magnitude << "\n";
+                oss << "Dist:    " << cels[i]->scaled_distance(here) << std::endl;
+                oss << "AbsMag:  " << std::setprecision(2) << s->absolute_magnitude << "\n";
             }
-            objinfo += (std::string)"SpTyp: " + s->spectral_type + (std::string)"\n";
+            objinfo += (std::string)"SpTyp:   " + s->spectral_type + (std::string)"\n";
         }
         else if (cels[i]->type == galaxy)
         {
-            //
+            // TODO:
         }
         else
         {
-            oss << "Dist:   " << cels[i]->scaled_distance(here) << std::endl;
-            oss << "Lit %:  " << std::setprecision(1) << ((int)(((Planet*)cels[i])->amt_lit*100)) << std::endl;
+            oss << "Dist:    " << cels[i]->scaled_distance(here) << std::endl;
+            oss << "Lit %:   " << std::setprecision(1) << ((int)(((Planet*)cels[i])->amt_lit*100)) << std::endl;
+            if (((Planet*)cels[i])->is_in_con_HZ())
+                oss << "*****    In conserv. HZ" << std::endl;
         }
 
         if (cels[i]->mass)
@@ -1787,8 +1791,8 @@ void identify_object_under_cursor(ImGuiIO& io)
                 ; // oss << "Mass:  " << std::setprecision(2) << (cels[i]->mass / Msun) << " M(sun)\n" << std::endl;       // TODO: Fix Star::estimate_mass()
             else if (cels[i]->type == rocky || cels[i]->type == gas_giant || cels[i]->type == ice_giant)
             {
-                oss << "Mass:   " << std::setprecision(2) << (cels[i]->mass / cels[iamhome]->mass) << " M(earth)" << std::endl;
-                oss << "Mass:   " << std::scientific << std::setprecision(2) << (cels[i]->mass / 1000) << " kg" << std::endl;
+                oss << "Mass:    " << std::setprecision(2) << (cels[i]->mass / cels[iamhome]->mass) << " M(earth)" << std::endl;
+                oss << "Mass:    " << std::scientific << std::setprecision(2) << (cels[i]->mass / 1000) << " kg" << std::endl;
             }
         }
         if (cels[i]->volumetric_mean_radius)
@@ -2192,7 +2196,11 @@ void draw_status_window(ImGuiIO& io)
 
     std::string vfstr;
     if (whereami >= 0)
+    {
         vfstr = std::string("View from ") + cels[whereami]->name;
+        if (((Planet*)cels[whereami])->is_in_con_HZ())
+            vfstr += "\nIn conserv. HZ";
+    }
     else vfstr = std::string("View from space");
     ImGui::Text("%s", vfstr.c_str());
     statheight += txtyscale;
