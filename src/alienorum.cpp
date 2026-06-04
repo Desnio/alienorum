@@ -321,7 +321,7 @@ void load_textures(CelestialObject* cel)
     {
         cel->surf_map = new Map();
         double vmag = cel->cenobj->viewer_magnitude(cel->location);
-        cel->surf_map->generate_rocky_map(503, cel->BV_color, vmag >= 26.3 && vmag <= 26.9);
+        cel->surf_map->generate_rocky_map(503, cel->BV_color, ((Planet*)cel)->is_in_con_HZ());
     }
 }
 
@@ -1491,8 +1491,9 @@ void draw_objects()
                 || (cbolbls_selected_idx == 2 && here.distance_to(cels[i]->location) <= distance_lblcut)
                 || (cbolbls_selected_idx == 3 && ((Star*)cels[i])->is_sunlike())
                 || (cbolbls_selected_idx == 4 && (((Star*)cels[i])->has_planets >= planets_lblcut) )
-                || (cbolbls_selected_idx == 5 && (cels[i]->orbit || ((Star*)cels[i])->is_orbit_multiple))
-                || (cbolbls_selected_idx == 6 && cels[i]->known_poles)
+                || (cbolbls_selected_idx == 5 && (((Star*)cels[i])->has_hz_planets) )
+                || (cbolbls_selected_idx == 6 && (cels[i]->orbit || ((Star*)cels[i])->is_orbit_multiple))
+                || (cbolbls_selected_idx == 7 && cels[i]->known_poles)
              ))
             || (cels[i]->orbit && (cels[i]->cenobj == mycenobj) && lbl_localsys
                 && ((cels[i]->mass >= lmasslim)
@@ -1529,8 +1530,9 @@ void draw_objects()
                 || (cbolbls_selected_idx == 2 && here.distance_to(cels[i]->location) <= distance_lblcut)
                 || (cbolbls_selected_idx == 3 && ((Star*)cels[i])->is_sunlike())
                 || (cbolbls_selected_idx == 4 && (((Star*)cels[i])->has_planets >= planets_lblcut) )
-                || (cbolbls_selected_idx == 5 && (cels[i]->orbit || ((Star*)cels[i])->is_orbit_multiple))
-                || (cbolbls_selected_idx == 6 && cels[i]->known_poles)
+                || (cbolbls_selected_idx == 5 && (((Star*)cels[i])->has_hz_planets) )
+                || (cbolbls_selected_idx == 6 && (cels[i]->orbit || ((Star*)cels[i])->is_orbit_multiple))
+                || (cbolbls_selected_idx == 7 && cels[i]->known_poles)
              ))
             || (cels[i]->orbit && (cels[i]->cenobj == mycenobj) && lbl_localsys
                 && ((cels[i]->mass >= lmasslim)

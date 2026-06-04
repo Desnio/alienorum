@@ -1993,6 +1993,7 @@ int CatalogReader::read_exoplanets_catalog(CelestialObject **cels, int max)
             if (s && p && p->orbit->period)
             {
                 ((Star*)s)->has_planets++;
+                if (p->is_in_con_HZ()) ((Star*)s)->has_hz_planets++;
                 p->distance_known = true;
                 if (p->mass < 1.6 * earth_mass) p->type = rocky;        // https://doi.org/10.1051/0004-6361/202348690
                 else if (p->mass < 2.5e+29) p->type = ice_giant;
@@ -2366,6 +2367,9 @@ int CatalogReader::read_local_planets(CelestialObject **cels, int max)
                 p->location = p->orbit->center->location;          // Copy the system center and local plane. The local position will auto-fill later.
                 p->location.equatorial_plane.a = p->obliquity;
                 p->location.equatorial_plane.v = Point(std::sin(p->equinox), 0, -std::cos(p->equinox));
+
+                ((Star*)p->get_light_center())->has_planets++;
+                if (p->is_in_con_HZ()) ((Star*)p->get_light_center())->has_hz_planets++;
             }
         }
         catch (...)

@@ -46,7 +46,7 @@ bool objedtwnd = false;
 bool addcelwnd = false;
 bool hide_mouse = true;
 bool searched = false;
-const char* lbltypes[nlbltyp] = { "Brightest", "Intrinsic", "Nearby", "Sunlike", "Has Planets", "Binary Orbit", "Known Poles" };
+const char* lbltypes[nlbltyp] = { "Brightest", "Intrinsic", "Nearby", "Sunlike", "Has Planets", "Planet in HZ", "Binary Orbit", "Known Poles" };
 const char* celtypes[nceltyp] = { "Galaxy", "Star", "Planet", "Moon", "Satellite" };
 int cbolbls_selected_idx = 0, cboceltyp_selected_idx = 0;
 double bv_correction = 0;

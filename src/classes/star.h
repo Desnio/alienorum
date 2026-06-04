@@ -42,6 +42,7 @@ class Star : public CelestialObject
 
     bool is_orbit_multiple = false;
     int has_planets = 0;
+    int has_hz_planets = 0;
     bool tmp_vis_flag;                      // Used only for rendering.
 
     Star();

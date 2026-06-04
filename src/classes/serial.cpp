@@ -214,6 +214,12 @@ bool Serialization::load_all(std::fstream& fs, CelestialObject **cels, int max)
             }
             if (!cels[i]->orbit->center) std::cout << "FAILED to place " << cels[i]->name << " in orbit around " << cenname << std::endl;
 
+            if (cels[i]->typeclass() == class_planet || cels[i]->typeclass() == class_moon)
+            {
+                ((Star*)cels[i]->get_light_center())->has_planets++;
+                if (((Planet*)cels[i])->is_in_con_HZ()) ((Star*)cels[i]->get_light_center())->has_hz_planets++;
+            }
+
             if (i==ncelobjs) ncelobjs++;
             if (ncelobjs >= max-1) return false;                                // Avoid overflowing the array.
         }
