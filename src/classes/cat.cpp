@@ -422,6 +422,7 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
     bool HDfound;
     double f;
     StarMulti *current_multi = nullptr;
+    unsigned int current_multi_hrno;
 
     for (offset=0; offset<max && cels[offset]; offset++);
     if (offset >= (max-1)) return 0;
@@ -523,7 +524,7 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
 
         if (!s->get_component() && buffer[49] > ' ' && strcmp(s->name, "41The1Ori"))
         {
-            if (HR != 0)
+            if (HR != current_multi_hrno)
             {
                 current_multi = nullptr;
                 current_multi_hrno = HR;

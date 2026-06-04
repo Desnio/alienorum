@@ -777,7 +777,7 @@ bool load_universe(std::string universe_fname = "universe.json")
         mtx.lock();
         loading_msg = "Loading Universe file...";
         mtx.unlock();
-        if (Serialization::load_all(fs, cels))
+        if (Serialization::load_all(fs, cels, MAX_CELOBJS))
         {
             fs.close();
             for (i=0; cels[i]; i++) if (!strcmp(cels[i]->name, "Earth"))

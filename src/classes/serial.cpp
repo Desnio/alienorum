@@ -141,7 +141,7 @@ bool Serialization::save_all(std::fstream& fs, CelestialObject **cels, bool oe)
     }
 }
 
-bool Serialization::load_all(std::fstream& fs, CelestialObject **cels)
+bool Serialization::load_all(std::fstream& fs, CelestialObject **cels, unsigned int max)
 {
     try
     {

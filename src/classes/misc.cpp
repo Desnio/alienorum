@@ -51,6 +51,8 @@ const char* celtypes[nceltyp] = { "Galaxy", "Star", "Planet", "Moon", "Satellite
 int cbolbls_selected_idx = 0, cboceltyp_selected_idx = 0;
 double bv_correction = 0;
 double sphere_quality = 1;
+bool lbl_localsys = true;
+double lbllsys_mass_lim = 2.5e+23;
 
 double appmagn_lblcut = 2.5,
        absmagn_lblcut = -3.5,
