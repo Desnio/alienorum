@@ -118,13 +118,96 @@ double get_gamma()
     return 1.0 / global_inverse_gamma;
 }
 
+void rgb_apply_redlight(float *r, float *g, float *b)
+{
+    *r += 0.5 * (*g) + 0.3 * (*b);
+    if (*r > 0xFF) *r = 0xFF;
+    *g /= 3;
+    *b /= 3;
+}
+
 __uint32_t rgba_apply_redlight(__uint32_t i)
 {
     if (!redlight_mode) return i;
-    __uint32_t r = (i & 0xFF), g = (i & 0xFF00) >> 8, b = (i & 0xFF0000) >> 16;
-    r += 0.5 * g + 0.3 * b;
-    if (r > 0xFF) r = 0xFF;
-    g /= 3;
-    b /= 3;
-    return __uint32_t((i & 0xFF000000) + r + (g << 8) + (b << 16));
+    float r = (i & 0xFF), g = (i & 0xFF00) >> 8, b = (i & 0xFF0000) >> 16;
+    rgb_apply_redlight(&r, &g, &b);
+    return __uint32_t((i & 0xFF000000) + (__uint32_t)r + ((__uint32_t)g << 8) + ((__uint32_t)b << 16));
 }
+
+ImVec4 rgba_apply_redlight(ImVec4 i)
+{
+    if (!redlight_mode) return i;
+    float r = i.x, g = i.y, b = i.z, a = i.w;
+    rgb_apply_redlight(&r, &g, &b);
+    return ImVec4(r, g, b, a);
+}
+
+void apply_default_style()
+{
+    ImGuiStyle* style = &ImGui::GetStyle();
+    ImVec4* colors = style->Colors;
+
+    // Lines without rgba_apply_redlight() added haven't been changed yet from ImGui defaults.
+    colors[ImGuiCol_Text]                   = redlight_mode ? ImVec4(0.90f, 0.05f, 0.00f, 1.00f) : ImVec4(0.50f, 0.90f, 0.30f, 1.00f);
+    colors[ImGuiCol_TextDisabled]           = redlight_mode ? ImVec4(0.60f, 0.05f, 0.00f, 1.00f) : ImVec4(0.90f, 0.60f, 0.10f, 1.00f);
+    colors[ImGuiCol_WindowBg]               = rgba_apply_redlight(ImVec4(0.00f, 0.03f, 0.06f, 0.97f));
+    colors[ImGuiCol_ChildBg]                = rgba_apply_redlight(ImVec4(0.00f, 0.05f, 0.10f, 0.00f));
+    colors[ImGuiCol_PopupBg]                = rgba_apply_redlight(ImVec4(0.00f, 0.06f, 0.13f, 0.92f));
+    colors[ImGuiCol_Border]                 = rgba_apply_redlight(ImVec4(0.00f, 0.00f, 0.70f, 0.50f));
+    colors[ImGuiCol_BorderShadow]           = rgba_apply_redlight(ImVec4(0.00f, 0.00f, 0.05f, 0.00f));
+    colors[ImGuiCol_FrameBg]                = rgba_apply_redlight(ImVec4(0.00f, 0.21f, 0.44f, 0.39f));
+    colors[ImGuiCol_FrameBgHovered]         = rgba_apply_redlight(ImVec4(0.47f, 0.47f, 0.69f, 0.40f));
+    colors[ImGuiCol_FrameBgActive]          = rgba_apply_redlight(ImVec4(0.42f, 0.41f, 0.64f, 0.69f));
+    colors[ImGuiCol_TitleBg]                = rgba_apply_redlight(ImVec4(0.13f, 0.37f, 0.53f, 0.93f));
+    colors[ImGuiCol_TitleBgActive]          = rgba_apply_redlight(ImVec4(0.21f, 0.44f, 0.67f, 0.94f));
+    colors[ImGuiCol_TitleBgCollapsed]       = rgba_apply_redlight(ImVec4(0.00f, 0.10f, 0.80f, 0.81f));
+    colors[ImGuiCol_MenuBarBg]              = rgba_apply_redlight(ImVec4(0.20f, 0.20f, 0.60f, 0.80f));
+    colors[ImGuiCol_ScrollbarBg]            = rgba_apply_redlight(ImVec4(0.20f, 0.35f, 0.40f, 0.60f));
+    colors[ImGuiCol_ScrollbarGrab]          = rgba_apply_redlight(ImVec4(0.40f, 0.65f, 0.80f, 0.30f));
+    colors[ImGuiCol_ScrollbarGrabHovered]   = rgba_apply_redlight(ImVec4(0.40f, 0.65f, 0.80f, 0.40f));
+    colors[ImGuiCol_ScrollbarGrabActive]    = rgba_apply_redlight(ImVec4(0.41f, 0.68f, 0.80f, 0.60f));
+    colors[ImGuiCol_CheckMark]              = rgba_apply_redlight(ImVec4(0.60f, 0.90f, 0.40f, 0.60f));
+    colors[ImGuiCol_SliderGrab]             = rgba_apply_redlight(ImVec4(1.00f, 0.80f, 0.30f, 0.30f));
+    colors[ImGuiCol_SliderGrabActive]       = rgba_apply_redlight(ImVec4(1.00f, 0.80f, 0.20f, 0.60f));
+    colors[ImGuiCol_Button]                 = rgba_apply_redlight(ImVec4(0.50f, 0.30f, 0.10f, 0.62f));
+    colors[ImGuiCol_ButtonHovered]          = rgba_apply_redlight(ImVec4(0.60f, 0.48f, 0.11f, 0.79f));
+    colors[ImGuiCol_ButtonActive]           = rgba_apply_redlight(ImVec4(0.68f, 0.54f, 0.13f, 1.00f));
+    colors[ImGuiCol_Header]                 = ImVec4(0.40f, 0.40f, 0.90f, 0.45f);
+    colors[ImGuiCol_HeaderHovered]          = ImVec4(0.45f, 0.45f, 0.90f, 0.80f);
+    colors[ImGuiCol_HeaderActive]           = ImVec4(0.53f, 0.53f, 0.87f, 0.80f);
+    colors[ImGuiCol_Separator]              = rgba_apply_redlight(ImVec4(0.80f, 0.10f, 0.10f, 0.60f));
+    colors[ImGuiCol_SeparatorHovered]       = rgba_apply_redlight(ImVec4(0.90f, 0.10f, 0.10f, 0.60f));
+    colors[ImGuiCol_SeparatorActive]        = rgba_apply_redlight(ImVec4(0.95, 0.10f, 0.10f, 0.60f));
+    colors[ImGuiCol_ResizeGrip]             = ImVec4(1.00f, 1.00f, 1.00f, 0.10f);
+    colors[ImGuiCol_ResizeGripHovered]      = ImVec4(0.78f, 0.82f, 1.00f, 0.60f);
+    colors[ImGuiCol_ResizeGripActive]       = ImVec4(0.78f, 0.82f, 1.00f, 0.90f);
+    colors[ImGuiCol_InputTextCursor]        = rgba_apply_redlight(ImVec4(0.90f, 0.05f, 0.08f, 1.00f));
+    colors[ImGuiCol_TabHovered]             = colors[ImGuiCol_HeaderHovered];
+    // TODO: Bring these back if ever we add tabbed interfaces. May require #include imgui_internal.h.
+    // colors[ImGuiCol_Tab]                    = ImGui::ImLerp(colors[ImGuiCol_Header],       colors[ImGuiCol_TitleBgActive], 0.80f);
+    // colors[ImGuiCol_TabSelected]            = ImGui::ImLerp(colors[ImGuiCol_HeaderActive], colors[ImGuiCol_TitleBgActive], 0.60f);
+    colors[ImGuiCol_TabSelectedOverline]    = colors[ImGuiCol_HeaderActive];
+    // colors[ImGuiCol_TabDimmed]              = ImGui::ImLerp(colors[ImGuiCol_Tab],          colors[ImGuiCol_TitleBg], 0.80f);
+    // colors[ImGuiCol_TabDimmedSelected]      = ImGui::ImLerp(colors[ImGuiCol_TabSelected],  colors[ImGuiCol_TitleBg], 0.40f);
+    colors[ImGuiCol_TabDimmedSelectedOverline] = ImVec4(0.53f, 0.53f, 0.87f, 0.00f);
+    colors[ImGuiCol_PlotLines]              = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
+    colors[ImGuiCol_PlotLinesHovered]       = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
+    colors[ImGuiCol_PlotHistogram]          = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
+    colors[ImGuiCol_PlotHistogramHovered]   = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
+    colors[ImGuiCol_TableHeaderBg]          = ImVec4(0.27f, 0.27f, 0.38f, 1.00f);
+    colors[ImGuiCol_TableBorderStrong]      = ImVec4(0.31f, 0.31f, 0.45f, 1.00f);   // Prefer using Alpha=1.0 here
+    colors[ImGuiCol_TableBorderLight]       = ImVec4(0.26f, 0.26f, 0.28f, 1.00f);   // Prefer using Alpha=1.0 here
+    colors[ImGuiCol_TableRowBg]             = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+    colors[ImGuiCol_TableRowBgAlt]          = ImVec4(1.00f, 1.00f, 1.00f, 0.07f);
+    colors[ImGuiCol_TextLink]               = colors[ImGuiCol_HeaderActive];
+    colors[ImGuiCol_TextSelectedBg]         = ImVec4(0.00f, 0.00f, 1.00f, 0.35f);
+    colors[ImGuiCol_TreeLines]              = colors[ImGuiCol_Border];
+    colors[ImGuiCol_DragDropTarget]         = ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
+    colors[ImGuiCol_DragDropTargetBg]       = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+    colors[ImGuiCol_UnsavedMarker]          = ImVec4(0.90f, 0.90f, 0.90f, 1.00f);
+    colors[ImGuiCol_NavCursor]              = colors[ImGuiCol_HeaderHovered];
+    colors[ImGuiCol_NavWindowingHighlight]  = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
+    colors[ImGuiCol_NavWindowingDimBg]      = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
+    colors[ImGuiCol_ModalWindowDimBg]       = ImVec4(0.20f, 0.20f, 0.20f, 0.35f);
+}
+

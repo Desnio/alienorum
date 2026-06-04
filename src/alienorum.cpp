@@ -1962,7 +1962,7 @@ void process_key_cmd_char(char c)
         compute_object_draw_coordinates();
         break;
 
-        case 'R': redlight_mode = !redlight_mode; break;
+        case 'R': redlight_mode = !redlight_mode; apply_default_style(); break;
         case 's': statuswnd = !statuswnd; break;
         case 'S': selected = -1; break;
 
@@ -3112,6 +3112,8 @@ int main (int argc, char** argv)
         splash_star_positions[i] = ImVec2(frand(0, screen_x), frand(0, screen_y));
         splash_star_brghtness[i] = frand(0.1, 2.9) * pow(frand(0,1), 2);
     }
+
+    apply_default_style();
 
     // Main loop
     bool done = false;
