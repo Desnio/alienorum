@@ -10,7 +10,6 @@
 #include <thread>
 #include <chrono>
 #include <stdio.h>
-#include <chrono>
 #include <format>
 #include <SDL.h>
 #include <SDL_opengl.h>
@@ -2920,6 +2919,12 @@ int main (int argc, char** argv)
         if (!strcmp(argv[l], "jd"))
         {
             setjd = argv[++l];
+        }
+
+        if (!strcmp(argv[l], "theme"))
+        {
+            std::string theme = argv[++l];
+            global_style.load(theme);
         }
 
         if (!strcmp(argv[l], "magtest")) magnitude_test = true;

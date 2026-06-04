@@ -1,8 +1,15 @@
 #include <math.h>
 #include <algorithm>
+#include <iomanip>
+#include <sstream>
+#include <string>
+#include <fstream>
 #include <iostream>
+#include <filesystem>
 #include "point.h"
 #include "color.h"
+#include "nlohmann/json.hpp"
+#include "imgui/imgui.h"
 
 using namespace std;
 double global_brightness = default_brightness;
@@ -212,3 +219,86 @@ void apply_default_style()
     colors[ImGuiCol_ModalWindowDimBg]       = ImVec4(0.20f, 0.20f, 0.20f, 0.35f);
 }
 
+bool AlienStyle::load(std::string theme)
+{
+    std::string filename = "assets/themes.json";
+    fstream fs(filename.c_str(), std::ios::in);
+    if (!fs) return false;
+
+    float r, g, b, a;
+    json j;
+
+    fs >> j;
+    if (!j.size()) return false;
+
+    try
+    {
+        j = j.at(theme.c_str());
+    }
+    catch (...)
+    {
+        return false;
+    }
+
+    try
+    {
+        json l = j.at("cursor");
+        l.at(0).get_to(r); l.at(1).get_to(g); l.at(2).get_to(b); l.at(3).get_to(a);
+        global_style.cursor_color1 = IM_COL32(255*r, 255*g, 255*b, 255*a);
+        float r1 = fmax(0, fmin(1.0, 1.666*r + 0.2*b - 0.2*g)),
+              g1 = fmax(0, fmin(1.0, 1.666*g + 0.2*r - 0.2*b)),
+              b1 = fmax(0, fmin(1.0, 1.666*b + 0.2*g - 0.2*r));
+        global_style.cursor_color2 = IM_COL32(255*r1, 255*g1, 255*b1, 255*a);
+        r = fmax(0, fmin(1.0, 1.666*r1 + 0.2*b1 - 0.2*g1));
+        g = fmax(0, fmin(1.0, 1.666*g1 + 0.2*r1 - 0.2*b1));
+        b = fmax(0, fmin(1.0, 1.666*b1 + 0.2*g1 - 0.2*r1));
+        global_style.cursor_color3 = IM_COL32(255*r, 255*g, 255*b, 255*a);
+    }
+    catch (...) { ; }
+    try
+    {
+        json l = j.at("grid");
+        l.at(0).get_to(r); l.at(1).get_to(g); l.at(2).get_to(b); l.at(3).get_to(a);
+        global_style.grid_color = IM_COL32(255*r, 255*g, 255*b, 255*a);
+        global_style.grid_color_brighter = IM_COL32(255*r, 255*g, 255*b, min(255, (int)(255*a*1.5)));
+    }
+    catch (...) { ; }
+    try
+    {
+        json l = j.at("ecliptic");
+        l.at(0).get_to(r); l.at(1).get_to(g); l.at(2).get_to(b); l.at(3).get_to(a);
+        global_style.ecliptic_color = IM_COL32(255*r, 255*g, 255*b, 255*a);
+    }
+    catch (...) { ; }
+    try
+    {
+        json l = j.at("consline");
+        l.at(0).get_to(r); l.at(1).get_to(g); l.at(2).get_to(b); l.at(3).get_to(a);
+        global_style.consline_color = IM_COL32(255*r, 255*g, 255*b, 255*a);
+    }
+    catch (...) { ; }
+    try
+    {
+        json l = j.at("conslbl");
+        l.at(0).get_to(r); l.at(1).get_to(g); l.at(2).get_to(b); l.at(3).get_to(a);
+        global_style.conslbl_color = IM_COL32(255*r, 255*g, 255*b, 255*a);
+    }
+    catch (...) { ; }
+    try
+    {
+        json l = j.at("selected");
+        l.at(0).get_to(r); l.at(1).get_to(g); l.at(2).get_to(b); l.at(3).get_to(a);
+        global_style.selected_color = IM_COL32(255*r, 255*g, 255*b, 255*a);
+        global_style.selected_orbit_color = IM_COL32(255*r, 255*g, 255*b, 85*a);
+    }
+    catch (...) { ; }
+    try
+    {
+        json l = j.at("label");
+        l.at(0).get_to(r); l.at(1).get_to(g); l.at(2).get_to(b); l.at(3).get_to(a);
+        global_style.objlbl_color = IM_COL32(255*r, 255*g, 255*b, 255*a);
+    }
+    catch (...) { ; }
+
+    return true;
+}
