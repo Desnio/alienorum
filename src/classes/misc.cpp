@@ -14,8 +14,8 @@ int selected = -1, trackidx = -1;
 double azimuth = 0, altitude = 0;
 double spin = 0;
 double global_gamma = 1.3;
-double zoom = 1, vm, vmfr;
-bool show_grid = true, show_consln = true, show_xonsm = false, show_labels = true, show_orbits = false, draw_actual_conslines;
+double zoom = 1, vm, vmfr, lbllsys_mass_lim = 2.5e+23;
+bool show_grid = true, show_consln = true, show_xonsm = false, show_labels = true, show_orbits = false, lbl_localsys = true, draw_actual_conslines;
 int cursor_size = 8, circle_size = 2.6, xaorngsim = 0;
 ImU32 cursor_color = IM_COL32(255, 32, 0, 255);
 ImU32 cursor_color1 = IM_COL32(96, 0, 24, 76);
@@ -55,8 +55,10 @@ double appmagn_lblcut = 2.5,
        absmagn_lblcut = -3.5,
        distance_lblcut = 25*light_year;
 char lblcut0[256], lblcut1[256], lblcut2[256];
+int planets_lblcut = 1;
 
 double intrinsic_cutoff = pow(magnbase, -6.5);
+PerlinNoise pn;
 
 const std::string WHITESPACE = " \n\r\t\f\v";
 __uint32_t xonsm[13] = {0x0e432843, 0x0e4328ec, 0x25443485, 0x29cc28ec, 0x29cc513a, 0x43363485, 0x511e0000, 0x511e3485, 0x511e513a, 0x511e5147, 0x511eab3a, 0x2b85e980, 0x57e47000};
@@ -245,4 +247,41 @@ std::string lop_component(const char *name)
     int n = strlen(name);
     if (name[n-1] >= 'A' && name[n-1] <= 'Z' && (name[n-2] == ' ' || (name[n-2] >= '0' && name[n-2] <= '9'))) result = trim(result.substr(0, n-1));
     return result;
+}
+
+bool file_exists(const char *fname)
+{
+    FILE *fp = fopen(fname, "r");
+    if (fp)
+    {
+        fclose(fp);
+        return true;
+    }
+    return false;
+}
+
+// Fractional Brownian Motion helper
+double fBm(double x, double y, double z, int octaves, double lacunarity, double gain)
+{
+    double total = 0.0;
+    double frequency = 1.0;
+    double amplitude = 1.0;
+    double maxValue = 0.0;  // Used for normalizing
+    for (int i = 0; i < octaves; i++)
+    {
+        total += pn.noise(x * frequency, y * frequency, z * frequency) * amplitude;
+        maxValue += amplitude;
+        amplitude *= gain;
+        frequency *= lacunarity;
+    }
+
+    // Normalize to [-1, 1] then shift to [0, 1]
+    return (total / maxValue + 1.0) / 2.0;
+}
+
+int sgn(double f)
+{
+    if (f < 0) return -1;
+    else if (f > 0) return 1;
+    else return 0;
 }
