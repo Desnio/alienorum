@@ -37,7 +37,7 @@ std::string load_univ = "", setjd = "";
 bool catalogs_found = false;
 int num_galaxies=0, num_stars=0, num_planets=0, num_moons=0, num_asteroids=0, num_comets=0, num_sat=0;
 float dispcx, dispcy;
-int frames_without_mousemove = 0, num_stars_in_box, editidx=-1, addcenidx=-1;
+int frames_without_mousemove = 0, num_stars_in_box, editidx=-1, addcenidx=-1, themes_selected_idx=-1;
 double txtyscale, txtycompact, edit_sma, edit_incl, edit_eccn, edit_argperi, edit_epoch,
     edit_node, edit_manom, edit_period, edit_eqincl, edit_equinox, edit_precnode, edit_procargperi;
 bool is_click;
@@ -319,7 +319,6 @@ void load_textures(CelestialObject* cel)
     else if (cel->type == rocky && !cel->surf_map)
     {
         cel->surf_map = new Map();
-        double vmag = cel->cenobj->viewer_magnitude(cel->location);
         cel->surf_map->generate_rocky_map(503, cel->BV_color, ((Planet*)cel)->is_in_con_HZ());
     }
 }
@@ -1437,7 +1436,6 @@ void draw_objects()
                 rgb.g = (int)(col.green* divisor);
                 rgb.b = (int)(col.blue * divisor);
 
-                double flare2 = flare*0.666;
                 #define jmax 3
                 for (j=jmax; j>0; j--)
                 {
@@ -2275,6 +2273,43 @@ void draw_status_window(ImGuiIO& io)
     ImGui::Text("%s", frame_rate.c_str());
     statheight += txtyscale;
 
+    int th = themes.size();
+    if (themes_selected_idx < 0)
+    {
+        for (int n = 0; n < th; n++)
+        {
+            if (!strcmp(themes[n].c_str(), "Perseus"))
+            {
+                themes_selected_idx = n;
+                break;
+            }
+        }
+    }
+
+    ImGuiComboFlags cbothemes_flags = 0;
+    const char* combo_theme_value = themes[themes_selected_idx].c_str();
+    ImGui::Text("%s", "Theme:");
+    ImGui::SameLine();
+    if (ImGui::BeginCombo("##cbothemes", combo_theme_value, cbothemes_flags))
+    {
+        for (int n = 0; n < th; n++)
+        {
+            const bool is_selected = (n == themes_selected_idx);
+            if (ImGui::Selectable(themes[n].c_str(), is_selected))
+            {
+                themes_selected_idx = n;
+                global_style.load(themes[n]);
+                apply_default_style();
+            }
+
+            // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+            if (n == themes_selected_idx)
+                ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+    }
+    statheight += txtyscale;
+
     /////////////////////////////////////////////////////
 
     ImGui::SetWindowPos(ImVec2(statleft, stattop));
@@ -3097,6 +3132,7 @@ int main (int argc, char** argv)
         splash_star_brghtness[i] = frand(0.1, 2.9) * pow(frand(0,1), 2);
     }
 
+    global_style.load("Perseus");           // default
     apply_default_style();
 
     // Main loop

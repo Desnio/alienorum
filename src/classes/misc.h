@@ -115,6 +115,7 @@ long long micronow();
 
 // APP STATUS AND SETTINGS
 extern std::string loading_msg;
+extern std::vector<std::string> themes;
 extern std::mutex mtx;
 extern int ncelobjs, selected, trackidx, cursor_size, circle_size, xaorngsim, objinfwnd_hei, timeout_ms, lmx, lmy, whereami, iamhome,
     is_an_obj_under_cursor, planets_lblcut;
