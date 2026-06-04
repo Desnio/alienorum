@@ -329,7 +329,7 @@ double sphresolution = 0.1;
 bool bugged = false;
 int draw_sphere(CelestialObject* cel, double arad)
 {
-    if (sphresolution < 0.001) sphresolution = 0.001;
+    if (sphresolution < 0.001/sphere_quality) sphresolution = 0.001/sphere_quality;
     bool wireframe = dragging || !cel->onscreen || cel->tmprel.magnitude() < cel->volumetric_mean_radius;
     cel->onscreen = false;
     int i, j, l, m, lastm, n, result=0;
@@ -707,16 +707,16 @@ int draw_sphere(CelestialObject* cel, double arad)
 
     if (!wireframe && cel->onscreen)
     {
-        if (sphere_elapsed.count() >= 1.3e5)
+        if (sphere_elapsed.count() >= (1.3e5*sphere_quality))
         {
-            if (sphresolution < 0.2) sphresolution *= 1.3;
+            if (sphresolution < 0.2/sphere_quality) sphresolution *= 1.3;
             else if (!bugged)
             {
                 std::cout << "System too slow! Texture rendering may be terrible." << std::endl;
                 bugged = true;
             }
         }
-        else if (sphere_elapsed.count() < 8e4 && cel->type != star) sphresolution *= 0.9;
+        else if (sphere_elapsed.count() < (8e4*sphere_quality) && cel->type != star) sphresolution *= 0.9;
     }
 
     return result;
@@ -1942,6 +1942,8 @@ void process_key_cmd_char(char c)
 
         case 'O': show_orbits = !show_orbits; break;
         case 'p': lbl_localsys = !lbl_localsys; break;
+        case 'q': sphere_quality *= 1.3; viewchanged=true; break;
+        case 'Q': sphere_quality *= 0.7; viewchanged=true; break;
 
         case 'r':
         velocity = center;
