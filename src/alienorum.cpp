@@ -338,6 +338,14 @@ int draw_sphere(CelestialObject* cel, double arad)
     std::vector<bool> tdvalid;
     ImU32 gc = rgba_apply_redlight(IM_COL32(176, 170, 164, 255));
     ImU32 gm = rgba_apply_redlight(IM_COL32(  0, 255,   0, 255));
+
+    if (wireframe)
+    {
+        Color wcol = Color::color_from_magnitude_indices(0, cel->BV_color);
+        RGB wrgb = Color::rgb_from_color(wcol, -1);
+        gc = rgba_apply_redlight(IM_COL32(wrgb.r, wrgb.g, wrgb.b, 255));
+    }
+
     bool prev_valid = false;
     bool dwh = false;
     if (cel->typeclass() == class_moon) dwh = ((Moon*)cel)->depth && ((Moon*)cel)->width && ((Moon*)cel)->height;
@@ -533,7 +541,7 @@ int draw_sphere(CelestialObject* cel, double arad)
                             points[2] = todraw[m-1];
                             points[3] = todraw[m];
                             if (map && is_day) rgb = map->color_at(lat, lon);
-                            ImU32 imcol = IM_COL32(is_day*rgb.r, is_day*rgb.g, is_day*rgb.b, 255);
+                            ImU32 imcol = rgba_apply_redlight(IM_COL32(is_day*rgb.r, is_day*rgb.g, is_day*rgb.b, 255));
                             ImGui::GetBackgroundDrawList()->AddConvexPolyFilled(points, 4, imcol);
                             if (m > lastm+1 && tdvalid[m-2])
                             {
@@ -570,7 +578,7 @@ int draw_sphere(CelestialObject* cel, double arad)
         }
 
         // Certain vars are left over from the last iteration; assume values are still good.
-        ImU32 imcol = IM_COL32(is_day*rgb.r, is_day*rgb.g, is_day*rgb.b, 255);
+        ImU32 imcol = rgba_apply_redlight(IM_COL32(is_day*rgb.r, is_day*rgb.g, is_day*rgb.b, 255));
         ImGui::GetBackgroundDrawList()->AddConvexPolyFilled(points, n, imcol);
     }
 
@@ -668,7 +676,7 @@ int draw_sphere(CelestialObject* cel, double arad)
                                 points[i].y += sgn(points[i].y-polycy);
                             }
 
-                            ImU32 imcol = IM_COL32(rgb.r*is_day, rgb.g*is_day, rgb.b*is_day, ring_opacity);
+                            ImU32 imcol = rgba_apply_redlight(IM_COL32(rgb.r*is_day, rgb.g*is_day, rgb.b*is_day, ring_opacity));
                             ImGui::GetBackgroundDrawList()->AddConvexPolyFilled(points, 4, imcol);
 
                             cel->onscreen = true;
