@@ -349,7 +349,7 @@ int draw_sphere(CelestialObject* cel, double arad)
     bool prev_valid = false;
     bool dwh = false;
     if (cel->typeclass() == class_moon) dwh = (((Moon*)cel)->depth && ((Moon*)cel)->width && ((Moon*)cel)->height);
-    double equatorial_radius, theta, vtheta, cos_theta, cos_vtheta, is_day;
+    double equatorial_radius, theta, vtheta, cos_theta, cos_vtheta, is_day, is_night;
     if (dwh)
         equatorial_radius = pow(((Moon*)cel)->depth * ((Moon*)cel)->width, 0.5) * 500;
     else
@@ -425,13 +425,16 @@ int draw_sphere(CelestialObject* cel, double arad)
         }
     }
 
-    Map* map = nullptr;
+    Map *map = nullptr, *nmap = nullptr;
     if (cel->cloud_map) map = cel->cloud_map;
     else if (cel->surf_map) map = cel->surf_map;
-    RGB rgb = Color::rgb_from_color(Color::color_from_magnitude_indices(4.2, cel->BV_color), -1);
+    if (cel->night_map) nmap = cel->night_map;
+    double night_illum = nmap ? 0 : starlight;
+    RGB rgb = Color::rgb_from_color(Color::color_from_magnitude_indices(4.2, cel->BV_color), -1), nrgb = {0,0,0};
     Point cursor, land;
     CelestialObject *lightcen = cel->get_light_center();
     bool self_luminous = (lightcen == cel);
+    ImU32 imcol;
 
     auto sphere_began = std::chrono::high_resolution_clock::now();
     double step = wireframe ? (fiftyseventh*15) : fmax(fmin(M_PI*sphresolution/arad*fiftyseventh, fiftyseventh*2), fiftyseventh*0.2),
@@ -526,9 +529,9 @@ int draw_sphere(CelestialObject* cel, double arad)
                                 if (fabs(theta) < M_PI_2)
                                 {
                                     cos_theta = cos(theta);
-                                    is_day = fmin(1, pow(cos_theta, 0.333) + starlight);
+                                    is_day = fmin(1, pow(cos_theta, 0.333) + night_illum);
                                 }
-                                else is_day = starlight;
+                                else is_day = night_illum;
                             }
 
                             ImVec2 points[4];
@@ -537,7 +540,17 @@ int draw_sphere(CelestialObject* cel, double arad)
                             points[2] = todraw[m-1];
                             points[3] = todraw[m];
                             if (map && is_day) rgb = map->color_at(lat, lon);
-                            ImU32 imcol = rgba_apply_redlight(IM_COL32(is_day*rgb.r, is_day*rgb.g, is_day*rgb.b, 255));
+                            if (nmap)
+                            {
+                                is_night = 1.0 - is_day;
+                                if (is_night) nrgb = nmap->color_at(lat, lon);
+                                imcol = rgba_apply_redlight(IM_COL32(
+                                    is_day*rgb.r + is_night*nrgb.r,
+                                    is_day*rgb.g + is_night*nrgb.g,
+                                    is_day*rgb.b + is_night*nrgb.b,
+                                    255));
+                            }
+                            else imcol = rgba_apply_redlight(IM_COL32(is_day*rgb.r, is_day*rgb.g, is_day*rgb.b, 255));
                             ImGui::GetBackgroundDrawList()->AddConvexPolyFilled(points, 4, imcol);
                             if (m > lastm+1 && tdvalid[m-2])
                             {
