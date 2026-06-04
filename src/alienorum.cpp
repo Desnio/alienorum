@@ -430,8 +430,8 @@ int draw_sphere(CelestialObject* cel, double arad)
     else if (cel->surf_map) map = cel->surf_map;
     RGB rgb = Color::rgb_from_color(Color::color_from_magnitude_indices(4.2, cel->BV_color), -1);
     Point cursor, land;
-    bool self_luminous;
     CelestialObject *lightcen = cel->get_light_center();
+    bool self_luminous = (lightcen == cel);
 
     auto sphere_began = std::chrono::high_resolution_clock::now();
     double step = wireframe ? (fiftyseventh*15) : fmax(fmin(M_PI*sphresolution/arad*fiftyseventh, fiftyseventh*2), fiftyseventh*0.2),
@@ -1389,6 +1389,7 @@ void draw_objects()
             {
                 to_draw_sphere.push_back(cels[i]);
                 to_draw_idx.push_back(i);
+                discinstead[i] = true;
             }
             else
             {
