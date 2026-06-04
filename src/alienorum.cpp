@@ -86,8 +86,8 @@ bool LoadTextureFromFile(const char* file_name, GLuint* out_texture, int* out_wi
     if (f == NULL)
         return false;
     fseek(f, 0, SEEK_END);
-    size_t file_size = (size_t)ftell(f);
-    if (file_size == -1)
+    long file_size = ftell(f);
+    if (file_size == -1L)
         return false;
     fseek(f, 0, SEEK_SET);
     void* file_data = IM_ALLOC(file_size);
@@ -777,7 +777,7 @@ bool load_universe(std::string universe_fname = "universe.json")
         mtx.lock();
         loading_msg = "Loading Universe file...";
         mtx.unlock();
-        if (Serialization::load_all(fs, cels, MAX_CELOBJS))
+        if (Serialization::load_all(fs, cels))
         {
             fs.close();
             for (i=0; cels[i]; i++) if (!strcmp(cels[i]->name, "Earth"))
@@ -1160,7 +1160,7 @@ void compute_object_draw_coordinates()
             switch (cels[i]->typeclass())
             {
                 case class_star:
-                if (star_in_box = (i ? ((Star*)cels[i])->is_in_visible_box(Point(here)) : true)) num_stars_in_box++;              // ANC
+                if ((star_in_box = (i ? ((Star*)cels[i])->is_in_visible_box(Point(here)) : true))) num_stars_in_box++;              // ANC
                 ((Star*)cels[i])->tmp_vis_flag = star_in_box;
                 if (i!=selected && i!=trackidx && i!=editidx && i!=whereami && cels[i]->cenobj!=mycenobj)
                 {
@@ -1603,7 +1603,7 @@ void draw_cons_lines()
                 ImVec2(dx1, dy1), ImVec2(dx2, dy2),
                 rgba_apply_redlight((i<nconsln) ? consline_color : IM_COL32(255, 64, 0, 128)), 1);
 
-        assert (l < conscen.size());
+        assert (l < (int)conscen.size());
         conscen[l] += Cartesian2D((dx1+dx2)/2, (dy1+dy2)/2);
         lnpercons[l]++;
     }
@@ -2160,7 +2160,7 @@ void draw_status_window(ImGuiIO& io)
 
     if (cbolbls_selected_idx == 0)
     {
-        sprintf(lblcut0, "%.2f", appmagn_lblcut);
+        snprintf(lblcut0, sizeof(lblcut0), "%.2f", appmagn_lblcut);
         ImGui::Text("%s", "Mag limit:");
         ImGui::SameLine();
         ImGui::InputText("##appmaglim", lblcut0, 255);
@@ -2169,7 +2169,7 @@ void draw_status_window(ImGuiIO& io)
     }
     else if (cbolbls_selected_idx == 1)
     {
-        sprintf(lblcut1, "%.2f", absmagn_lblcut);
+        snprintf(lblcut1, sizeof(lblcut1), "%.2f", absmagn_lblcut);
         ImGui::Text("%s", "Mag limit:");
         ImGui::SameLine();
         ImGui::InputText("##absmaglim", lblcut1, 255);
@@ -2178,7 +2178,7 @@ void draw_status_window(ImGuiIO& io)
     }
     else if (cbolbls_selected_idx == 2)
     {
-        sprintf(lblcut2, "%.2f", distance_lblcut/light_year);
+        snprintf(lblcut2, sizeof(lblcut2), "%.2f", distance_lblcut/light_year);
         ImGui::Text("%s", "Dist. l.y.:");
         ImGui::SameLine();
         ImGui::InputText("##distlim", lblcut2, 255);
@@ -2899,12 +2899,12 @@ int main (int argc, char** argv)
             continue;
         }
 
-        if (n == ((xonsm[4] & 017) ^ 015))
+        if ((unsigned int)n == ((xonsm[4] & 017) ^ 015))
         {
             const char* ucpdhahzs = "\x2b\x85\xe9\x80\x57\xe4\x70\x00";
             i = 0;
             for (j=0; ucpdhahzs[j]; j++)
-                if (argv[l][j] == ((ucpdhahzs[j] ^ xonsm[j]) & 0377)) i++;
+                if ((unsigned int)argv[l][j] == ((ucpdhahzs[j] ^ xonsm[j]) & 0377)) i++;
 
             if (i==n)
             {
@@ -3090,7 +3090,10 @@ int main (int argc, char** argv)
     int splash_image_height = 0;
     GLuint splash_image_texture = 0;
     bool ret = LoadTextureFromFile("assets/icon_full.png", &splash_image_texture, &splash_image_width, &splash_image_height);
-    IM_ASSERT(ret);
+    if(!ret)
+    {
+        printf("Failed to load icon texture\n");
+    }
 
     ImVec2 splash_star_positions[MAX_SPLASH_STARS];
     double splash_star_brghtness[MAX_SPLASH_STARS];

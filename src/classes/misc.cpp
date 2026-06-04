@@ -14,9 +14,9 @@ int selected = -1, trackidx = -1;
 double azimuth = 0, altitude = 0;
 double spin = 0;
 double global_gamma = 1.3;
-double zoom = 1, vm, vmfr, lbllsys_mass_lim = 2.5e+23;
-bool show_grid = true, show_consln = true, show_xonsm = false, show_labels = true, show_orbits = false, lbl_localsys = true, draw_actual_conslines;
-int cursor_size = 8, circle_size = 2.6, xaorngsim = 0;
+double zoom = 1, vm, vmfr;
+bool show_grid = true, show_consln = true, show_xonsm = false, show_labels = true, show_orbits = false, draw_actual_conslines;
+int cursor_size = 8, circle_size = 2, xaorngsim = 0;
 ImU32 cursor_color = IM_COL32(255, 32, 0, 255);
 ImU32 cursor_color1 = IM_COL32(96, 0, 24, 76);
 ImU32 cursor_color2 = IM_COL32(160, 20, 20, 76);
@@ -110,11 +110,6 @@ std::string Greek_from_abbrev(char *abbrev)
     return std::string("");
 }
 
-std::string Greek_from_abbrev(std::string abbrev)
-{
-    return Greek_from_abbrev(abbrev.c_str());
-}
-
 double blackbody_flux(double T, double nu)
 {
     double c = speed_of_light, h = Planck;
@@ -178,12 +173,12 @@ int Damerau_Levenshtein(const std::string& s1, const std::string& s2)
 
     std::vector<std::vector<int>> dp(m + 1, std::vector<int>(n + 1, 0));
 
-    for (int i = 0; i <= m; ++i) dp[i][0] = i;
-    for (int j = 0; j <= n; ++j) dp[0][j] = j;
+    for (std::size_t i = 0; i <= m; ++i) dp[i][0] = i;
+    for (std::size_t j = 0; j <= n; ++j) dp[0][j] = j;
 
-    for (int i = 1; i <= m; ++i)
+    for (std::size_t i = 1; i <= m; ++i)
     {
-        for (int j = 1; j <= n; ++j)
+        for (std::size_t j = 1; j <= n; ++j)
         {
             char c1 = s1[i - 1];
             char c2 = s2[j - 1];
