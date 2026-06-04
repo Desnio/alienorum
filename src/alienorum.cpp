@@ -1693,8 +1693,6 @@ void identify_object_under_cursor(ImGuiIO& io)
     if (trackidx >= 0)
     {
         is_an_obj_under_cursor = trackidx;
-        azimuth = -cels[trackidx]->RA_as_radians(here, 0);
-        altitude = cels[trackidx]->Decl_as_radians(here);
     }
     else for (i=0; cels[i] && i<MAX_CELOBJS; i++)
     {
@@ -3288,6 +3286,11 @@ int main (int argc, char** argv)
             {
                 if (!ImGui::IsMouseDown(0) && !ImGui::IsMouseDown(1) && !ImGui::IsMouseDown(2)) draw_mouse_cursor(io);
                 identify_object_under_cursor(io);
+            }
+            if (trackidx >= 0)
+            {
+                azimuth = -cels[trackidx]->RA_as_radians(here, 0);
+                altitude = cels[trackidx]->Decl_as_radians(here);
             }
 
             // Positioning updates
