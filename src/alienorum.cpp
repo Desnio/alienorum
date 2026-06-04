@@ -1953,6 +1953,7 @@ void process_key_cmd_char(char c)
         trackidx = -1;
         here = cels[whereami]->location;
         global_brightness = default_brightness;
+        // Fall through to same functionality
         case '@':
         viewchanged = true;
         simnow = std::time(nullptr);
