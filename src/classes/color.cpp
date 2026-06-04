@@ -251,59 +251,77 @@ bool AlienStyle::load(std::string theme)
                 {
                     json l = j.at("cursor");
                     l.at(0).get_to(r); l.at(1).get_to(g); l.at(2).get_to(b); l.at(3).get_to(a);
-                    global_style.cursor_color1 = IM_COL32(255*r, 255*g, 255*b, 255*a);
+                    cursor_color1 = IM_COL32(255*r, 255*g, 255*b, 255*a);
                     float r1 = fmax(0, fmin(1.0, 1.666*r + 0.2*b - 0.2*g)),
                         g1 = fmax(0, fmin(1.0, 1.666*g + 0.2*r - 0.2*b)),
                         b1 = fmax(0, fmin(1.0, 1.666*b + 0.2*g - 0.2*r));
-                    global_style.cursor_color2 = IM_COL32(255*r1, 255*g1, 255*b1, 255*a);
+                    cursor_color2 = IM_COL32(255*r1, 255*g1, 255*b1, 255*a);
                     r = fmax(0, fmin(1.0, 1.666*r1 + 0.2*b1 - 0.2*g1));
                     g = fmax(0, fmin(1.0, 1.666*g1 + 0.2*r1 - 0.2*b1));
                     b = fmax(0, fmin(1.0, 1.666*b1 + 0.2*g1 - 0.2*r1));
-                    global_style.cursor_color3 = IM_COL32(255*r, 255*g, 255*b, 255*a);
+                    cursor_color3 = IM_COL32(255*r, 255*g, 255*b, 255*a);
+
+                    l.at(0).get_to(r); l.at(1).get_to(g); l.at(2).get_to(b);
+                    double normalize = 1.0 / fmax(fmax(r, g), b);
+                    r *= normalize;
+                    g *= normalize;
+                    b *= normalize;
+
+                    text_cursor_color = ImVec4(r, g, b, 1.00f);
                 }
                 catch (...) { ; }
                 try
                 {
                     json l = j.at("grid");
                     l.at(0).get_to(r); l.at(1).get_to(g); l.at(2).get_to(b); l.at(3).get_to(a);
-                    global_style.grid_color = IM_COL32(255*r, 255*g, 255*b, 255*a);
-                    global_style.grid_color_brighter = IM_COL32(255*r, 255*g, 255*b, min(255, (int)(255*a*1.5)));
+                    grid_color = IM_COL32(255*r, 255*g, 255*b, 255*a);
+                    grid_color_brighter = IM_COL32(255*r, 255*g, 255*b, min(255, (int)(255*a*1.5)));
+                    sep_color = ImVec4(0.8*r, 0.8*g, 0.8*b, 0.60f);
                 }
                 catch (...) { ; }
                 try
                 {
                     json l = j.at("ecliptic");
                     l.at(0).get_to(r); l.at(1).get_to(g); l.at(2).get_to(b); l.at(3).get_to(a);
-                    global_style.ecliptic_color = IM_COL32(255*r, 255*g, 255*b, 255*a);
+                    ecliptic_color = IM_COL32(255*r, 255*g, 255*b, 255*a);
+                    input_bg_color = ImVec4(0.1*r, 0.1*g, 0.1*b, 0.00f);
+                    window_bg_color = ImVec4(0.1*r, 0.1*g, 0.1*b, 0.97);
+                    title_bg_color = ImVec4(0.5*r, 0.5*g, 0.5*b, 0.93f);
+                    title_bg_active = ImVec4(0.6*r, 0.6*g, 0.6*b, 0.94f);
+                    title_bg_collapsed = ImVec4(0.8*r, 0.8*g, 0.8*b, 0.81f);
                 }
                 catch (...) { ; }
                 try
                 {
                     json l = j.at("consline");
                     l.at(0).get_to(r); l.at(1).get_to(g); l.at(2).get_to(b); l.at(3).get_to(a);
-                    global_style.consline_color = IM_COL32(255*r, 255*g, 255*b, 255*a);
+                    consline_color = IM_COL32(255*r, 255*g, 255*b, 255*a);
+                    border_color = ImVec4(0.5*r, 0.5*g, 0.5*b, 0.50f);
                 }
                 catch (...) { ; }
                 try
                 {
                     json l = j.at("conslbl");
                     l.at(0).get_to(r); l.at(1).get_to(g); l.at(2).get_to(b); l.at(3).get_to(a);
-                    global_style.conslbl_color = IM_COL32(255*r, 255*g, 255*b, 255*a);
+                    conslbl_color = IM_COL32(255*r, 255*g, 255*b, 255*a);
                 }
                 catch (...) { ; }
                 try
                 {
                     json l = j.at("selected");
                     l.at(0).get_to(r); l.at(1).get_to(g); l.at(2).get_to(b); l.at(3).get_to(a);
-                    global_style.selected_color = IM_COL32(255*r, 255*g, 255*b, 255*a);
-                    global_style.selected_orbit_color = IM_COL32(255*r, 255*g, 255*b, 85*a);
+                    selected_color = IM_COL32(255*r, 255*g, 255*b, 255*a);
+                    selected_orbit_color = IM_COL32(255*r, 255*g, 255*b, 85*a);
                 }
                 catch (...) { ; }
                 try
                 {
                     json l = j.at("label");
                     l.at(0).get_to(r); l.at(1).get_to(g); l.at(2).get_to(b); l.at(3).get_to(a);
-                    global_style.objlbl_color = IM_COL32(255*r, 255*g, 255*b, 255*a);
+                    objlbl_color = IM_COL32(255*r, 255*g, 255*b, 255*a);
+                    button_color = ImVec4(0.37*r, 0.37*g, 0.37*b, 0.62f);
+                    button_hov_color = ImVec4(0.44*r, 0.44*g, 0.44*b, 0.62f);
+                    button_acv_color = ImVec4(0.53*r, 0.53*g, 0.53*b, 0.62f);
                 }
                 catch (...) { ; }
 
