@@ -786,6 +786,12 @@ RGB Map::color_at(double lat, double lon)
     return result;
 }
 
+// TODO: Make this also work with Moon class width/depth somehow.
+double CelestialObject::get_equatorial_radius()
+{
+    return volumetric_mean_radius * pow(1.0 - oblateness, 0.333);
+}
+
 void Map::generate_rocky_map(int lr, double BV, bool has_water)
 {
     std::srand(static_cast<unsigned int>(std::time(nullptr)));

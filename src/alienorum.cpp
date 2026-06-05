@@ -2576,6 +2576,7 @@ void draw_objedit_window(ImGuiIO& io)
     if (ImGui::InputDouble("##edtmass", &edit_mass, 0, 0, "%.9e"))
     {
         cel->mass = edit_mass * 1000;
+        if (cel->typeclass() == class_planet) ((Planet*)cel)->classify();
         cel->user_edited = true;
         viewchanged = true;
     }
@@ -2715,13 +2716,19 @@ void draw_objedit_window(ImGuiIO& io)
         }
         objedtheight += txtyscale;
 
-        edit_sma = cel->orbit->semimajor_axis / AU;
+        double sma_limit = cel->orbit->center->get_equatorial_radius() + cel->get_equatorial_radius();
+        if (orb->semimajor_axis < sma_limit)
+        {
+            orb->semimajor_axis = sma_limit;
+            orb->compute_period(cel->mass);
+        }
+        edit_sma = orb->semimajor_axis / AU;
         ImGui::Text("%s", "Semimaj.Axis");
         ImGui::SameLine(col1);
         ImGui::SetNextItemWidth(txtwid);
         if (ImGui::InputDouble("##edtsma", &edit_sma, 0, 0, "%.9f"))
         {
-            orb->semimajor_axis = edit_sma * AU;
+            orb->semimajor_axis = fmax(edit_sma * AU, cel->orbit->center->get_equatorial_radius() + cel->get_equatorial_radius());
             if (cel->user_added) orb->compute_period(cel->mass);
             cel->user_edited = true;
             viewchanged = true;
@@ -2742,6 +2749,11 @@ void draw_objedit_window(ImGuiIO& io)
             {
                 cels[editidx]->orbit->period = edit_period * oneday;
                 if (cel->user_added) orb->compute_semimajor_axis(cel->mass);
+                if (orb->semimajor_axis < sma_limit)
+                {
+                    orb->semimajor_axis = sma_limit;
+                    orb->compute_period(cel->mass);
+                }
                 cel->user_edited = true;
                 viewchanged = true;
                 if (cel->typeclass() == class_star) ((Star*)cel)->update_location(simnow);
@@ -3397,31 +3409,31 @@ int main (int argc, char** argv)
             // Keyboard commands
             process_keyboard_commands(io);
             #define steering_rate 0.03
-            if (ImGui::IsKeyDown(ImGuiKey_LeftArrow))
+            if (ImGui::IsKeyDown(ImGuiKey_LeftArrow) && !is_mouse_over_window)
             {
                 Point yaw = rotate3D(yaxis, center, here.equatorial_plane.v, -here.equatorial_plane.a);
                 velocity = rotate3D(velocity, center, yaw, -steering_rate);
                 if (trackidx<0) azimuth -= steering_rate;
             }
-            if (ImGui::IsKeyDown(ImGuiKey_RightArrow))
+            if (ImGui::IsKeyDown(ImGuiKey_RightArrow) && !is_mouse_over_window)
             {
                 Point yaw = rotate3D(yaxis, center, here.equatorial_plane.v, -here.equatorial_plane.a);
                 velocity = rotate3D(velocity, center, yaw,  steering_rate);
                 if (trackidx<0) azimuth += steering_rate;
             }
-            if (ImGui::IsKeyDown(ImGuiKey_UpArrow))
+            if (ImGui::IsKeyDown(ImGuiKey_UpArrow) && !is_mouse_over_window)
             {
                 Point pitch = rotate3D(xaxis, center, here.equatorial_plane.v, -here.equatorial_plane.a);
                 velocity = rotate3D(velocity, center, pitch, -steering_rate);
                 if (trackidx<0) altitude += steering_rate;
             }
-            if (ImGui::IsKeyDown(ImGuiKey_DownArrow))
+            if (ImGui::IsKeyDown(ImGuiKey_DownArrow) && !is_mouse_over_window)
             {
                 Point pitch = rotate3D(xaxis, center, here.equatorial_plane.v, -here.equatorial_plane.a);
                 velocity = rotate3D(velocity, center, pitch,  steering_rate);
                 if (trackidx<0) altitude -= steering_rate;
             }
-            if (ImGui::IsKeyDown(ImGuiKey_End))
+            if (ImGui::IsKeyDown(ImGuiKey_End) && !is_mouse_over_window)
             {
                 double acceleration = velocity.magnitude() * 0.1;
                 Point forward;
@@ -3431,7 +3443,7 @@ int main (int argc, char** argv)
                 forward = rotate3D(forward, center, here.equatorial_plane.v, -here.equatorial_plane.a);
                 velocity += forward;
             }
-            if (ImGui::IsKeyDown(ImGuiKey_Home))
+            if (ImGui::IsKeyDown(ImGuiKey_Home) && !is_mouse_over_window)
             {
                 double acceleration = velocity.magnitude() * 0.1;
                 Point forward;

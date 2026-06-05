@@ -140,6 +140,7 @@ class CelestialObject
     Point tmprel;
 
     CelestialObject* get_light_center();
+    double get_equatorial_radius();
     double viewer_magnitude(CelestialLocation seen_from);
     static double distance_from_magnitudes(double apparent, double absolute);
     std::string RA_as_hms(double seen_equinox);
