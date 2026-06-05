@@ -108,6 +108,12 @@ To add a new object, first select its center of orbit and then press Shift+A. A 
 to create. Currently, only Star, Planet, and Moon will work. After clicking Go, the new object will be added with a
 few default parameters and you will see an edit window to fill in all its other properties.
 
+Alienorum generates fictitious texture maps of objects that don't have a map file in the `maps/` folder. While
+editing, you can save, refresh, and regenerate these fictitious maps. Save creates file with the object's name in
+`maps/`, and refresh reloads the existing file or creates a new texture if the file is absent. The regenerate
+button creates a high resolution texture, never the same as the existing texture, but suitable for world building
+(10000 x 5000 pixels). This will take a moment to complete so be sure to let it finish before saving or retrying.
+
 To export your objects you've created or modified, press U. To load them again next session, first rename your 
 `universe.json` file to something else, let's say `my_universe.json`, then the next time you run Alienorum, run it
 from the command line with the `load` argument like this: `./bin/alienorum load my_universe.json`. Note Alienorum
