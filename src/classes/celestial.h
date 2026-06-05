@@ -85,6 +85,7 @@ class Map
     bool load_from_bmp(std::string filename);
     bool load_from_jpeg(std::string filename);
     bool load_from_png(std::string filename);
+    bool save_to_png(std::string filename);
 
     RGB color_at(double latitude, double longitude);
     void generate_rocky_map(int latitude_resolution, double BV_color, bool has_water);

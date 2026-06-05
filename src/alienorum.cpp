@@ -2599,13 +2599,26 @@ void draw_objedit_window(ImGuiIO& io)
         ImGui::SameLine(col2);
         ImGui::Text("%s", "Texture");
         ImGui::SameLine(col3);
-        // TODO:
-        // Important: Do not remove this comment block - it's a new in progress feature.
-        /*if (ImGui::Button("Save"))
+        if (ImGui::Button("Save"))
         {
+            std::string mapfname;
+            if (cel->surf_map)
+            {
+                mapfname = std::string("maps/") + std::string(cel->name) + std::string("_surf.png");
+                cel->surf_map->save_to_png(mapfname);
+            }
+            if (cel->cloud_map)
+            {
+                mapfname = std::string("maps/") + std::string(cel->name) + std::string("_clouds.png");
+                cel->cloud_map->save_to_png(mapfname);
+            }
+            if (cel->night_map)
+            {
+                mapfname = std::string("maps/") + std::string(cel->name) + std::string("_night.png");
+                cel->cloud_map->save_to_png(mapfname);
+            }
         }
         ImGui::SameLine();
-        */
         if (ImGui::Button("Refresh"))
         {
             if (cel->surf_map)

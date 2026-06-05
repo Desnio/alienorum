@@ -753,6 +753,112 @@ bool Map::load_from_png(std::string filename)
     return true;
 }
 
+bool Map::save_to_png(std::string filename)
+{
+    if (!image_width || !image_height || !green_data)
+    {
+        std::cerr << "Error: no map data to save." << std::endl;
+        return false;
+    }
+
+    FILE *fp = fopen(filename.c_str(), "wb");
+    if (!fp)
+    {
+        std::cerr << "Failed to open " << filename << " for writing." << std::endl;
+        return false;
+    }
+
+    // Initialize the write struct
+    png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+    if (!png_ptr)
+    {
+        fclose(fp);
+        std::cerr << "Failed to initialize PNG write struct." << std::endl;
+        return false;
+    }
+
+    // Initialize the info struct
+    png_infop info_ptr = png_create_info_struct(png_ptr);
+    if (!info_ptr)
+    {
+        png_destroy_write_struct(&png_ptr, NULL);
+        fclose(fp);
+        std::cerr << "Failed to initialize PNG info struct." << std::endl;
+        return false;
+    }
+
+    // Set up error handling (required by libpng)
+    if (setjmp(png_jmpbuf(png_ptr)))
+    {
+        png_destroy_write_struct(&png_ptr, &info_ptr);
+        fclose(fp);
+        std::cerr << "Something went wrong." << std::endl;
+        return false;
+    }
+
+    // Set up the output stream
+    png_init_io(png_ptr, fp);
+
+    // Configure image properties
+    png_set_IHDR(
+        png_ptr,
+        info_ptr,
+        image_width,
+        image_height,
+        8,                          // 8 bits per channel
+        PNG_COLOR_TYPE_RGB,         // RGB channels (3 bytes per pixel)
+        PNG_INTERLACE_NONE,
+        PNG_COMPRESSION_TYPE_DEFAULT,
+        PNG_FILTER_TYPE_DEFAULT
+    );
+
+    // Map the 1D buffer to row pointers
+    png_bytepp row_pointers = (png_bytepp)malloc(sizeof(png_bytep) * image_height);
+    if (!row_pointers)
+    {
+        png_destroy_write_struct(&png_ptr, &info_ptr);
+        fclose(fp);
+        std::cerr << "Failed to map row pointers." << std::endl;
+        return false;
+    }
+
+    // Create a buffer to hold the data to be written
+    png_bytep buffer = (png_bytep)malloc(image_width * image_height * 3);
+
+    // Populate the buffer with data.
+    int row_stride = image_width * 3;               // 3 bytes per pixel for RGB
+    for (int y = 0; y < image_height; y++)
+    {
+        int iy = image_width*y;
+        int ry = row_stride*y;
+        for (int x = 0; x < image_width; x++)
+        {
+            int rx = x*3;
+            buffer[ry + rx   ] = red_data[iy + x];
+            buffer[ry + rx +1] = green_data[iy + x];
+            buffer[ry + rx +2] = blue_data[iy + x];
+        }
+    }
+
+    // Set up the row pointers to point to the buffer.
+    for (int y = 0; y < image_height; y++)
+    {
+        row_pointers[y] = &buffer[y * row_stride];
+    }
+
+    // Write data to file
+    png_write_info(png_ptr, info_ptr);
+    png_write_image(png_ptr, row_pointers);
+    png_write_end(png_ptr, NULL);
+
+    // Clean up resources
+    free(row_pointers);
+    png_destroy_write_struct(&png_ptr, &info_ptr);
+    fclose(fp);
+
+    return true;
+}
+
 RGB Map::color_at(double lat, double lon)
 {
     RGB result;
