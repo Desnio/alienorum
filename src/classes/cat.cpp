@@ -179,6 +179,12 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
     for (offset=0; offset<max && cels[offset]; offset++);
     if (offset >= (max-1)) return 0;
 
+    if (!hdcache)
+    {
+        hdcache = new Star*[MAX_HD+1];
+        memset(hdcache, 0, sizeof(Star*)*(MAX_HD+1));
+    }
+
     FILE* fp = fopen(path.c_str(), "rb");
 
     while (fgets(buffer, 300, fp))
@@ -354,6 +360,7 @@ int CatalogReader::read_Gliese_catalog(CelestialObject **cels, int max)
         // 147-152  I6     ---     HD       [15/352860]? designation
         read_field_onebased(buffer, 147, 152, field);
         s->HD = atoi(field);
+        if (!hdcache[s->HD]) hdcache[s->HD] = s;
 
         s->update_location(J2000_TIME_T);
 
@@ -421,19 +428,27 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
     double deg, mnt, sec;
     bool HDfound;
     double f;
+    char comp = 0;
     StarMulti *current_multi = nullptr;
     unsigned int current_multi_hrno;
 
     for (offset=0; offset<max && cels[offset]; offset++);
     if (offset >= (max-1)) return 0;
 
-    hdcache = new Star*[MAX_HD+1];
-    memset(hdcache, 0, sizeof(Star*)*(MAX_HD+1));
+    if (!hdcache)
+    {
+        hdcache = new Star*[MAX_HD+1];
+        memset(hdcache, 0, sizeof(Star*)*(MAX_HD+1));
+    }
     FILE* fp = fopen(path.c_str(), "rb");
 
     Star *s, *A = nullptr;
     while (fgets(buffer, 65520, fp))
     {
+        //   50- 51  A2     ---     ADScomp  ADS number components
+        comp = buffer[49];          // Correct for one-based field description.
+        if (comp < 'A') comp = 0;
+
         //   1-  4  I4     ---     HR       [1/9110]+ Harvard Revised Number = Bright Star Number
         read_field_onebased(buffer, 1, 4, field);
         HR = atoi(field);
@@ -444,6 +459,11 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
         HDfound = false;
         if (HD)
         {
+            if (comp <= 'A' && hdcache[HD])
+            {
+                s = hdcache[HD];
+                HDfound = true;
+            }
             for (j=0; j<offset; j++)
             {
                 if (cels[j]->type == star && ((Star*)cels[j])->HD == HD)
@@ -461,12 +481,15 @@ int CatalogReader::read_BrightStars_catalog(CelestialObject **cels, int max)
             s->type = star;
         }
 
-        if (HD) hdcache[HD] = s;
+        if (HD)
+        {
+            if (comp <= 'A') hdcache[HD] = s;
+        }
 
         read_field_onebased(buffer, 1, 4, field);
         s->HR = HR;
 
-        //    5- 14  A10    ---     Name     Name, generally Bayer and/or Flamsteed name
+        //   5- 14  A10    ---     Name     Name, generally Bayer and/or Flamsteed name
         read_field_onebased(buffer, 5, 14, field);
         if (strlen(trim(field).c_str())) strcpy(s->name, trim(field).c_str());
 
@@ -677,8 +700,16 @@ int CatalogReader::read_Hipparcos_catalog(CelestialObject **cels, int max)
     for (offset=0; offset<max && cels[offset]; offset++);
     if (offset >= (max-1)) return 0;
 
-    hipcache = new Star*[MAX_HIP+1];
-    memset(hipcache, 0, sizeof(Star*)*(MAX_HIP+1));
+    if (!hdcache)
+    {
+        hdcache = new Star*[MAX_HD+1];
+        memset(hdcache, 0, sizeof(Star*)*(MAX_HD+1));
+    }
+    if (!hipcache)
+    {
+        hipcache = new Star*[MAX_HIP+1];
+        memset(hipcache, 0, sizeof(Star*)*(MAX_HIP+1));
+    }
 
     for (j=0; j<offset; j++)
     {

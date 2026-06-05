@@ -888,8 +888,8 @@ void load_catalogs()
         int nBSC = cr.read_BrightStars_catalog(cels, MAX_CELOBJS);
         cout << "Read " << nBSC << " objects." << endl << flush;
         ncelobjs += nBSC;
-        Gliese_doubles_fix();
     }
+    Gliese_doubles_fix();
     if (have_HIP)
     {
         mtx.lock();
@@ -1083,49 +1083,11 @@ void cache_cons_lines()
     {
         int founda = -1, foundb = -1;
         float foundamag = 1e9, foundbmag = 1e9;
-        for (j=0; cels[j]; j++)
-        {
-            if (cels[j]->type != star) continue;
-            Star* s = (Star*)cels[j];
-            // Equuleus has some stars with apparent magnitudes dimmer than 6.5 that form part of the shape of the constellation.
-            // If we remove this line, the constellation lines won't all work.
-            if (!strcmp(s->constellation, "Equ") && s->apparent_magnitude > 7.5) continue;
-            else if (s->apparent_magnitude > 6.5) continue;
-            if (founda < 0
-                && 
-                (
-                    !strcmp(s->Bayer, consline_a[i].c_str())
-                    ||
-                    !strcmp(s->Flamsteed, consline_a[i].c_str())
-                    ||
-                    (
-                        consline_a[i].c_str()[0] == 'H' && consline_a[i].c_str()[1] == 'D'
-                        && s->HD && (unsigned)atoi(&consline_a[i].c_str()[2]) == s->HD
-                    )
-                ))
-            {
-                if (s->apparent_magnitude > foundamag) continue;
-                founda = j;
-                foundamag = s->apparent_magnitude;
-            }
-            else if (foundb < 0
-                &&
-                (
-                    !strcmp(s->Bayer, consline_b[i].c_str())
-                    ||
-                    !strcmp(s->Flamsteed, consline_b[i].c_str())
-                    ||
-                    (
-                        consline_b[i].c_str()[0] == 'H' && consline_b[i].c_str()[1] == 'D'
-                        && s->HD && (unsigned)atoi(&consline_b[i].c_str()[2]) == s->HD
-                    )
-                ))
-            {
-                if (s->apparent_magnitude > foundbmag) continue;
-                foundb = j;
-                foundbmag = s->apparent_magnitude;
-            }
-        }
+
+        int rechercher = find_object(consline_a[i].c_str(), true);
+        if (rechercher >= 0) founda = rechercher;
+        rechercher = find_object(consline_b[i].c_str(), true);
+        if (rechercher >= 0) foundb = rechercher;
 
         if (founda < 0) std::cerr << "Warning: Failed to identify " << consline_a[i] << std::endl;
         if (foundb < 0) std::cerr << "Warning: Failed to identify " << consline_b[i] << std::endl;
@@ -1959,7 +1921,13 @@ void process_key_cmd_char(char c)
         trackidx = -1;
         here = cels[whereami]->location;
         global_brightness = default_brightness;
-        // Fall through to same functionality
+        show_consln = show_grid = show_labels = true;
+        show_orbits = false;
+        cbolbls_selected_idx = 0;
+        appmagn_lblcut = 2.5;
+        absmagn_lblcut = -3.5;
+        distance_lblcut = 25*light_year;
+        planets_lblcut = 1;
         [[fallthrough]];
         case '@':
         viewchanged = true;
