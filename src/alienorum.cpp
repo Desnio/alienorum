@@ -1870,12 +1870,17 @@ void center_selected()
 
 void process_key_cmd_char(char c)
 {
+    cel_obj_class cls;
     switch (c)
     {
         case 'A':
         if (selected >= 0) addcenidx = selected;
         else if (trackidx >= 0) addcenidx = trackidx;
         else if (whereami >= 0) addcenidx = whereami;
+        cboceltyp_selected_idx = 2;
+        cls = cels[addcenidx]->typeclass();
+        if (cls == class_planet) cboceltyp_selected_idx = 3;
+        else if (cls == class_moon) cboceltyp_selected_idx = 4;
         addcelwnd = true;
         break;
 
@@ -2055,7 +2060,7 @@ void lookfor_cb()
 void draw_status_window(ImGuiIO& io)
 {
     // TODO: If redlight_mode, set all window and text colors accordingly.
-    int stattop = 0, statleft = 0, statwidth = 254, statheight = txtyscale*2.3;
+    int stattop = 0, statleft = 0;
     ImGui::Begin("Status", &statuswnd, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings);
 
     /////////////////////////////////////////////////////
@@ -2063,41 +2068,33 @@ void draw_status_window(ImGuiIO& io)
     if (ImGui::InputText("##find", lookfor, 255, ImGuiInputTextFlags_EnterReturnsTrue)) lookfor_cb();
     ImGui::SameLine();
     if (ImGui::Button("Find")) lookfor_cb();
-    statheight += txtyscale;
 
     std::string flagstr;
 
     flagstr = (std::string)"Zoom (*/): " + std::to_string(zoom);
     ImGui::Text("%s", flagstr.c_str());
-    statheight += txtyscale;
 
     flagstr = (std::string)"Brghtns (B): " + std::to_string(global_brightness);
     ImGui::Text("%s", flagstr.c_str());
-    statheight += txtyscale;
 
     flagstr = (std::string)"Gamma (`): " + std::to_string(get_gamma());
     ImGui::Text("%s", flagstr.c_str());
-    statheight += txtyscale;
 
     flagstr = (std::string)"RA/Decl (G): "
         + std::string(show_grid ? "ON" : "OFF");
     ImGui::Text("%s", flagstr.c_str());
-    statheight += txtyscale;
 
     flagstr = (std::string)"Cons ln (C): "
         + std::string(show_consln ? (draw_actual_conslines ? "ON" : "(hidden)") : "OFF");
     ImGui::Text("%s", flagstr.c_str());
-    statheight += txtyscale;
 
     flagstr = (std::string)"Labels (L): "
         + std::string(show_labels ? "ON" : "OFF");
     ImGui::Text("%s", flagstr.c_str());
-    statheight += txtyscale;
 
     flagstr = (std::string)"Lbl planets (P): "
         + std::string(lbl_localsys ? "ON" : "OFF");
     ImGui::Text("%s", flagstr.c_str());
-    statheight += txtyscale;
 
     if (lbl_localsys)
     {
@@ -2112,7 +2109,6 @@ void draw_status_window(ImGuiIO& io)
     flagstr = (std::string)"Orbits (Sh+O): "
         + std::string(show_orbits ? "ON" : "OFF");
     ImGui::Text("%s", flagstr.c_str());
-    statheight += txtyscale;
 
     // Pass in the preview value visible before opening the combo (it could technically be different contents or not pulled from items[])
     ImGuiComboFlags cbolbls_flags = 0;
@@ -2136,15 +2132,14 @@ void draw_status_window(ImGuiIO& io)
         }
         ImGui::EndCombo();
     }
-    statheight += txtyscale;
 
     if (cbolbls_selected_idx == 0)
     {
         snprintf(lblcut0, sizeof(lblcut0), "%.2f", appmagn_lblcut);
         ImGui::Text("%s", "Mag limit:");
         ImGui::SameLine();
+        ImGui::SetNextItemWidth(67);
         ImGui::InputText("##appmaglim", lblcut0, 255);
-        statheight += txtyscale*1.3;
         appmagn_lblcut = atof(lblcut0);
     }
     else if (cbolbls_selected_idx == 1)
@@ -2152,9 +2147,8 @@ void draw_status_window(ImGuiIO& io)
         snprintf(lblcut1, sizeof(lblcut1), "%.2f", absmagn_lblcut);
         ImGui::Text("%s", "Mag limit:");
         ImGui::SameLine();
-        ImGui::SetNextItemWidth(81);
+        ImGui::SetNextItemWidth(67);
         ImGui::InputText("##absmaglim", lblcut1, 255);
-        statheight += txtyscale;
         absmagn_lblcut = atof(lblcut1);
     }
     else if (cbolbls_selected_idx == 2)
@@ -2162,37 +2156,32 @@ void draw_status_window(ImGuiIO& io)
         snprintf(lblcut2, sizeof(lblcut2), "%.2f", distance_lblcut/light_year);
         ImGui::Text("%s", "Dist. l.y.:");
         ImGui::SameLine();
+        ImGui::SetNextItemWidth(67);
         ImGui::InputText("##distlim", lblcut2, 255);
-        statheight += txtyscale;
         distance_lblcut = atof(lblcut2)*light_year;
     }
     else if (cbolbls_selected_idx == 4)
     {
         ImGui::Text("%s", "# Planets:");
         ImGui::SameLine();
-        ImGui::SetNextItemWidth(81);
+        ImGui::SetNextItemWidth(67);
         ImGui::InputInt("##npltlim", &planets_lblcut, 1, 0);
-        statheight += txtyscale;
         if (planets_lblcut < 1) planets_lblcut = 1;
     }
 
     flagstr = (std::string)"Redlgt (Sh+R): "
         + std::string(redlight_mode ? "ON" : "OFF");
     ImGui::Text("%s", flagstr.c_str());
-    statheight += txtyscale;
 
     flagstr = (std::string)"Obj info (N): "
         + std::string(objinfwnd ? "ON" : "OFF");
     ImGui::Text("%s", flagstr.c_str());
-    statheight += txtyscale;
 
     flagstr = (std::string)"Status (S): "
         + std::string(statuswnd ? "ON" : "OFF");
     ImGui::Text("%s", flagstr.c_str());
-    statheight += txtyscale;
 
-    ImGui::Text("%s", "-----");
-    statheight += txtyscale;
+    ImGui::Separator();
 
     std::string vfstr;
     if (whereami >= 0)
@@ -2201,7 +2190,6 @@ void draw_status_window(ImGuiIO& io)
     }
     else vfstr = std::string("View from space");
     ImGui::Text("%s", vfstr.c_str());
-    statheight += txtyscale;
 
     if (whereami > 0 && cels[whereami]->type >= gas_giant
         && ((Planet*)cels[whereami])->is_in_con_HZ())
@@ -2236,26 +2224,22 @@ void draw_status_window(ImGuiIO& io)
         oss.str("");
     }
     ImGui::Text("%s", velocstr.c_str());
-    statheight += txtyscale;
 
     std::string numobjs;
     if (num_stars)
     {
         numobjs = std::to_string(num_stars) + " stars";
         ImGui::Text("%s", numobjs.c_str());
-        statheight += txtyscale;
     }
     if (num_stars_in_box>1)             // There will always be at least one.
     {
         numobjs = std::to_string(num_stars_in_box) + " stars in range";
         ImGui::Text("%s", numobjs.c_str());
-        statheight += txtyscale;
     }
     /* if (num_planets)
     {
         numobjs = std::to_string(num_planets) + " planets";
         ImGui::Text("%s", numobjs.c_str());
-        statheight += txtyscale;
     } */
 
     time_t tmpnow = simnow;
@@ -2265,7 +2249,6 @@ void draw_status_window(ImGuiIO& io)
         + std::string("-") + std::string((mon<10)?"0":"") + std::to_string(mon)
         + std::string("-") + std::string((mday<10)?"0":"") + std::to_string(mday);
     ImGui::Text("%s", datedisp.c_str());
-    statheight += txtyscale;
 
     int hr = utc_time->tm_hour, mn = utc_time->tm_min, sec = utc_time->tm_sec;
     std::string timedisp = std::string((hr<10)?"0":"") + std::to_string(hr)
@@ -2273,15 +2256,12 @@ void draw_status_window(ImGuiIO& io)
         + std::string(":") + std::string((sec<10)?"0":"") + std::to_string(sec)
         + std::string(" UTC");
     ImGui::Text("%s", timedisp.c_str());
-    statheight += txtyscale;
 
     std::string JDdisp = std::string("JD") + std::to_string(JDnow);
     ImGui::Text("%s", JDdisp.c_str());
-    statheight += txtyscale;
 
     std::string frame_rate = std::to_string(1.0 / frame_dur) + std::string(" frames/s");
     ImGui::Text("%s", frame_rate.c_str());
-    statheight += txtyscale;
 
     int th = themes.size();
     if (themes_selected_idx < 0)
@@ -2318,16 +2298,16 @@ void draw_status_window(ImGuiIO& io)
         }
         ImGui::EndCombo();
     }
-    statheight += txtyscale;
 
     /////////////////////////////////////////////////////
 
     ImGui::SetWindowPos(ImVec2(statleft, stattop));
-    ImGui::SetWindowSize(ImVec2(statwidth, statheight));
+    ImGui::SetWindowSize(ImVec2(0, 0));
+    ImVec2 siz = ImGui::GetWindowSize();
     ImGui::End();
 
     if (io.MousePos.x >= statleft && io.MousePos.y >= stattop
-        && io.MousePos.x < statleft+statwidth && io.MousePos.y < stattop+statheight)
+        && io.MousePos.x < statleft+siz.x && io.MousePos.y < stattop+siz.y)
         is_mouse_over_window = true;
 }
 
@@ -2335,23 +2315,21 @@ void draw_objinf_window(ImGuiIO& io)
 {
     // TODO: If redlight_mode, set all window and text colors accordingly.
     ImGui::Begin("Object", &objinfwnd, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings);
-    int objinfwidth = 254, objinfheight = txtyscale*2, objinftop = 0, objinfleft = (int)io.DisplaySize.x - objinfwidth;
 
     if (trackidx >= 0)
     {
         ImGui::TextColored(ImVec4(1, 0, 0, 1), "TRACKING");
-        objinfheight += txtyscale;
     }
 
     ImGui::Text("%s", objname.c_str());
-    objinfheight += txtyscale;
 
     int txtlines = std::count(objinfo.begin(), objinfo.end(), '\n');
     ImGui::Text("%s", objinfo.c_str());
-    objinfheight += txtlines*txtycompact;
 
+    ImGui::SetWindowSize(ImVec2(0, 0));
+    ImVec2 siz = ImGui::GetWindowSize();
+    int objinfwidth = siz.x, objinfheight = siz.y, objinftop = 0, objinfleft = (int)io.DisplaySize.x - objinfwidth;
     ImGui::SetWindowPos(ImVec2(objinfleft, objinftop));
-    ImGui::SetWindowSize(ImVec2(objinfwidth, objinfheight));
     ImGui::End();
 
     if (io.MousePos.x >= objinfleft && io.MousePos.y >= objinftop
@@ -2362,7 +2340,8 @@ void draw_objinf_window(ImGuiIO& io)
 void draw_addcel_window(ImGuiIO& io)
 {
     ImGui::Begin("Add Object", &addcelwnd);
-    ImGui::SetWindowSize(ImVec2(225, 123));
+
+    ImGui::Text("New object orbiting %s", cels[addcenidx]->name);
 
     ImGui::Text("%s", "Type");
     ImGui::SameLine();
@@ -2432,6 +2411,7 @@ void draw_addcel_window(ImGuiIO& io)
         }
     }
 
+    ImGui::SetWindowSize(ImVec2(0,0));
     ImVec2 pos = ImGui::GetWindowPos(), siz = ImGui::GetWindowSize();
     ImGui::End();
 
@@ -2873,8 +2853,9 @@ void draw_objedit_window(ImGuiIO& io)
         objedtheight += txtyscale;
     }
 
-    int objedttop = io.DisplaySize.y - objedtheight, objedtleft = io.DisplaySize.x - objedtwidth;
-    ImGui::SetWindowSize(ImVec2(objedtwidth, objedtheight));
+    ImGui::SetWindowSize(ImVec2(0, 0));
+    ImVec2 siz = ImGui::GetWindowSize();
+    int objedttop = io.DisplaySize.y - siz.y, objedtleft = io.DisplaySize.x - siz.x;
     ImGui::SetWindowPos(ImVec2(objedtleft, objedttop));
     ImGui::End();
 
