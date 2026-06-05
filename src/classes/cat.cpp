@@ -1990,10 +1990,24 @@ int CatalogReader::read_exoplanets_catalog(CelestialObject **cels, int max)
 
             if (s && p && p->orbit->period)
             {
+                bool HZ = p->is_in_con_HZ();
+
+                // Star's planet-hosting metrics.
                 ((Star*)s)->has_planets++;
-                if (p->is_in_con_HZ()) ((Star*)s)->has_hz_planets++;
+                if (HZ) ((Star*)s)->has_hz_planets++;
+
+                // Show distance to planet on mouse hover.
                 p->distance_known = true;
-                if (p->mass < rocky_mass_cutoff) p->type = rocky;
+
+                // Estimate semimajor axis if unknown.
+                if (!p->orbit->semimajor_axis) p->orbit->compute_semimajor_axis(p->mass);
+
+                // Estimate planet type.
+                if (p->mass < rocky_mass_cutoff)
+                {
+                    p->type = rocky;
+                    if (HZ) p->BV_color = 0.2;       // estimate same as Earth.
+                }
                 else if (p->orbit->period < oneday*10)
                 {
                     p->type = hot_jupiter;
@@ -2011,7 +2025,11 @@ int CatalogReader::read_exoplanets_catalog(CelestialObject **cels, int max)
                     p->type = gas_giant;
                     p->BV_color = 0.98;     // average of Jupiter and Saturn.
                 }
+
+                // Estimate radius if unknown.
                 if (!p->volumetric_mean_radius) p->estimate_radius();
+
+                // Estimate albedo and absolute magnitude.
                 double p_rad_e = fmax(0.01, p->volumetric_mean_radius / earth_radius);
                 double est_albedo = 0.3;
                 if (p->type == gas_giant) est_albedo = 0.5;
@@ -2020,7 +2038,22 @@ int CatalogReader::read_exoplanets_catalog(CelestialObject **cels, int max)
                 else if (p->type == rocky) est_albedo = (p->mass > 0.5 * earth_mass) ? 0.5 : 0.1;
                 p->absolute_magnitude = fmax(-10, earth_absmag - log(p_rad_e*p_rad_e*est_albedo/earth_albedo) / log(magnbase));
                 p->albedo = est_albedo;
-                if (!p->orbit->semimajor_axis) p->orbit->compute_semimajor_axis(p->mass);
+
+                // Estimate planet rotation.
+                if (p->orbit->period < (40 * oneday)                // This is a TOTAL guess.
+                    || p->type == hot_jupiter)
+                {
+                    p->sidereal_rotational_period = p->orbit->period;
+                }
+                else if (p->orbit->period < (80 * oneday))          // Another guess. Mercury at 58 days has a 3:2 spin-orbit resonance but Iapetus at 79 days is tidally locked.
+                {
+                    p->sidereal_rotational_period = 1.5 * p->orbit->period;
+                }
+                else if (p->type == rocky    ) p->sidereal_rotational_period = 2.38e+6 / log(p->mass);
+                else if (p->type == ice_giant) p->sidereal_rotational_period = 1.74e+6 / log(p->mass);
+                else if (p->type == gas_giant) p->sidereal_rotational_period = 1.11e+6 / log(p->mass);
+
+                // Add planet to celestial bodies array.
                 cels[offset] = p;
                 offset++;
                 cels[offset] = nullptr;

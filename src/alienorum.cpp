@@ -2465,6 +2465,12 @@ void draw_objedit_window(ImGuiIO& io)
         viewchanged = true;
         center_selected();
     }
+    ImGui::SameLine();
+    if (ImGui::Button("Track"))
+    {
+        trackidx = editidx;
+        viewchanged = true;
+    }
     objedtheight += txtyscale;
 
     if (tc == class_star)
