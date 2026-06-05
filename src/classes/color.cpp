@@ -241,7 +241,7 @@ RGB generate_vegetation_color()
     {
         // Favor shorter wavelengths, but allow up to near infrared.
         // Make the longest band the most intense to allow for a strong red edge.
-        bandl[i] = (i?bandl[i-1]:lp)*1.1 + frand(20, frand(100, 250));
+        bandl[i] = (i?bandl[i-1]:lp)*1.03 + frand(5, frand(50, 250));
         bandi[i] = frand(i?bandi[i-1]:0.1, 1);
         if (bandi[i] > maxband) maxband = bandi[i];
 
@@ -262,27 +262,65 @@ RGB generate_vegetation_color()
         #endif
     }
 
-    // Sample the spectrum at 650nm red, 540nm green, and 460nm blue.
-    double r=0.89, g=0.85, b=0.44;                          // Start with a basic straw color.
+    // Start with a basic straw color.
+    double r=0.89, g=0.85, b=0.44;
     double probability_scale = 25.0 / probability_density_function(lp, lp, 29);
-    r *= (lp<650) ? (1.0 - probability_scale * probability_density_function(650, lp, 29)) : 0;
-    g *= (lp<540) ? (1.0 - probability_scale * probability_density_function(540, lp, 29)) : 0;
-    b *= (lp<460) ? (1.0 - probability_scale * probability_density_function(460, lp, 29)) : 0;
-    #if _dbg_veg_color
-    std::cout << "Longpass reduces rgb to " << std::setprecision(3) << r << "," << g << "," << b << std::endl;
-    #endif
-    for (i=0; i<nbands; i++)
-    {
-        double halfwidth = 0.03*bandl[i];
-        probability_scale = 10.0 / probability_density_function(bandl[i], bandl[i], halfwidth);
-        r *= (1.0 / (1.0 + bandi[i] * probability_scale * probability_density_function(650, bandl[i], halfwidth)));
-        g *= (1.0 / (1.0 + bandi[i] * probability_scale * probability_density_function(540, bandl[i], halfwidth)));
-        b *= (1.0 / (1.0 + bandi[i] * probability_scale * probability_density_function(460, bandl[i], halfwidth)));
 
-        #if _dbg_veg_color
-        std::cout << "Band " << (i+1) << " reduces rgb to " << std::setprecision(3) << r << "," << g << "," << b << std::endl;
-        #endif
+    #if _dbg_veg_color
+    std::cout << "Reflectance spectrum of vegetation:" << std::endl;
+    #endif
+
+    // Sample the spectrum to determine total rgb absorption.
+    double spectrum[1000];
+    int l;
+    double rtot=0, gtot=0, btot=0;
+    for (l=250; l<1000; l++)
+    {
+        probability_scale = 25.0 / probability_density_function(lp, lp, 29);
+        spectrum[l] = (lp<l) ? (1.0 / (1.0 + probability_scale * probability_density_function(l, lp, 29))) : 0;
+
+        for (i=0; i<nbands; i++)
+        {
+            double halfwidth = 0.04*bandl[i];
+            probability_scale = 10.0 / probability_density_function(bandl[i], bandl[i], halfwidth);
+            spectrum[l] *= (1.0 / (1.0 + bandi[i] * probability_scale * probability_density_function(l, bandl[i], halfwidth)));
+        }
+
+        if (l >= 400 && l < 510) btot += spectrum[l];
+        if (l >= 480 && l < 600) gtot += spectrum[l];
+        if (l >= 560 && l < 710) rtot += spectrum[l];
     }
+
+    #if _dbg_veg_color
+    for (i=20; i>=0; i--)
+    {
+        for (l=250; l<1000; l+=5)
+        {
+            if (!l) std::cout << "\x1b[38;5;99m";
+            else if (l == 400) std::cout << "\x1b[38;5;21m";
+            else if (l == 480) std::cout << "\x1b[38;5;51m";
+            else if (l == 510) std::cout << "\x1b[38;5;46m";
+            else if (l == 570) std::cout << "\x1b[38;5;226m";
+            else if (l == 590) std::cout << "\x1b[38;5;208m";
+            else if (l == 610) std::cout << "\x1b[38;5;196m";
+            else if (l == 700) std::cout << "\x1b[38;5;89m";
+
+            if (spectrum[l] >= 0.05*i) std::cout << "*";
+            else std::cout << " ";
+        }
+        std::cout << "\x1b[0m" << std::endl;
+    }
+    #endif
+
+    rtot /= 150;
+    gtot /= 120;
+    btot /= 110;
+
+    #if _dbg_veg_color
+    std::cout << "Bands multiply rgb by " << std::setprecision(3) << rtot << "," << gtot << "," << btot << std::endl;
+    #endif
+
+    r *= rtot; g *= gtot; b *= btot;
 
     return { (unsigned char)(r*255), (unsigned char)(g*255), (unsigned char)(b*255) };
 }
