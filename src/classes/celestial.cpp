@@ -956,7 +956,8 @@ void Map::generate_rocky_map(int lr, double BV, bool has_water, double objr)
                 double r_weight = heightValue;
 
                 // TODO: Decide polar ice cap size based on estimated temperature based on bolometric flux.
-                if (v < 0.1 || v > 0.9)
+                double polar_extent = 0.08 * r_weight;
+                if (v < polar_extent || v > (1.0 - polar_extent))
                 {
                     // Polar ice
                     red_data[idx] = 225 * r_weight;
@@ -964,7 +965,7 @@ void Map::generate_rocky_map(int lr, double BV, bool has_water, double objr)
                     blue_data[idx] = 253 * r_weight;
                 }
                 // Biome allocation based on height thresholds
-                if (heightValue < 0.500)
+                else if (heightValue < 0.500)
                 {   // Ocean
                     double sh = heightValue*2;          // shallowness
                     red_data[idx] = (10+20*sh*sh*sh*sh*sh*sh*sh*sh*sh*sh) * r_weight;
