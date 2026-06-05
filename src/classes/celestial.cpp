@@ -903,7 +903,7 @@ void Map::generate_rocky_map(int lr, double BV, bool has_water)
     std::srand(static_cast<unsigned int>(std::time(nullptr)));
 
     int octaves = 5 + (rand() % 4);
-    double lacunarity = frand(1.0, 2.9);
+    double lacunarity = frand(2.1, 2.9);
     double gain = has_water ? 0.5 : 2.5;
     double scale = frand(has_water ? 1.5 : 0.2, has_water ? 2.9 : 0.8);             // Controls feature sizes (smaller scale = larger continents)
 

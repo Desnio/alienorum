@@ -213,113 +213,117 @@ void load_textures(CelestialObject* cel)
 {
     std::string filename;
 
-    filename = (std::string)"maps/" + (std::string)cel->name + (std::string)"_clouds.jpg";
-    if (file_exists(filename.c_str()))
+    if (!cel->ignore_map_files)                 // For regenerating exoplanet textures.
     {
-        Map *map = new Map();
-        if (map->load_from_jpeg(filename)) cel->cloud_map = map;
-    }
-    else
-    {
-        filename = (std::string)"maps/" + (std::string)cel->name + (std::string)"_clouds.png";
+        filename = (std::string)"maps/" + (std::string)cel->name + (std::string)"_clouds.jpg";
         if (file_exists(filename.c_str()))
         {
             Map *map = new Map();
-            if (map->load_from_png(filename)) cel->cloud_map = map;
+            if (map->load_from_jpeg(filename)) cel->cloud_map = map;
         }
-    }
-
-    filename = (std::string)"maps/" + (std::string)cel->name + (std::string)"_surf.jpg";
-    if (file_exists(filename.c_str()))
-    {
-        Map *map = new Map();
-        if (map->load_from_jpeg(filename)) cel->surf_map = map;
-    }
-    else
-    {
-        filename = (std::string)"maps/" + (std::string)cel->name + (std::string)"_surf.png";
-        if (file_exists(filename.c_str()))
+        else
         {
-            Map *map = new Map();
-            if (map->load_from_png(filename)) cel->surf_map = map;
+            filename = (std::string)"maps/" + (std::string)cel->name + (std::string)"_clouds.png";
+            if (file_exists(filename.c_str()))
+            {
+                Map *map = new Map();
+                if (map->load_from_png(filename)) cel->cloud_map = map;
+            }
         }
-    }
 
-    filename = (std::string)"maps/" + (std::string)cel->name + (std::string)"_bump.jpg";
-    if (file_exists(filename.c_str()))
-    {
-        Map *map = new Map();
-        if (map->load_from_jpeg(filename)) cel->bump_map = map;
-    }
-    else
-    {
-        filename = (std::string)"maps/" + (std::string)cel->name + (std::string)"_bump.png";
+        filename = (std::string)"maps/" + (std::string)cel->name + (std::string)"_surf.jpg";
         if (file_exists(filename.c_str()))
         {
             Map *map = new Map();
-            if (map->load_from_png(filename)) cel->bump_map = map;
+            if (map->load_from_jpeg(filename)) cel->surf_map = map;
         }
-    }
-
-    filename = (std::string)"maps/" + (std::string)cel->name + (std::string)"_night.jpg";
-    if (file_exists(filename.c_str()))
-    {
-        Map *map = new Map();
-        if (map->load_from_jpeg(filename)) cel->night_map = map;
-    }
-    else
-    {
-        filename = (std::string)"maps/" + (std::string)cel->name + (std::string)"_night.png";
-        if (file_exists(filename.c_str()))
+        else
         {
-            Map *map = new Map();
-            if (map->load_from_png(filename)) cel->night_map = map;
+            filename = (std::string)"maps/" + (std::string)cel->name + (std::string)"_surf.png";
+            if (file_exists(filename.c_str()))
+            {
+                Map *map = new Map();
+                if (map->load_from_png(filename)) cel->surf_map = map;
+            }
         }
-    }
 
-    filename = (std::string)"maps/" + (std::string)cel->name + (std::string)"_ring.jpg";
-    if (file_exists(filename.c_str()))
-    {
-        Map *map = new Map();
-        if (map->load_from_jpeg(filename)) cel->ring_map = map;
-    }
-    else
-    {
-        filename = (std::string)"maps/" + (std::string)cel->name + (std::string)"_ring.png";
+        filename = (std::string)"maps/" + (std::string)cel->name + (std::string)"_bump.jpg";
         if (file_exists(filename.c_str()))
         {
             Map *map = new Map();
-            if (map->load_from_png(filename)) cel->ring_map = map;
+            if (map->load_from_jpeg(filename)) cel->bump_map = map;
         }
-    }
+        else
+        {
+            filename = (std::string)"maps/" + (std::string)cel->name + (std::string)"_bump.png";
+            if (file_exists(filename.c_str()))
+            {
+                Map *map = new Map();
+                if (map->load_from_png(filename)) cel->bump_map = map;
+            }
+        }
 
-    filename = (std::string)"maps/" + (std::string)cel->name + (std::string)"_ringx.jpg";
-    if (file_exists(filename.c_str()))
-    {
-        Map *map = new Map();
-        if (map->load_from_jpeg(filename)) cel->ringx_map = map;
-    }
-    else
-    {
-        filename = (std::string)"maps/" + (std::string)cel->name + (std::string)"_ringx.png";
+        filename = (std::string)"maps/" + (std::string)cel->name + (std::string)"_night.jpg";
         if (file_exists(filename.c_str()))
         {
             Map *map = new Map();
-            if (map->load_from_png(filename)) cel->ringx_map = map;
+            if (map->load_from_jpeg(filename)) cel->night_map = map;
+        }
+        else
+        {
+            filename = (std::string)"maps/" + (std::string)cel->name + (std::string)"_night.png";
+            if (file_exists(filename.c_str()))
+            {
+                Map *map = new Map();
+                if (map->load_from_png(filename)) cel->night_map = map;
+            }
+        }
+
+        filename = (std::string)"maps/" + (std::string)cel->name + (std::string)"_ring.jpg";
+        if (file_exists(filename.c_str()))
+        {
+            Map *map = new Map();
+            if (map->load_from_jpeg(filename)) cel->ring_map = map;
+        }
+        else
+        {
+            filename = (std::string)"maps/" + (std::string)cel->name + (std::string)"_ring.png";
+            if (file_exists(filename.c_str()))
+            {
+                Map *map = new Map();
+                if (map->load_from_png(filename)) cel->ring_map = map;
+            }
+        }
+
+        filename = (std::string)"maps/" + (std::string)cel->name + (std::string)"_ringx.jpg";
+        if (file_exists(filename.c_str()))
+        {
+            Map *map = new Map();
+            if (map->load_from_jpeg(filename)) cel->ringx_map = map;
+        }
+        else
+        {
+            filename = (std::string)"maps/" + (std::string)cel->name + (std::string)"_ringx.png";
+            if (file_exists(filename.c_str()))
+            {
+                Map *map = new Map();
+                if (map->load_from_png(filename)) cel->ringx_map = map;
+            }
         }
     }
 
     cel->looked_for_maps = true;
+    cel->ignore_map_files = false;          // one-time use.
 
     if ((cel->type == gas_giant || cel->type == ice_giant || cel->type == hot_jupiter) && !cel->cloud_map)
     {
         cel->cloud_map = new Map();
-        cel->cloud_map->generate_gas_giant_map(503, cel->BV_color);
+        cel->cloud_map->generate_gas_giant_map(cel->fictitious_map_height, cel->BV_color);
     }
     else if ((cel->type == rocky || cel->type == icy) && !cel->surf_map)
     {
         cel->surf_map = new Map();
-        cel->surf_map->generate_rocky_map(503, cel->BV_color,
+        cel->surf_map->generate_rocky_map(cel->fictitious_map_height, cel->BV_color,
             cel->mass > 0.02 * earth_mass                       // Based on Titan's mass.
             && ((Planet*)cel)->is_in_con_HZ());
     }
@@ -371,7 +375,7 @@ int draw_sphere(CelestialObject* cel, double arad)
 
     if (!wireframe && !cel->looked_for_maps)
     {
-        cel->looked_for_maps = true;
+        cel->looked_for_maps = true;                // Prevent spawning infinite threads and crashing the system.
         std::thread ttex(load_textures, cel);
         ttex.detach();
     }
@@ -2637,6 +2641,28 @@ void draw_objedit_window(ImGuiIO& io)
                 cel->night_map = nullptr;
             }
             cel->looked_for_maps = false;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Regenerate"))
+        {
+            if (cel->surf_map)
+            {
+                delete cel->surf_map;
+                cel->surf_map = nullptr;
+            }
+            if (cel->cloud_map)
+            {
+                delete cel->cloud_map;
+                cel->cloud_map = nullptr;
+            }
+            if (cel->night_map)
+            {
+                delete cel->night_map;
+                cel->night_map = nullptr;
+            }
+            cel->fictitious_map_height = 5000;          // World-building resolution.
+            cel->looked_for_maps = false;
+            cel->ignore_map_files = true;
         }
     }
 
