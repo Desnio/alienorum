@@ -1900,7 +1900,7 @@ int CatalogReader::read_exoplanets_catalog(CelestialObject **cels, int max)
                             j = find_object(star_name.c_str(), true);
                             if (j < 0)
                             {
-                                std::cout << "Warning: failed to identify star " << star_name << std::endl;
+                                std::cout << "Warning: failed to identify star " << star_name << "; adding from exoplanet catalog." << std::endl;
                                 break;
                             }
                             if (cels[j]->typeclass() != class_star)
@@ -2149,7 +2149,9 @@ int CatalogReader::read_star_orbits_dat(CelestialObject **cels)
         std::string cenname = trim(field);
         const char* censtr = cenname.c_str();
         A = nullptr;
-        for (i=0; cels[i]; i++) if (!strcmp(cels[i]->name, censtr)
+        int sioxt = find_object(censtr, false);
+        if (sioxt >= 0) A = (Star*)cels[sioxt];
+        else for (i=0; cels[i]; i++) if (!strcmp(cels[i]->name, censtr)
             || (cels[i]->typeclass() == class_star && censtr[0] == 'H' && censtr[1] == 'D' && (__uint32_t)atoi(&censtr[2]) == ((Star*)cels[i])->HD)
             )
         {
@@ -2201,7 +2203,9 @@ int CatalogReader::read_star_orbits_dat(CelestialObject **cels)
         }
 
         s = nullptr;
-        for (i=0; cels[i]; i++) if (!strcmp(cels[i]->name, bdystr)
+        sioxt = find_object(bdystr, true);
+        if (sioxt >= 0) s = (Star*)cels[sioxt];
+        else for (i=0; cels[i]; i++) if (!strcmp(cels[i]->name, bdystr)
             || (cels[i]->typeclass() == class_star && bdystr[0] == 'H' && bdystr[1] == 'D' && (__uint32_t)atoi(&bdystr[2]) == ((Star*)cels[i])->HD)
             )
         {

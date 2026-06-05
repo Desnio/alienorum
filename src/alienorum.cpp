@@ -935,15 +935,15 @@ void load_catalogs()
     }
 
     mtx.lock();
-    loading_msg = std::string("Orbiting stars...");
-    mtx.unlock();
-    cr.read_star_orbits_dat(cels);
-
-    mtx.lock();
     loading_msg = std::string("Naming stars...");
     mtx.unlock();
     rename_all_from_Bayer_Flamsteed();
     cr.read_starname_dat(cels);
+
+    mtx.lock();
+    loading_msg = std::string("Orbiting stars...");
+    mtx.unlock();
+    cr.read_star_orbits_dat(cels);
 
     if (magnitude_test)
     {
@@ -1081,16 +1081,16 @@ void cache_cons_lines()
     consbidx = new int[nconsln+16];
     for (i=0; i<nconsln; i++)
     {
-        int founda = -1, foundb = -1;
-        float foundamag = 1e9, foundbmag = 1e9;
+        int founda = -1, foundb = -1, rechercher;
 
-        int rechercher = find_object(consline_a[i].c_str(), true);
+        double mag_limit = (considx[i] == 34) ? 7.5 : 6.5;
+        rechercher = find_object(consline_a[i].c_str(), true, mag_limit);
         if (rechercher >= 0) founda = rechercher;
-        rechercher = find_object(consline_b[i].c_str(), true);
+        rechercher = find_object(consline_b[i].c_str(), true, mag_limit);
         if (rechercher >= 0) foundb = rechercher;
 
-        if (founda < 0) std::cerr << "Warning: Failed to identify " << consline_a[i] << std::endl;
-        if (foundb < 0) std::cerr << "Warning: Failed to identify " << consline_b[i] << std::endl;
+        if (founda < 0) std::cerr << "Warning: Failed to identify " << consline_a[i] << " for constellation lines." << std::endl;
+        if (foundb < 0) std::cerr << "Warning: Failed to identify " << consline_b[i] << " for constellation lines." << std::endl;
 
         consaidx[i] = founda;
         consbidx[i] = foundb;
@@ -2386,7 +2386,7 @@ void draw_addcel_window(ImGuiIO& io)
                 {
                     cels[ncelobjs]->orbit = new Orbit();
                     cels[ncelobjs]->orbit->center = cels[addcenidx];
-                    cels[ncelobjs]->orbit->semimajor_axis = 1e6;
+                    cels[ncelobjs]->orbit->semimajor_axis = 1e8;
                     cels[ncelobjs]->orbit->period = oneday*7;
                     cels[ncelobjs]->orbit->epoch = JDnow;
                     cels[ncelobjs]->cenobj = cels[addcenidx]->cenobj;

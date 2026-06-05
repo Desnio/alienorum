@@ -18,4 +18,4 @@ class Serialization
 
 #endif
 
-int find_object(const char *search_term, bool only_stars = false);
+int find_object(const char *search_term, bool only_stars = false, double mag_limit = 9e29);

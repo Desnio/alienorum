@@ -21,7 +21,7 @@ std::string Serialization::load_string(FILE *in)
     return ret;
 }
 
-int find_object(const char* search_term, bool os)
+int find_object(const char* search_term, bool os, double ml)
 {
     int i, n;
     __uint32_t is_hd  = ((search_term[0]&0x5f) == 'H' && (search_term[1]&0x5f) == 'D') ? atoi(&search_term[2]) : 0,
@@ -51,6 +51,7 @@ int find_object(const char* search_term, bool os)
         }
         if (cels[i]->typeclass() == class_star)
         {
+            if (((Star*)cels[i])->apparent_magnitude > ml) continue;
             if ((is_hd && is_hd == ((Star*)cels[i])->HD)
                 || (is_hip && is_hip == ((Star*)cels[i])->HIP))
             {

@@ -33,15 +33,14 @@ Del Aqr, 88  Aqr
 88  Aqr, 98  Aqr
 98  Aqr, 99  Aqr
 99  Aqr, 101 Aqr
-98  Aqr, Ome1Aqr
+98  Aqr, 104 Aqr,
+104 Aqr, Ome1Aqr
 104 Aqr, 97  Aqr
 104 Aqr, 106 Aqr
 106 Aqr, 107 Aqr
 107 Aqr, 108 Aqr
 Ome1Aqr, Psi3Aqr
 Phi Aqr, Chi Aqr
-97  Aqr, 94  Aqr
-94  Aqr, Psi1Aqr
 Ome1Aqr, Ome2Aqr
 Ome2Aqr, HD222643
 Psi1Aqr, Psi2Aqr
@@ -356,8 +355,8 @@ HD24160, HD24072
 HD24160, HD24071
 HD24072, HD20794
 HD24071, HD20794
-HD20794, The2Eri
-The2Eri, Iot Eri
+HD20794, The1Eri
+The1Eri, Iot Eri
 Iot Eri, HD16754
 HD16754, Kap Eri
 Kap Eri, Phi Eri
@@ -684,7 +683,6 @@ Iot PsA, The PsA
 The PsA, Mu  PsA
 Mu  PsA, Lam PsA
 Lam PsA, Eps PsA
-Eps PsA, Mu  PsA
 Eps PsA, Alp PsA
 ~Pup, Puppis, Puppis
 11  Pup, Xi  Pup
@@ -727,13 +725,12 @@ Ome Sgr, 59  Sgr
 59  Sgr, 62  Sgr
 Zet Sgr, Phi Sgr
 Phi Sgr, Sig Sgr
-Phi Sgr, The Sgr
 Phi Sgr, Del Sgr
 Phi Sgr, Lam Sgr
 Lam Sgr, Del Sgr
 Lam Sgr, Mu  Sgr
-The Sgr, Del Sgr
-The Sgr, Mu  Sgr
+The1Sgr, Iot Sgr
+The1Sgr, Tau Sgr
 Del Sgr, Gam2Sgr
 Zet Sgr, Alp Sgr
 Alp Sgr, Bet1Sgr
