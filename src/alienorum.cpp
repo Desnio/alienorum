@@ -327,6 +327,7 @@ double sphresolution = 0.1;
 bool bugged = false;
 int draw_sphere(CelestialObject* cel, double arad)
 {
+    cel->disc_size = 0;
     if (sphresolution < 0.001/sphere_quality) sphresolution = 0.001/sphere_quality;
     bool wireframe = dragging || !cel->onscreen || cel->tmprel.magnitude() < cel->volumetric_mean_radius;
     cel->onscreen = false;
@@ -705,6 +706,8 @@ int draw_sphere(CelestialObject* cel, double arad)
 
     if (!wireframe && cel->onscreen)
     {
+        cel->disc_size = result;
+
         if (sphere_elapsed.count() >= (1.3e5*sphere_quality))
         {
             if (sphresolution < 0.2/sphere_quality) sphresolution *= 1.3;
@@ -1696,9 +1699,10 @@ void identify_object_under_cursor(ImGuiIO& io)
     }
     else for (i=0; cels[i] && i<MAX_CELOBJS; i++)
     {
-        if (abs(cels[i]->drawnx - io.MousePos.x) < circle_size
+        double cutoff = fmax(cels[i]->disc_size, circle_size*1.3);
+        if (abs(cels[i]->drawnx - io.MousePos.x) < cutoff
             &&
-            abs(cels[i]->drawny - io.MousePos.y) < circle_size
+            abs(cels[i]->drawny - io.MousePos.y) < cutoff
             )
         {
             // Prioritize by brightness.
