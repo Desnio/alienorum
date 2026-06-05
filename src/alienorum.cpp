@@ -3526,7 +3526,7 @@ int main (int argc, char** argv)
         }
         if (ImGui::IsKeyPressed(ImGuiKey_F11))
         {
-            SDL_SetWindowFullscreen(window, fullscreen ? 0 : SDL_WINDOW_FULLSCREEN);
+            SDL_SetWindowFullscreen(window, fullscreen ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
             fullscreen = !fullscreen;
         }
 
