@@ -2442,7 +2442,6 @@ void draw_objedit_window(ImGuiIO& io)
 
     // TODO: If redlight_mode, set all window and text colors accordingly.
     ImGui::Begin("Edit Object", &objedtwnd, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings);
-    int objedtwidth = 768, objedtheight = 81;
 
     double col1 = 123, col2 = 359, col3 = 503, txtwid = 167;
     cel_obj_class tc = cels[editidx]->typeclass();
@@ -2471,7 +2470,6 @@ void draw_objedit_window(ImGuiIO& io)
         trackidx = editidx;
         viewchanged = true;
     }
-    objedtheight += txtyscale;
 
     if (tc == class_star)
     {
@@ -2504,7 +2502,6 @@ void draw_objedit_window(ImGuiIO& io)
             viewchanged = true;
             if (cel->typeclass() == class_star) ((Star*)cel)->update_location(simnow);
         }
-        objedtheight += txtyscale;
 
         double edit_dist = s->distance / light_year;
         ImGui::Text("%s", "Distance");
@@ -2535,7 +2532,6 @@ void draw_objedit_window(ImGuiIO& io)
         }
         ImGui::SameLine();
         ImGui::Text("%s", "m/s");
-        objedtheight += txtyscale;
     }
 
     edit_eqincl = cel->obliquity * fiftyseven;
@@ -2567,7 +2563,6 @@ void draw_objedit_window(ImGuiIO& io)
         else if (cel->typeclass() == class_planet) ((Planet*)cel)->update_location(simnow);
         else if (cel->typeclass() == class_moon) ((Moon*)cel)->update_location(simnow);
     }
-    objedtheight += txtyscale;
 
     double edit_mass = cel->mass / 1000;
     ImGui::Text("%s", "Mass, kg");
@@ -2594,13 +2589,43 @@ void draw_objedit_window(ImGuiIO& io)
         else if (cel->typeclass() == class_planet) ((Planet*)cel)->update_location(simnow);
         else if (cel->typeclass() == class_moon) ((Moon*)cel)->update_location(simnow);
     }
-    objedtheight += txtyscale;
 
     stringstream massss;
     massss << "Density " << std::setprecision(3) << (cel->mass / sphere_volume(cel->volumetric_mean_radius) * 1e-6) << " g/cm^3";
     std::string dens = massss.str();
     ImGui::Text("%s", dens.c_str());
-    objedtheight += txtyscale;
+    if (cel->typeclass() == class_planet || cel->typeclass() == class_moon)
+    {
+        ImGui::SameLine(col2);
+        ImGui::Text("%s", "Texture");
+        ImGui::SameLine(col3);
+        // TODO:
+        // Important: Do not remove this comment block - it's a new in progress feature.
+        /*if (ImGui::Button("Save"))
+        {
+        }
+        ImGui::SameLine();
+        */
+        if (ImGui::Button("Refresh"))
+        {
+            if (cel->surf_map)
+            {
+                delete cel->surf_map;
+                cel->surf_map = nullptr;
+            }
+            if (cel->cloud_map)
+            {
+                delete cel->cloud_map;
+                cel->cloud_map = nullptr;
+            }
+            if (cel->night_map)
+            {
+                delete cel->night_map;
+                cel->night_map = nullptr;
+            }
+            cel->looked_for_maps = false;
+        }
+    }
 
     double edit_oblt = cel->oblateness;
     ImGui::Text("%s", "Oblateness");
@@ -2629,7 +2654,6 @@ void draw_objedit_window(ImGuiIO& io)
         else if (cel->typeclass() == class_planet) ((Planet*)cel)->update_location(simnow);
         else if (cel->typeclass() == class_moon) ((Moon*)cel)->update_location(simnow);
     }
-    objedtheight += txtyscale;
 
     double edit_absmag = cel->absolute_magnitude;
     ImGui::Text("%s", "Abs. Magn.");
@@ -2667,7 +2691,6 @@ void draw_objedit_window(ImGuiIO& io)
             else if (cel->typeclass() == class_moon) ((Moon*)cel)->update_location(simnow);
         }
     }
-    objedtheight += txtyscale;
 
     double edit_prcseq = cel->precession / oneyear;
     ImGui::Text("%s", "Precession");
@@ -2696,12 +2719,10 @@ void draw_objedit_window(ImGuiIO& io)
         else if (cel->typeclass() == class_planet) ((Planet*)cel)->update_location(simnow);
         else if (cel->typeclass() == class_moon) ((Moon*)cel)->update_location(simnow);
     }
-    objedtheight += txtyscale;
 
     if (orb)
     {
         ImGui::Separator();
-        objedtheight += txtyscale;
 
         std::string orbcen = "Center of Orbit: ";
         orbcen += std::string(cel->orbit->center->name);
@@ -2714,7 +2735,6 @@ void draw_objedit_window(ImGuiIO& io)
             oss << "Star apparent mag. " << (star_appmag > 0 ? "+" : "") << std::setprecision(2) << star_appmag;
             ImGui::Text("%s", oss.str().c_str());
         }
-        objedtheight += txtyscale;
 
         double sma_limit = cel->orbit->center->get_equatorial_radius() + cel->get_equatorial_radius();
         if (orb->semimajor_axis < sma_limit)
@@ -2763,7 +2783,6 @@ void draw_objedit_window(ImGuiIO& io)
         }
         ImGui::SameLine();
         ImGui::Text("%s", "days");
-        objedtheight += txtyscale;
 
         edit_incl = cel->orbit->inclination * fiftyseven;
         ImGui::Text("%s", "Inclination");
@@ -2790,7 +2809,6 @@ void draw_objedit_window(ImGuiIO& io)
             else if (cel->typeclass() == class_planet) ((Planet*)cel)->update_location(simnow);
             else if (cel->typeclass() == class_moon) ((Moon*)cel)->update_location(simnow);
         }
-        objedtheight += txtyscale;
 
         edit_eccn = cel->orbit->eccentricity;
         ImGui::Text("%s", "Eccentricity");
@@ -2817,7 +2835,6 @@ void draw_objedit_window(ImGuiIO& io)
             else if (cel->typeclass() == class_planet) ((Planet*)cel)->update_location(simnow);
             else if (cel->typeclass() == class_moon) ((Moon*)cel)->update_location(simnow);
         }
-        objedtheight += txtyscale;
 
         edit_epoch = cel->orbit->epoch;
         ImGui::Text("%s", "Epoch, JD");
@@ -2844,7 +2861,6 @@ void draw_objedit_window(ImGuiIO& io)
             else if (cel->typeclass() == class_planet) ((Planet*)cel)->update_location(simnow);
             else if (cel->typeclass() == class_moon) ((Moon*)cel)->update_location(simnow);
         }
-        objedtheight += txtyscale;
 
         edit_precnode = cel->orbit->prec_node ? (M_PI * 2 / cel->orbit->prec_node / oneday) : 0;
         ImGui::Text("%s", "Prec. Node");
@@ -2871,7 +2887,6 @@ void draw_objedit_window(ImGuiIO& io)
             else if (cel->typeclass() == class_planet) ((Planet*)cel)->update_location(simnow);
             else if (cel->typeclass() == class_moon) ((Moon*)cel)->update_location(simnow);
         }
-        objedtheight += txtyscale;
     }
 
     ImGui::SetWindowSize(ImVec2(0, 0));
