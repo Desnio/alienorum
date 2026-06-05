@@ -1771,8 +1771,7 @@ void identify_object_under_cursor(ImGuiIO& io)
         {
             oss << "Dist:    " << cels[i]->scaled_distance(here) << std::endl;
             oss << "Lit %:   " << std::setprecision(1) << ((int)(((Planet*)cels[i])->amt_lit*100)) << std::endl;
-            if (((Planet*)cels[i])->is_in_con_HZ())
-                oss << "*****    In conserv. HZ" << std::endl;
+            if (((Planet*)cels[i])->is_in_con_HZ()) oss << "         Habitable Zone" << std::endl;
         }
 
         cel_obj_class cls = cels[i]->typeclass();
@@ -2147,6 +2146,7 @@ void draw_status_window(ImGuiIO& io)
         snprintf(lblcut1, sizeof(lblcut1), "%.2f", absmagn_lblcut);
         ImGui::Text("%s", "Mag limit:");
         ImGui::SameLine();
+        ImGui::SetNextItemWidth(81);
         ImGui::InputText("##absmaglim", lblcut1, 255);
         statheight += txtyscale;
         absmagn_lblcut = atof(lblcut1);
@@ -2192,12 +2192,17 @@ void draw_status_window(ImGuiIO& io)
     if (whereami >= 0)
     {
         vfstr = std::string("View from ") + cels[whereami]->name;
-        if (((Planet*)cels[whereami])->is_in_con_HZ())
-            vfstr += "\nIn conserv. HZ";
     }
     else vfstr = std::string("View from space");
     ImGui::Text("%s", vfstr.c_str());
     statheight += txtyscale;
+
+    if (whereami > 0 && cels[whereami]->type >= gas_giant
+        && ((Planet*)cels[whereami])->is_in_con_HZ())
+    {
+        ImVec4 hzcolor = redlight_mode ? ImVec4(1, 0, 0, 1) : ImVec4(0, 1, 0, 1);
+        ImGui::TextColored(hzcolor, "In Habitable Zone");
+    }
 
     double vm = velocity.magnitude() * target_frame_rate;
     if (isnan(vm)) vm = 0;

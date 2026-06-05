@@ -69,92 +69,75 @@ bool Planet::is_in_con_HZ()
     Star *s = (Star*)get_light_center();
     assert(s->typeclass() == class_star);
 
-    double t_star = s->estimate_temperature() - sun_temp;
-
-    // Baseline calculations for a 1 earth-mass planet
-    // Coefficients for runaway greenhouse
-    double rg_SeffSun = 1.107;
-    double rg_a = 1.332e-4;
-    double rg_b = 1.580e-8;
-    double rg_c = -8.308e-12;
-    double rg_d = -1.931e-15;
-
-    // Coefficients for maximum greenhouse
-    double mg_SeffSun = 0.356;
-    double mg_a = 6.171e-5;
-    double mg_b = 1.698e-9;
-    double mg_c = -3.198e-12;
-    double mg_d = -5.575e-16;
-
-    // Evaluate quartic polynomial for base values
-    double base_inner = rg_SeffSun + (rg_a * t_star) + (rg_b * std::pow(t_star, 2)) +
-                        (rg_c * std::pow(t_star, 3)) + (rg_d * std::pow(t_star, 4));
-
-    double base_outer = mg_SeffSun + (mg_a * t_star) + (mg_b * std::pow(t_star, 2)) +
-                        (mg_c * std::pow(t_star, 3)) + (mg_d * std::pow(t_star, 4));
-
-    // Planetary mass corrections
-    double inner_correction = 0.0;
-    double outer_correction = 0.0;
-
-    double planet_mass = mass / earth_mass;
-    double inner_limit, outer_limit;
-
-    if (planet_mass >= 1.0 && planet_mass <= 5.0)
+    // Mathematical model to approximate this chart: https://personal.ems.psu.edu/~jfk4/ruk15/planets/T_Seff_HZ_plusTRAPPIST_ALL__MM_10202020v2.jpg
+    double t_eff = s->estimate_temperature();
+    double t_star = t_eff - sun_temp;
+    double bc_v;
+    if (t_eff < 3500.0)
     {
-        // Upper mass scaling coefficients
-        double rg_a_m = 2.972e-2;
-        double rg_b_m = -4.619e-3;
-        double rg_c_m = 1.151e-4;
-
-        double mg_a_m = 4.417e-3;
-        double mg_b_m = -3.151e-3;
-        double mg_c_m = 4.549e-4;
-
-        inner_correction = (rg_a_m * t_star) + (rg_b_m * std::pow(t_star, 2)) + (rg_c_m * std::pow(t_star, 3));
-        outer_correction = (mg_a_m * t_star) + (mg_b_m * std::pow(t_star, 2)) + (mg_c_m * std::pow(t_star, 3));
-
-        // Apply scaling factor based on mass
-        inner_limit = base_inner + (planet_mass - 1.0) * inner_correction; 
-        outer_limit = base_outer + (planet_mass - 1.0) * outer_correction;
-
-    }
-    else if (planet_mass >= 0.1 && planet_mass < 1.0)
-    {
-        // Lower mass scaling coefficients
-        double rg_a_m = 1.831e-2;
-        double rg_b_m = -3.409e-3;
-        double rg_c_m = 5.340e-5;
-
-        double mg_a_m = 3.428e-3;
-        double mg_b_m = -2.871e-3;
-        double mg_c_m = 3.699e-4;
-
-        inner_correction = (rg_a_m * t_star) + (rg_b_m * std::pow(t_star, 2)) + (rg_c_m * std::pow(t_star, 3));
-        outer_correction = (mg_a_m * t_star) + (mg_b_m * std::pow(t_star, 2)) + (mg_c_m * std::pow(t_star, 3));
-
-        // Apply scaling factor down to lower limits
-        inner_limit = base_inner - (1.0 - planet_mass) * inner_correction;
-        outer_limit = base_outer - (1.0 - planet_mass) * outer_correction;
+        // Linear interpolation for M-dwarfs based on the 
+        // BT-Settl stellar atmospheric models used by Kopparapu.
+        // At 3500K, BC_V is ~ -1.75. At 2500K, BC_V drops to ~ -4.50.
+        double t_fraction = (t_eff - 2500.0) / (3500.0 - 2500.0);
+        // bc_v = -4.02 + t_fraction * (-1.75 - (-4.50));
+        bc_v = -4.33 + t_fraction * (-1.75 - (-4.33)); 
     }
     else
     {
-        // If beyond model boundaries, fall back to baseline
-        inner_limit = base_inner;
-        outer_limit = base_outer;
+        // Standard calculation for most main sequence stars.
+        bc_v = -0.192 - (1.41e-4 * t_star) - (1.25e-7 * std::pow(t_star, 2));
     }
 
+    // Calculate the baseline flux for the given mass
+    // Coefficients from Kopparapu et al. (2014)
+    double rg_SeffSun = 0.0;
+    double mg_SeffSun = 0.0;
+    double planet_mass = mass/earth_mass;
+
+    if (planet_mass >= 1.0 && planet_mass <= 5.0)
+    {
+        rg_SeffSun = 1.107 - 0.0214 * (planet_mass - 1.0);
+        mg_SeffSun = 0.356 - 0.0038 * (planet_mass - 1.0);
+    }
+    else if (planet_mass >= 0.1 && planet_mass < 1.0)
+    {
+        rg_SeffSun = 1.107 - 0.0242 * (1.0 - planet_mass);
+        mg_SeffSun = 0.356 - 0.0053 * (1.0 - planet_mass);
+    }
+    else
+    {
+        // Fallback to 1 Earth mass baseline if out of bounds.
+        rg_SeffSun = 1.107;
+        mg_SeffSun = 0.356;
+    }
+
+    // Stellar temperature coefficients
+    double rg_a = 1.332e-4;  double rg_b = 1.580e-8;  double rg_c = -8.308e-12; double rg_d = -1.931e-15;
+    double mg_a = 6.171e-5;  double mg_b = 1.698e-9;  double mg_c = -3.198e-12; double mg_d = -5.575e-16;
+
+    // Apply the temperature polynomial to the mass-adjusted baseline
+    double inner_limit = rg_SeffSun + (rg_a * t_star) + (rg_b * std::pow(t_star, 2)) + 
+                        (rg_c * std::pow(t_star, 3)) + (rg_d * std::pow(t_star, 4));
+
+    double outer_limit = mg_SeffSun + (mg_a * t_star) + (mg_b * std::pow(t_star, 2)) + 
+                        (mg_c * std::pow(t_star, 3)) + (mg_d * std::pow(t_star, 4));
+
+    // Calculate absolute bolometric magnitude.
+    double m_bol = s->absolute_magnitude + bc_v;
+
+    // Convert to bolometric luminosity relative to the Sun's bolometric 4.74 magnitude.
+    double star_intrinsic = std::pow(magnbase, (4.74 - m_bol));
+
     // Compute planetary illumination
-    double sun_intrinsic = pow(magnbase, -cels[0]->absolute_magnitude);
-    double star_intrinsic = pow(magnbase, -s->absolute_magnitude);
     CelestialObject *myplanet = this;
     while (myplanet->orbit && myplanet->orbit->center != s) myplanet = myplanet->orbit->center;
     double sma_au = myplanet->orbit->semimajor_axis / AU;
-    double planet_illumination = star_intrinsic / (sun_intrinsic * sma_au * sma_au);            // inverse square of distance
+    double planet_illumination = star_intrinsic / (sma_au * sma_au);            // inverse square of distance
 
     // Check habitability bounds
     cache_in_cons_hz = (planet_illumination >= outer_limit && planet_illumination <= inner_limit);
     cached_in_cons_hz = true;
+
     return cache_in_cons_hz;
 }
 
