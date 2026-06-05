@@ -36,7 +36,8 @@ class Planet : public CelestialObject
     bool from_json(json j);
 
     protected:
-    bool cache_in_cons_hz, cached_in_cons_hz = false;
+    bool cache_in_cons_hz;
+    double cached_in_cons_hz = -1;
 };
 
 #endif

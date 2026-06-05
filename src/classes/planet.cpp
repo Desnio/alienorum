@@ -124,7 +124,7 @@ void Planet::update_location(double tmnow)
 
 bool Planet::is_in_con_HZ()
 {
-    if (cached_in_cons_hz) return cache_in_cons_hz;
+    if (orbit && fabs(cached_in_cons_hz - orbit->semimajor_axis) < 0.001) return cache_in_cons_hz;
 
     if (!orbit || !orbit->center) return false;
     Star *s = (Star*)get_light_center();
@@ -197,7 +197,7 @@ bool Planet::is_in_con_HZ()
 
     // Check habitability bounds
     cache_in_cons_hz = (planet_illumination >= outer_limit && planet_illumination <= inner_limit);
-    cached_in_cons_hz = true;
+    cached_in_cons_hz = orbit->semimajor_axis;
 
     return cache_in_cons_hz;
 }
