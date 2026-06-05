@@ -319,7 +319,9 @@ void load_textures(CelestialObject* cel)
     else if ((cel->type == rocky || cel->type == icy) && !cel->surf_map)
     {
         cel->surf_map = new Map();
-        cel->surf_map->generate_rocky_map(503, cel->BV_color, ((Planet*)cel)->is_in_con_HZ());
+        cel->surf_map->generate_rocky_map(503, cel->BV_color,
+            cel->mass > 0.02 * earth_mass                       // Based on Titan's mass.
+            && ((Planet*)cel)->is_in_con_HZ());
     }
 }
 
