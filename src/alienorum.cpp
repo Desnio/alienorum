@@ -2327,8 +2327,6 @@ void draw_objinf_window(ImGuiIO& io)
     }
 
     ImGui::Text("%s", objname.c_str());
-
-    int txtlines = std::count(objinfo.begin(), objinfo.end(), '\n');
     ImGui::Text("%s", objinfo.c_str());
 
     ImGui::SetWindowSize(ImVec2(0, 0));
