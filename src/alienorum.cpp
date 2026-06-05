@@ -2399,9 +2399,18 @@ void draw_addcel_window(ImGuiIO& io)
                     cels[ncelobjs]->orbit = new Orbit();
                     cels[ncelobjs]->orbit->center = cels[addcenidx];
                     cels[ncelobjs]->orbit->semimajor_axis = 1e6;
-                    cels[ncelobjs]->orbit->period = oneday;
+                    cels[ncelobjs]->orbit->period = oneday*7;
                     cels[ncelobjs]->orbit->epoch = JDnow;
                     cels[ncelobjs]->cenobj = cels[addcenidx]->cenobj;
+                }
+                if (cels[ncelobjs]->typeclass() == class_planet || cels[ncelobjs]->typeclass() == class_moon)
+                {
+                    Planet* pl = (Planet*)cels[ncelobjs];
+                    pl->mass = (cels[ncelobjs]->typeclass() == class_moon) ? lunar_mass : earth_mass;
+                    pl->classify();
+                    pl->estimate_radius();
+                    pl->estimate_albedo_and_absmagn();
+                    pl->estimate_rotation();
                 }
                 editidx = ncelobjs;
                 objedtwnd = true;

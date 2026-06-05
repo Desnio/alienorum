@@ -6,6 +6,37 @@
 #include "star.h"
 #include "point.h"
 
+void Planet::classify()
+{
+    classify(is_in_con_HZ());
+}
+
+void Planet::classify(bool HZ)
+{
+    if (mass < rocky_mass_cutoff)
+    {
+        type = rocky;
+        if (HZ) BV_color = 0.2;       // estimate same as Earth.
+    }
+    else if (orbit->period < oneday*10)
+    {
+        type = hot_jupiter;
+        BV_color = -1;   // https://en.wikipedia.org/wiki/HD_189733_b#/media/File:HD_189733b_blue_planet.png with universal B-V correction added.
+    }
+    else if (orbit->semimajor_axis > 2e+12 * sqrt(pow(magnbase,
+        cels[0]->absolute_magnitude - get_light_center()->absolute_magnitude))       // TODO: This is a really poor substitute for temperature.
+            )
+    {
+        type = ice_giant;
+        BV_color = 0.49;     // average of Uranus and Neptune.
+    }
+    else
+    {
+        type = gas_giant;
+        BV_color = 0.98;     // average of Jupiter and Saturn.
+    }
+}
+
 void Planet::estimate_radius()
 {
     // https://doi.org/10.1051/0004-6361/202348690
@@ -17,6 +48,24 @@ void Planet::estimate_radius()
         volumetric_mean_radius = pow(volume*3 / M_PI*4, 1.0/3);
     }
     else volumetric_mean_radius = 18.6 * earth_radius;
+}
+
+void Planet::estimate_rotation()
+{
+    if (!orbit || !orbit->period) return;
+
+    if (orbit->period < (40 * oneday)                // This is a TOTAL guess.
+        || type == hot_jupiter)
+    {
+        sidereal_rotational_period = orbit->period;
+    }
+    else if (orbit->period < (80 * oneday))          // Another guess. Mercury at 58 days has a 3:2 spin-orbit resonance but Iapetus at 79 days is tidally locked.
+    {
+        sidereal_rotational_period = 1.5 * orbit->period;
+    }
+    else if (type == rocky    ) sidereal_rotational_period = 2.38e+6 / log(mass);
+    else if (type == ice_giant) sidereal_rotational_period = 1.74e+6 / log(mass);
+    else if (type == gas_giant) sidereal_rotational_period = 1.11e+6 / log(mass);
 }
 
 double Planet::viewer_reflectance_magnitude(CelestialLocation seen_from, double phase, double sourcemagn, double sourcedist)
@@ -54,6 +103,18 @@ void Planet::estimate_albedo()
     double brightness = pow(magnbase, earth_absmag-absolute_magnitude);
     double a = fmin(1, brightness / disc_area * earth_albedo);
     if (!isnan(a)) albedo = a;
+}
+
+void Planet::estimate_albedo_and_absmagn()
+{
+    double p_rad_e = fmax(0.01, volumetric_mean_radius / earth_radius);
+    double est_albedo = 0.3;
+    if (type == gas_giant) est_albedo = 0.5;
+    else if (type == hot_jupiter) est_albedo = 0.01;
+    else if (type == ice_giant) est_albedo = 0.3;
+    else if (type == rocky) est_albedo = (mass > 0.5 * earth_mass) ? 0.5 : 0.1;
+    absolute_magnitude = fmax(-10, earth_absmag - log(p_rad_e*p_rad_e*est_albedo/earth_albedo) / log(magnbase));
+    albedo = est_albedo;
 }
 
 void Planet::update_location(double tmnow)

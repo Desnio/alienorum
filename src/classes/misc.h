@@ -31,6 +31,7 @@ using json = nlohmann::json;
 #define rocky_mass_cutoff (4.37 * earth_mass)
 #define giant_mass_cutoff (127.0 * earth_mass)
 
+#define lunar_mass 7.349E+22
 #define earth_mass 5.972e+27
 #define jupiter_mass 1.898e+30
 #define solar_mass 1.989e+33
