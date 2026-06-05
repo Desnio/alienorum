@@ -1994,22 +1994,32 @@ int CatalogReader::read_exoplanets_catalog(CelestialObject **cels, int max)
                 if (p->is_in_con_HZ()) ((Star*)s)->has_hz_planets++;
                 p->distance_known = true;
                 if (p->mass < rocky_mass_cutoff) p->type = rocky;
-                else if (p->orbit->period < oneday*10) p->type = hot_jupiter;
+                else if (p->orbit->period < oneday*10)
+                {
+                    p->type = hot_jupiter;
+                    p->BV_color = -1;   // https://en.wikipedia.org/wiki/HD_189733_b#/media/File:HD_189733b_blue_planet.png with universal B-V correction added.
+                }
                 else if (p->orbit->semimajor_axis > 2e+12 * sqrt(pow(magnbase,
                     cels[0]->absolute_magnitude - p->get_light_center()->absolute_magnitude))       // TODO: This is a really poor substitute for temperature.
                         )
                 {
                     p->type = ice_giant;
+                    p->BV_color = 0.49;     // average of Uranus and Neptune.
                 }
-                else p->type = gas_giant;
+                else
+                {
+                    p->type = gas_giant;
+                    p->BV_color = 0.98;     // average of Jupiter and Saturn.
+                }
                 if (!p->volumetric_mean_radius) p->estimate_radius();
                 double p_rad_e = fmax(0.01, p->volumetric_mean_radius / earth_radius);
-                double est_albedo;
+                double est_albedo = 0.3;
                 if (p->type == gas_giant) est_albedo = 0.5;
                 else if (p->type == hot_jupiter) est_albedo = 0.01;
                 else if (p->type == ice_giant) est_albedo = 0.3;
                 else if (p->type == rocky) est_albedo = (p->mass > 0.5 * earth_mass) ? 0.5 : 0.1;
                 p->absolute_magnitude = fmax(-10, earth_absmag - log(p_rad_e*p_rad_e*est_albedo/earth_albedo) / log(magnbase));
+                p->albedo = est_albedo;
                 if (!p->orbit->semimajor_axis) p->orbit->compute_semimajor_axis(p->mass);
                 cels[offset] = p;
                 offset++;
