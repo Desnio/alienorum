@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <random>
 #include "point.h"
 #include "galaxy.h"
 #include "star.h"
@@ -48,7 +49,7 @@ class CatalogReader
     int read_local_planets(CelestialObject** cels, int max);
 
     protected:
-    void read_field_onebased(char* buffer, int start, int end, char* out);
+    void read_field_onebased(char* buffer, size_t start, int end, char* out);
 };
 
 #endif
