@@ -966,11 +966,10 @@ void Map::generate_rocky_map(int lr, double BV, bool has_water, double objr)
                 // Biome allocation based on height thresholds
                 if (heightValue < 0.500)
                 {   // Ocean
-                    double shallowness = heightValue*2;
-                    double transmissive = pow(shallowness, 10);
-                    red_data[idx] = (10+30*transmissive) * r_weight;
-                    green_data[idx] = (30+70*transmissive) * r_weight;
-                    blue_data[idx] = (120+100*transmissive) * r_weight;
+                    double sh = heightValue*2;          // shallowness
+                    red_data[idx] = (10+20*sh*sh*sh*sh*sh*sh*sh*sh*sh*sh) * r_weight;
+                    green_data[idx] = (30+80*sh*sh*sh) * r_weight;
+                    blue_data[idx] = (120+100*sh*sh) * r_weight;
                 }
                 else if (heightValue < 0.503)
                 {   // Beach sand
