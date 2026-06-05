@@ -8,7 +8,15 @@
 
 void Planet::estimate_radius()
 {
-    volumetric_mean_radius = jupiter_radius * pow(mass/jupiter_mass, 0.67);                 // https://doi.org/10.1051/0004-6361/202348690
+    // https://doi.org/10.1051/0004-6361/202348690
+    if (mass < rocky_mass_cutoff) volumetric_mean_radius = 1.02 * earth_radius * pow(mass/earth_mass, 0.27);
+    else if (mass < giant_mass_cutoff) volumetric_mean_radius = 0.56 * earth_radius * pow(mass/earth_mass, 0.67);
+    else if (type == hot_jupiter)
+    {
+        double volume = mass / hot_jupiter_density;
+        volumetric_mean_radius = pow(volume*3 / M_PI*4, 1.0/3);
+    }
+    else volumetric_mean_radius = 18.6 * earth_radius;
 }
 
 double Planet::viewer_reflectance_magnitude(CelestialLocation seen_from, double phase, double sourcemagn, double sourcedist)

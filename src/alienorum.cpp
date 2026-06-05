@@ -311,12 +311,12 @@ void load_textures(CelestialObject* cel)
 
     cel->looked_for_maps = true;
 
-    if ((cel->type == gas_giant || cel->type == ice_giant) && !cel->cloud_map)
+    if ((cel->type == gas_giant || cel->type == ice_giant || cel->type == hot_jupiter) && !cel->cloud_map)
     {
         cel->cloud_map = new Map();
         cel->cloud_map->generate_gas_giant_map(503, cel->BV_color);
     }
-    else if (cel->type == rocky && !cel->surf_map)
+    else if ((cel->type == rocky || cel->type == icy) && !cel->surf_map)
     {
         cel->surf_map = new Map();
         cel->surf_map->generate_rocky_map(503, cel->BV_color, ((Planet*)cel)->is_in_con_HZ());
@@ -1775,11 +1775,12 @@ void identify_object_under_cursor(ImGuiIO& io)
                 oss << "*****    In conserv. HZ" << std::endl;
         }
 
+        cel_obj_class cls = cels[i]->typeclass();
         if (cels[i]->mass)
         {
-            if (cels[i]->type == star) 
+            if (cls == class_star) 
                 ; // oss << "Mass:  " << std::setprecision(2) << (cels[i]->mass / Msun) << " M(sun)\n" << std::endl;       // TODO: Fix Star::estimate_mass()
-            else if (cels[i]->type == rocky || cels[i]->type == gas_giant || cels[i]->type == ice_giant)
+            else if (cls == class_planet || cls == class_moon)
             {
                 oss << "Mass:    " << std::setprecision(2) << (cels[i]->mass / cels[iamhome]->mass) << " M(earth)" << std::endl;
                 oss << "Mass:    " << std::scientific << std::setprecision(2) << (cels[i]->mass / 1000) << " kg" << std::endl;
@@ -1787,9 +1788,9 @@ void identify_object_under_cursor(ImGuiIO& io)
         }
         if (cels[i]->volumetric_mean_radius)
         {
-            if (cels[i]->type == star)
+            if (cls == class_star)
                 ; // oss << "Radius: " << std::setprecision(2) << (cels[i]->volumetric_mean_radius / Rsun) << " R(sun)" << std::endl;       // TODO: Fix Star::estimate_radius()
-            else if (cels[i]->type == rocky || cels[i]->type == gas_giant || cels[i]->type == ice_giant)
+            else if (cls == class_planet || cls == class_moon)
             {
                 oss << "Radius:  " << std::setprecision(2) << (cels[i]->volumetric_mean_radius / cels[iamhome]->volumetric_mean_radius)
                     << " R(earth)" << std::endl;
@@ -2379,7 +2380,8 @@ void draw_addcel_window(ImGuiIO& io)
         for (ncelobjs=0; cels[ncelobjs]; ncelobjs++);
         if (ncelobjs < (MAX_CELOBJS-1))
         {
-            bool is_cen_planet = (cels[addcenidx]->type == rocky || cels[addcenidx]->type == ice_giant || cels[addcenidx]->type == gas_giant);
+            cel_obj_class cls = cels[addcenidx]->typeclass();
+            bool is_cen_planet = (cls == class_planet || cls == class_moon);
 
             if (cboceltyp_selected_idx == 2 && is_cen_planet) cboceltyp_selected_idx = 3;
             else if (cboceltyp_selected_idx == 3 && !is_cen_planet) cboceltyp_selected_idx = 2;
@@ -2588,7 +2590,7 @@ void draw_objedit_window(ImGuiIO& io)
     objedtheight += txtyscale;
 
     stringstream massss;
-    massss << "Density " << std::setprecision(3) << (cel->mass / sphere_volume(cel->volumetric_mean_radius) * 1e-3) << " g/cm^3";
+    massss << "Density " << std::setprecision(3) << (cel->mass / sphere_volume(cel->volumetric_mean_radius) * 1e-6) << " g/cm^3";
     std::string dens = massss.str();
     ImGui::Text("%s", dens.c_str());
     objedtheight += txtyscale;

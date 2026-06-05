@@ -16,8 +16,9 @@ enum cel_obj_type
     star = 0x200,
     gas_giant = 0x300,
     ice_giant = 0x301,
+    hot_jupiter = 0x302,
     rocky = 0x400,
-    comet = 0x401,
+    icy = 0x401,
     artificial = 0x500
 };
 
