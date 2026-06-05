@@ -29,12 +29,13 @@
 
 using namespace std;
 
+SDL_Window* window;
 char lookfor[256], edit_name[256];
 bool edtname_dirty=false;
 std::vector<int> drawnblocks[drawn_cache_split][drawn_cache_split];
 std::filesystem::path p = "catalogs";
 std::string load_univ = "", setjd = "";
-bool catalogs_found = false;
+bool catalogs_found = false, fullscreen = false;
 int num_galaxies=0, num_stars=0, num_planets=0, num_moons=0, num_asteroids=0, num_comets=0, num_sat=0;
 float dispcx, dispcy;
 int frames_without_mousemove = 0, num_stars_in_box, editidx=-1, addcenidx=-1, themes_selected_idx=-1;
@@ -963,7 +964,11 @@ void load_catalogs()
         }
     }
 
-    if (load_univ.size()) load_universe(load_univ);
+    if (load_univ.size())
+    {
+        load_universe(load_univ);
+        SDL_SetWindowTitle(window, (load_univ + std::string(" - Alienorum")).c_str());
+    }
 
     for (i=0; cels[i]; i++)
     {
@@ -1442,6 +1447,7 @@ void draw_objects()
         }
         else
         {
+            cels[i]->disc_size = 0;
             discinstead[i] = false;
             Color col = Color::color_from_magnitude_indices(appmag, cels[i]->BV_color);
             if (flare)
@@ -1882,6 +1888,10 @@ void center_selected()
 void process_key_cmd_char(char c)
 {
     cel_obj_class cls;
+
+    // Keep this line to uncomment when testing which keystrokes ImGui recognizes.
+    // std::cout << c << std::endl;
+
     switch (c)
     {
         case 'A':
@@ -3113,7 +3123,7 @@ int main (int argc, char** argv)
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
     double main_scale = ImGui_ImplSDL2_GetContentScaleForDisplay(0);
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-    SDL_Window* window = SDL_CreateWindow("Alienorum", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, (int)(1280 * main_scale), (int)(800 * main_scale), window_flags);
+    window = SDL_CreateWindow("Alienorum", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, (int)(1280 * main_scale), (int)(800 * main_scale), window_flags);
     if (window == nullptr)
     {
         printf("Error: SDL_CreateWindow(): %s\n", SDL_GetError());
@@ -3513,6 +3523,11 @@ int main (int argc, char** argv)
                 forward = rotate3D(forward, center, here.equatorial_plane.v, -here.equatorial_plane.a);
                 velocity -= forward;
             }
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_F11))
+        {
+            SDL_SetWindowFullscreen(window, fullscreen ? 0 : SDL_WINDOW_FULLSCREEN);
+            fullscreen = !fullscreen;
         }
 
         // More code copied from the ImGui example:
