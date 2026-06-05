@@ -266,6 +266,12 @@ double fBm(double x, double y, double z, int octaves, double lacunarity, double 
     return (total / maxValue + 1.0) / 2.0;
 }
 
+double probability_density_function(double x, double mean, double std_dev)
+{
+    double exponent = -0.5 * std::pow((x - mean) / std_dev, 2);
+    return (1.0 / (std_dev * std::sqrt(2.0 * M_PI))) * std::exp(exponent);
+}
+
 int sgn(double f)
 {
     if (f < 0) return -1;

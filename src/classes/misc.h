@@ -107,6 +107,7 @@ std::string lop_component(const char* name);
 bool file_exists(const char* fname);
 
 double fBm(double x, double y, double z, int octaves, double lacunarity, double gain);
+double probability_density_function(double x, double mean, double stddev);
 int sgn(double f);
 
 // Takes velocity in m/s and computes the ratio of Δt(moving)/Δt(stationary). The result will always be <= 1.

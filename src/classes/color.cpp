@@ -219,6 +219,74 @@ void apply_default_style()
     colors[ImGuiCol_ModalWindowDimBg]       = ImVec4(0.20f, 0.20f, 0.20f, 0.35f);
 }
 
+#define _dbg_veg_color 0
+RGB generate_vegetation_color()
+{
+    // Don't assume alien vegetation is green!
+    // Seed random value
+    std::srand(static_cast<unsigned int>(std::time(nullptr)));
+
+    // Define a longpass wavelength somewhere in the UV or blue
+    double lp = frand(300, 490);
+
+    // Define up to 4 absorption bands (Earth vegetation has two, red and blue)
+    int nbands = 1 + (rand()%3);
+    #if _dbg_veg_color
+    std::cout << "Generating vegetation color from longpass " << lp << " plus " << nbands << " absorption bands." << std::endl;
+    #endif
+
+    double bandl[nbands], bandi[nbands], maxband=0;
+    int i;
+    for (i=0; i<nbands; i++)
+    {
+        // Favor shorter wavelengths, but allow up to near infrared.
+        // Make the longest band the most intense to allow for a strong red edge.
+        bandl[i] = (i?bandl[i-1]:lp)*1.1 + frand(20, frand(100, 250));
+        bandi[i] = frand(i?bandi[i-1]:0.1, 1);
+        if (bandi[i] > maxband) maxband = bandi[i];
+
+        #if _dbg_veg_color
+        std::cout << "Band " << (i+1) << ": " << bandl[i] << "nm, intensity=" << bandi[i] << std::endl;
+        #endif
+    }
+
+    // Make sure at least one of the bands is intense.
+    if (maxband < 0.8)
+    {
+        double normalize = frand(0.8, 1.0);
+        double multiply = normalize / maxband;
+        for (i=0; i<nbands; i++) bandi[i] *= multiply;
+
+        #if _dbg_veg_color
+        std::cout << "Bands normalized to " << normalize << std::endl;
+        #endif
+    }
+
+    // Sample the spectrum at 650nm red, 540nm green, and 460nm blue.
+    double r=0.89, g=0.85, b=0.44;                          // Start with a basic straw color.
+    double probability_scale = 25.0 / probability_density_function(lp, lp, 29);
+    r *= (lp<650) ? (1.0 - probability_scale * probability_density_function(650, lp, 29)) : 0;
+    g *= (lp<540) ? (1.0 - probability_scale * probability_density_function(540, lp, 29)) : 0;
+    b *= (lp<460) ? (1.0 - probability_scale * probability_density_function(460, lp, 29)) : 0;
+    #if _dbg_veg_color
+    std::cout << "Longpass reduces rgb to " << std::setprecision(3) << r << "," << g << "," << b << std::endl;
+    #endif
+    for (i=0; i<nbands; i++)
+    {
+        double halfwidth = 0.03*bandl[i];
+        probability_scale = 10.0 / probability_density_function(bandl[i], bandl[i], halfwidth);
+        r *= (1.0 / (1.0 + bandi[i] * probability_scale * probability_density_function(650, bandl[i], halfwidth)));
+        g *= (1.0 / (1.0 + bandi[i] * probability_scale * probability_density_function(540, bandl[i], halfwidth)));
+        b *= (1.0 / (1.0 + bandi[i] * probability_scale * probability_density_function(460, bandl[i], halfwidth)));
+
+        #if _dbg_veg_color
+        std::cout << "Band " << (i+1) << " reduces rgb to " << std::setprecision(3) << r << "," << g << "," << b << std::endl;
+        #endif
+    }
+
+    return { (unsigned char)(r*255), (unsigned char)(g*255), (unsigned char)(b*255) };
+}
+
 bool AlienStyle::load(std::string theme)
 {
     std::string filename = "assets/themes.json";

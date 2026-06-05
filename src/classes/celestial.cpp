@@ -924,12 +924,10 @@ void Map::generate_rocky_map(int lr, double BV, bool has_water, double objr)
     int vegr, vegg, vegb;
     if (has_water)
     {
-        vegr = 224 * pow(frand(0, 1), 0.4);
-        vegg = 192 * pow(frand(0, 1), 1.7);
-        vegb = 176 * pow(frand(0, 1), 2.9);
-        if (vegr < vegg && vegr < vegb) vegb /= 1.8;
-        if (vegg < vegr && vegg < vegb) vegg /= 2.1;
-        if (vegb < vegr && vegb < vegg) vegb /= 3.7;
+        RGB veg_color = generate_vegetation_color();
+        vegr = veg_color.r;
+        vegg = veg_color.g;
+        vegb = veg_color.b;
     }
 
     for (int y = 0; y < image_height; ++y)
@@ -957,49 +955,51 @@ void Map::generate_rocky_map(int lr, double BV, bool has_water, double objr)
             {
                 double r_weight = heightValue;
 
+                // TODO: Decide polar ice cap size based on estimated temperature based on bolometric flux.
+                if (v < 0.1 || v > 0.9)
+                {
+                    // Polar ice
+                    red_data[idx] = 225 * r_weight;
+                    green_data[idx] = 240 * r_weight;
+                    blue_data[idx] = 253 * r_weight;
+                }
                 // Biome allocation based on height thresholds
-                if (heightValue < 0.45)
-                {   // Deep Ocean
-                    red_data[idx] = 10 * r_weight;
-                    green_data[idx] = 30 * r_weight;
-                    blue_data[idx] = 120 * r_weight;
+                if (heightValue < 0.500)
+                {   // Ocean
+                    double shallowness = heightValue*2;
+                    double transmissive = pow(shallowness, 10);
+                    red_data[idx] = (10+30*transmissive) * r_weight;
+                    green_data[idx] = (30+70*transmissive) * r_weight;
+                    blue_data[idx] = (120+100*transmissive) * r_weight;
                 }
-                else if (heightValue < 0.50)
-                {   // Shallow Coast
-                    red_data[idx] = 30 * r_weight;
-                    green_data[idx] = 90 * r_weight;
-                    blue_data[idx] = 180 * r_weight;
-                }
-                else if (heightValue < 0.53)
-                {   // Beach / Sand
+                else if (heightValue < 0.503)
+                {   // Beach sand
                     red_data[idx] = 220 * r_weight;
                     green_data[idx] = 200 * r_weight;
                     blue_data[idx] = 150 * r_weight;
                 }
                 else if (heightValue < 0.70)
-                {   // Grassland / Lowlands
-                    // Don't assume alien vegetation is green!
+                {   // Lowlands
                     red_data[idx] = vegr * r_weight;
                     green_data[idx] = vegg * r_weight;
                     blue_data[idx] = vegb * r_weight;
                 }
                 else if (heightValue < 0.85)
-                {   // Mountains (Dirt / Rock)
+                {   // Mountains
                     red_data[idx] = 110 * r_weight;
                     green_data[idx] = 90 * r_weight;
                     blue_data[idx] = 75 * r_weight;
                 }
                 else
-                {   // Snowy Peaks
-                    red_data[idx] = 240 * r_weight;
+                {   // Snowy peaks
+                    red_data[idx] = 225 * r_weight;
                     green_data[idx] = 240 * r_weight;
-                    blue_data[idx] = 255 * r_weight;
+                    blue_data[idx] = 253 * r_weight;
                 }
             }
             else
             {
-                // Moon or Dead Desert Planet (Grayscale / Basalt / Rust)
-                // Let's make an iron-rich desert world (Mars-like)
+                // Lifeless planet or moon
                 double r_weight = heightValue;
                 red_data[idx] = (unsigned char)(rgb.r * r_weight + 40);
                 green_data[idx] = (unsigned char)(rgb.g * r_weight + 20);
