@@ -88,7 +88,7 @@ class Map
     bool save_to_png(std::string filename);
 
     RGB color_at(double latitude, double longitude);
-    void generate_rocky_map(int latitude_resolution, double BV_color, bool has_water);
+    void generate_rocky_map(int latitude_resolution, double BV_color, bool has_water, double objradius);
     void generate_gas_giant_map(int latitude_resolution, double BV_color);
 };
 

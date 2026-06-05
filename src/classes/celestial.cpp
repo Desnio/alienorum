@@ -895,12 +895,13 @@ double CelestialObject::get_equatorial_radius()
     return volumetric_mean_radius * pow(1.0 - oblateness, 0.333);
 }
 
-void Map::generate_rocky_map(int lr, double BV, bool has_water)
+void Map::generate_rocky_map(int lr, double BV, bool has_water, double objr)
 {
     std::srand(static_cast<unsigned int>(std::time(nullptr)));
 
     int octaves = 5 + (rand() % 4);
-    double lacunarity = frand(2.1, 2.9);
+    double lacbase = sqrt(fmax(1, log(objr)));
+    double lacunarity = frand(0.51*lacbase, 0.53*lacbase);
     double gain = has_water ? 0.5 : 2.5;
     double scale = frand(has_water ? 1.5 : 0.2, has_water ? 2.9 : 0.8);             // Controls feature sizes (smaller scale = larger continents)
 

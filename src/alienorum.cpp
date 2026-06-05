@@ -325,7 +325,8 @@ void load_textures(CelestialObject* cel)
         cel->surf_map = new Map();
         cel->surf_map->generate_rocky_map(cel->fictitious_map_height, cel->BV_color,
             cel->mass > 0.02 * earth_mass                       // Based on Titan's mass.
-            && ((Planet*)cel)->is_in_con_HZ());
+            && ((Planet*)cel)->is_in_con_HZ(),
+            cel->volumetric_mean_radius);
     }
 }
 
@@ -353,7 +354,13 @@ int draw_sphere(CelestialObject* cel, double arad)
 
     bool prev_valid = false;
     bool dwh = false;
-    if (cel->typeclass() == class_moon) dwh = (((Moon*)cel)->depth && ((Moon*)cel)->width && ((Moon*)cel)->height);
+
+    // It's nice that when you initialize a double to zero, it sets all the bits to zero and it %@#&ING STAYS ZERO
+    if (cel->typeclass() == class_moon)
+        dwh = (((Moon*)cel)->depth > zero_isnt_really_zero
+            && ((Moon*)cel)->width > zero_isnt_really_zero
+            && ((Moon*)cel)->height > zero_isnt_really_zero);
+
     double equatorial_radius, theta, vtheta, cos_theta, cos_vtheta, is_day, is_night;
     if (dwh)
         equatorial_radius = pow(((Moon*)cel)->depth * ((Moon*)cel)->width, 0.5) * 500;
