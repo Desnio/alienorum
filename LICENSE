@@ -3,7 +3,11 @@ licensed under the Gnu General Public License.
 
 ImGui is copyright (C) 2014-2026 Omar Cornut,
 used with modifications pursuant to the MIT License. https://opensource.org/licenses/MIT
-See the imgui/ folder for the ImGui license.
+See the include/imgui/ folder for the ImGui license.
+
+ImGuiFileDialog is Copyright (c) 2018-2025 Stephane Cuillerdier (aka Aiekick),
+used with modifications pursuant to the MIT License. https://opensource.org/licenses/MIT
+See the include/igfd/ folder for the IGFD license.
 
 nlohmann/json is copyright (C) 2013-2026 Niels Lohmann,
 used here pursuant to the MIT License. https://opensource.org/licenses/MIT
