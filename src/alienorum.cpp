@@ -21,6 +21,7 @@
 #include "classes/color.h"
 #include "classes/serial.h"
 #include "classes/cat.h"
+#include "include/igfd/ImGuiFileDialog.h"
 #define _CRT_SECURE_NO_WARNINGS
 #define STB_IMAGE_IMPLEMENTATION
 #include "include/stb/stb_image.h"
@@ -43,7 +44,7 @@ double txtyscale, txtycompact, edit_sma, edit_incl, edit_eccn, edit_argperi, edi
     edit_node, edit_manom, edit_period, edit_eqincl, edit_equinox, edit_precnode, edit_procargperi;
 bool is_click;
 double frame_dur = 0, best_frame_dur = 1e9, scrollhold = 0;
-bool splash = true, magnitude_test = false, redo_proper_motions = true;
+bool splash = true, magnitude_test = false, redo_proper_motions = true, fdlg_shown = false;
 
 // ImGui Example Code
 
@@ -782,6 +783,38 @@ bool save_universe()
     return false;
 }
 
+void set_center_objects()
+{
+    int i;
+    for (i=0; cels[i]; i++)
+    {
+        // Center of each star system
+        if (!cels[i]->cenobj) cels[i]->cenobj = cels[i];
+
+        // Orbit integrity check
+        if (cels[i]->orbit && cels[i]->orbit->center == cels[i])
+        {
+            delete cels[i]->orbit;
+            cels[i]->orbit = nullptr;
+        }
+
+        // System center integrity
+        while (cels[i]->cenobj->orbit && cels[i]->cenobj->orbit->center && cels[i]->cenobj->orbit->center->typeclass() != class_galaxy)
+            cels[i]->cenobj = cels[i]->cenobj->orbit->center;
+        if (cels[i]->type == star)
+        {
+            if (cels[i]->orbit && cels[i]->absolute_magnitude < cels[i]->cenobj->absolute_magnitude)
+                cels[i]->absolute_magnitude = cels[i]->cenobj->absolute_magnitude + 1;
+            ((Star*)cels[i])->update_location(simnow);
+        }
+        else if (cels[i]->orbit)
+        {
+            if (cels[i]->typeclass() == class_planet) ((Planet*)cels[i])->update_location(simnow);
+            else if (cels[i]->typeclass() == class_moon) ((Moon*)cels[i])->update_location(simnow);
+        }
+    }
+}
+
 bool load_universe(std::string universe_fname = "universe.json")
 {
     int i;
@@ -813,6 +846,7 @@ bool load_universe(std::string universe_fname = "universe.json")
                 resave_json = true;
             }
             if (resave_json) save_universe();
+            set_center_objects();
 
             return true;
         }
@@ -828,8 +862,6 @@ bool load_universe(std::string universe_fname = "universe.json")
 void load_catalogs()
 {
     int i, n;
-
-    // if (load_universe("universe.json")) return;
 
     // TODO: Read data from more star catalogs.
     CatalogReader cr;
@@ -966,37 +998,10 @@ void load_catalogs()
 
     if (load_univ.size())
     {
-        load_universe(load_univ);
-        SDL_SetWindowTitle(window, (load_univ + std::string(" - Alienorum")).c_str());
+        if (load_universe(load_univ)) SDL_SetWindowTitle(window, (load_univ + std::string(" - Alienorum")).c_str());
     }
 
-    for (i=0; cels[i]; i++)
-    {
-        // Center of each star system
-        if (!cels[i]->cenobj) cels[i]->cenobj = cels[i];
-
-        // Orbit integrity check
-        if (cels[i]->orbit && cels[i]->orbit->center == cels[i])
-        {
-            delete cels[i]->orbit;
-            cels[i]->orbit = nullptr;
-        }
-
-        // System center integrity
-        while (cels[i]->cenobj->orbit && cels[i]->cenobj->orbit->center && cels[i]->cenobj->orbit->center->typeclass() != class_galaxy)
-            cels[i]->cenobj = cels[i]->cenobj->orbit->center;
-        if (cels[i]->type == star)
-        {
-            if (cels[i]->orbit && cels[i]->absolute_magnitude < cels[i]->cenobj->absolute_magnitude)
-                cels[i]->absolute_magnitude = cels[i]->cenobj->absolute_magnitude + 1;
-            ((Star*)cels[i])->update_location(simnow);
-        }
-        else if (cels[i]->orbit)
-        {
-            if (cels[i]->typeclass() == class_planet) ((Planet*)cels[i])->update_location(simnow);
-            else if (cels[i]->typeclass() == class_moon) ((Moon*)cels[i])->update_location(simnow);
-        }
-    }
+    set_center_objects();
 
     refresh_star_visibilities();
 }
@@ -2575,7 +2580,12 @@ void draw_objedit_window(ImGuiIO& io)
         viewchanged = true;
         if (cel->typeclass() == class_star) ((Star*)cel)->update_location(simnow);
         else if (cel->typeclass() == class_planet) ((Planet*)cel)->update_location(simnow);
-        else if (cel->typeclass() == class_moon) ((Moon*)cel)->update_location(simnow);
+        else if (cel->typeclass() == class_moon)
+        {
+            Moon *m = (Moon*)cel;
+            m->depth = m->width = m->height = 0;
+            m->update_location(simnow);
+        }
     }
 
     stringstream massss;
@@ -3491,6 +3501,37 @@ int main (int argc, char** argv)
                 forward = rotate3D(forward, center, here.equatorial_plane.v, -here.equatorial_plane.a);
                 velocity -= forward;
             }
+            if (ImGui::IsKeyPressed(ImGuiKey_F4))
+            {
+                IGFD::FileDialogConfig config;
+                config.path = ".";
+                ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".json", config);
+                fdlg_shown = true;
+            }
+
+            if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey"))
+            {
+                if (ImGuiFileDialog::Instance()->IsOk())
+                {
+                    // action if OK
+                    std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
+                    std::string filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
+                    // action
+
+                    if (load_universe(filePathName))
+                    {
+                        const char* slash = strrchr(filePathName.c_str(), '/');
+                        if (!slash) slash = strrchr(filePathName.c_str(), '\\');
+                        if (slash) load_univ = &slash[1];
+                        else load_univ = filePathName;
+                        SDL_SetWindowTitle(window, (load_univ + std::string(" - Alienorum")).c_str());
+                    }
+                }
+
+                // close
+                ImGuiFileDialog::Instance()->Close();
+                fdlg_shown = false;
+            }
         }
         if (ImGui::IsKeyPressed(ImGuiKey_F11))
         {
@@ -3527,7 +3568,7 @@ int main (int argc, char** argv)
 
             std::this_thread::sleep_for(std::chrono::milliseconds(timeout_ms));
 
-            hide_mouse = !splash && (frame_dur < 0.1 || abs(lmx - io.MousePos.x) <= 4 || abs(lmy - io.MousePos.y) <= 4);
+            hide_mouse = !splash && !fdlg_shown && (frame_dur < 0.1 || abs(lmx - io.MousePos.x) <= 4 || abs(lmy - io.MousePos.y) <= 4);
 
             lmx = io.MousePos.x;
             lmy = io.MousePos.y;

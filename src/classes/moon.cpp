@@ -64,9 +64,9 @@ json Moon::to_json()
     // towrite["Laplace_plane"] = Laplace_plane.to_json();
     // towrite["Laplace_set"] = Laplace_set;
 
-    if (depth) towrite["depth"] = depth;
-    if (width) towrite["width"] = width;
-    if (height) towrite["height"] = height;
+    if (depth > zero_isnt_really_zero) towrite["depth"] = depth;
+    if (width > zero_isnt_really_zero) towrite["width"] = width;
+    if (height > zero_isnt_really_zero) towrite["height"] = height;
 
     return towrite;
 }

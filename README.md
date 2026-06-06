@@ -202,4 +202,10 @@ Shift+I     Rewind one minute
 
 Shift+A     Add new object in orbit around current object
 Shift+E     Edit current object
-U           Export user-added and user-modified objects to universe.dat
+U           Export user-added and user-modified objects to universe.json
+F4          Load user objects from an external JSON file
+
+IMPORTANT: After loading a universe with F4, subsequently saving your changes with U will not overwrite the
+external file. It will save to universe.json. Make sure to either copy your changes to the external JSON file
+or back up your old file and rename universe.json to the external filename. It's also a good idea to check
+universe.json to make sure it has all the custom celestial objects.

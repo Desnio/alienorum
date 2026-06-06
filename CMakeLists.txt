@@ -22,8 +22,19 @@ add_library(IMGUI STATIC
 	src/include/imgui/backends/imgui_impl_sdl2.cpp
 )
 
+add_library(ImGuiFileDialog
+    src/include/igfd/ImGuiFileDialog.cpp
+    src/include/igfd/ImGuiFileDialog.h
+    src/include/igfd/ImGuiFileDialogConfig.h
+)
+
+if(UNIX)
+    target_compile_options(ImGuiFileDialog PUBLIC -Wno-unknown-pragmas)
+endif()
+
 # PUBLIC so we don't have to do the same for all things that rely on imgui
 target_include_directories(IMGUI PUBLIC src/include/imgui)
+target_include_directories(ImGuiFileDialog PUBLIC src/include/imgui)
 
 # SDL required for imgui_impl_sld2.cpp
 target_link_libraries(IMGUI PUBLIC SDL2::SDL2)
@@ -48,7 +59,7 @@ target_link_libraries(CLASSES JPEG::JPEG PNG::PNG)
 
 add_executable(alienorum src/alienorum.cpp)
 
-target_link_libraries(alienorum IMGUI CLASSES)
+target_link_libraries(alienorum IMGUI CLASSES ImGuiFileDialog)
 
 if(UNIX AND NOT APPLE)
 	target_link_libraries(alienorum SDL2_image::SDL2_image OpenGL::GL dl)

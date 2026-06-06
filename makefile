@@ -26,9 +26,11 @@ CPPFLAGS = -std=c++17 -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends -Wall -Wformat
 # CPPFLAGS += -g -pg -DDEBUG
 
 IMGUI_DIR = src/include/imgui
+IGFD_DIR = src/include/igfd
 CLASSES_DIR = src/classes
 IMGUI_SRC = $(IMGUI_DIR)/imgui.cpp $(IMGUI_DIR)/imgui_demo.cpp $(IMGUI_DIR)/imgui_draw.cpp $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui_widgets.cpp \
             $(IMGUI_DIR)/backends/imgui_impl_sdl2.cpp $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
+IGFD_SRC = $(IGFD_DIR)/ImGuiFileDialog.cpp
 CLASSES_SRC = $(CLASSES_DIR)/point.cpp $(CLASSES_DIR)/cat.cpp $(CLASSES_DIR)/star.cpp $(CLASSES_DIR)/celestial.cpp $(CLASSES_DIR)/color.cpp \
             $(CLASSES_DIR)/misc.cpp $(CLASSES_DIR)/planet.cpp $(CLASSES_DIR)/moon.cpp $(CLASSES_DIR)/galaxy.cpp $(CLASSES_DIR)/serial.cpp \
 			$(CLASSES_DIR)/noise.cpp
@@ -40,7 +42,9 @@ LIBS =
 LINUX_GL_LIBS = -lGL
 
 # Dynamically track all object files cleanly
-OBJS = $(addsuffix .o, $(addprefix $(OBJ)/, $(basename $(notdir $(IMGUI_SRC)))))
+IMGUI_OBJS = $(addsuffix .o, $(addprefix $(OBJ)/, $(basename $(notdir $(IMGUI_SRC)))))
+OBJS = $(IMGUI_OBJS)
+OBJS += $(addsuffix .o, $(addprefix $(OBJ)/, $(basename $(notdir $(IGFD_SRC)))))
 OBJS += $(addsuffix .o, $(addprefix $(OBJ)/, $(basename $(notdir $(CLASSES_SRC)))))
 
 INCLUDES = -I./src/include -I./$(IMGUI_DIR) -I./$(CLASSES_DIR)
@@ -111,6 +115,9 @@ $(OBJ)/imgui.o:$(IMGUI_DIR)/imgui.cpp
 
 $(OBJ)/imgui_impl_opengl3.o:$(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
 	$(CPP) $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp $(CPPFLAGS) -c -o $(OBJ)/imgui_impl_opengl3.o
+
+$(OBJ)/ImGuiFileDialog.o:$(IGFD_DIR)/ImGuiFileDialog.cpp
+	$(CPP) $(IGFD_DIR)/ImGuiFileDialog.cpp $(CPPFLAGS) -c -o $(OBJ)/ImGuiFileDialog.o
 
 $(OBJ)/imgui_impl_sdl2.o:$(IMGUI_DIR)/backends/imgui_impl_sdl2.cpp
 	$(CPP) $(IMGUI_DIR)/backends/imgui_impl_sdl2.cpp $(CPPFLAGS) -c -o $(OBJ)/imgui_impl_sdl2.o

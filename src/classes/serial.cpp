@@ -164,7 +164,7 @@ bool Serialization::load_all(std::fstream& fs, CelestialObject **cels, unsigned 
             if (i<ncelobjs && strcmp(cels[i]->name, name.c_str()))
             {
                 j = find_object(name.c_str(), c == class_star);
-                if (j >= 0 && cels[j]->typeclass() == c) i = j;
+                if (j >= 0 && cels[j]->typeclass() == c && (c == class_star || !strcmp(name.c_str(), cels[j]->name))) i = j;
             }
 
             switch (c)
